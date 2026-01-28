@@ -616,68 +616,120 @@ export default function App() {
                   </div>
                </div>
 
-               {/* PANEL KOMPARASI KINERJA (BARU) */}
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-lg group">
-                     <div className="flex justify-between items-start mb-6">
+               {/* PANEL KOMPARASI KINERJA PER TRIWULAN */}
+               <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                  {/* KARTU KOMPARASI RPD */}
+                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative">
+                    <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-orange-100 text-orange-600 rounded-3xl"><Target size={28}/></div>
                         <div className="text-right">
-                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status RPD</span>
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status Global RPD</span>
                            {Math.abs(globalStats.rpd - sumMapValues(kppnMetrics.rpd)) < 1000 ? (
                               <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Match</span>
                            ) : (
                               <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center justify-end gap-1"><AlertTriangle size={12}/> Unmatch</span>
                            )}
                         </div>
-                     </div>
-                     <h4 className="text-lg font-black italic text-slate-800 mb-4 uppercase tracking-tighter">Komparasi Target RPD</h4>
-                     <div className="space-y-4">
-                        <div className="flex justify-between items-center text-xs">
-                           <span className="text-slate-500 font-bold uppercase tracking-widest">Input Satker</span>
-                           <span className="font-black text-slate-800">Rp {formatMoney(globalStats.rpd)}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                           <span className="text-slate-500 font-bold uppercase tracking-widest">Target KPPN</span>
-                           <span className="font-black text-orange-600 italic underline">Rp {formatMoney(sumMapValues(kppnMetrics.rpd))}</span>
-                        </div>
-                        <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Deviasi / Selisih</span>
-                           <span className={`text-sm font-black italic ${globalStats.rpd - sumMapValues(kppnMetrics.rpd) === 0 ? 'text-slate-400' : 'text-rose-600'}`}>
-                              Rp {formatMoney(globalStats.rpd - sumMapValues(kppnMetrics.rpd))}
-                           </span>
-                        </div>
-                     </div>
+                    </div>
+                    <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring RPD Per Triwulan</h4>
+                    
+                    <div className="space-y-4">
+                        {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
+                           const internalRPD = globalStats.tw[idx].rpd;
+                           const targetKPPN = Number(kppnMetrics.rpd?.[tw]) || 0;
+                           const deviasi = internalRPD - targetKPPN;
+                           const isMatch = Math.abs(deviasi) < 1000;
+
+                           return (
+                              <div key={tw} className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-3">
+                                 <div className="flex justify-between items-center">
+                                    <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
+                                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${isMatch ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                       {isMatch ? 'Sesuai' : 'Ada Selisih'}
+                                    </span>
+                                 </div>
+                                 <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                       <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
+                                       <span className="text-xs font-bold text-slate-700">Rp {formatMoney(internalRPD)}</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                       <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Target KPPN</span>
+                                       <span className="text-xs font-bold text-orange-600 block text-right">Rp {formatMoney(targetKPPN)}</span>
+                                    </div>
+                                 </div>
+                                 <div className="pt-2 border-t border-slate-200/60 flex justify-between items-center italic">
+                                    <span className="text-[9px] font-bold text-slate-400">DEVIASI:</span>
+                                    <span className={`text-[10px] font-black ${isMatch ? 'text-slate-400' : 'text-rose-600'}`}>
+                                       Rp {formatMoney(deviasi)}
+                                    </span>
+                                 </div>
+                              </div>
+                           );
+                        })}
+                    </div>
+                    
+                    <div className="mt-6 pt-6 border-t-2 border-dashed border-slate-100 flex justify-between items-center">
+                       <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Total Selisih Akhir:</span>
+                       <span className="text-lg font-black italic text-slate-900 tracking-tighter">Rp {formatMoney(globalStats.rpd - sumMapValues(kppnMetrics.rpd))}</span>
+                    </div>
                   </div>
 
-                  <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-lg group">
-                     <div className="flex justify-between items-start mb-6">
+                  {/* KARTU KOMPARASI REALISASI */}
+                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative">
+                    <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-blue-100 text-blue-600 rounded-3xl"><Activity size={28}/></div>
                         <div className="text-right">
-                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status Realisasi</span>
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status Global Realisasi</span>
                            {Math.abs(globalStats.real - sumMapValues(kppnMetrics.real)) < 1000 ? (
                               <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Match</span>
                            ) : (
                               <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center justify-end gap-1"><AlertTriangle size={12}/> Unmatch</span>
                            )}
                         </div>
-                     </div>
-                     <h4 className="text-lg font-black italic text-slate-800 mb-4 uppercase tracking-tighter">Komparasi Realisasi</h4>
-                     <div className="space-y-4">
-                        <div className="flex justify-between items-center text-xs">
-                           <span className="text-slate-500 font-bold uppercase tracking-widest">Input Satker</span>
-                           <span className="font-black text-slate-800">Rp {formatMoney(globalStats.real)}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                           <span className="text-slate-500 font-bold uppercase tracking-widest">Angka KPPN</span>
-                           <span className="font-black text-blue-600 italic underline">Rp {formatMoney(sumMapValues(kppnMetrics.real))}</span>
-                        </div>
-                        <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Deviasi / Selisih</span>
-                           <span className={`text-sm font-black italic ${globalStats.real - sumMapValues(kppnMetrics.real) === 0 ? 'text-slate-400' : 'text-rose-600'}`}>
-                              Rp {formatMoney(globalStats.real - sumMapValues(kppnMetrics.real))}
-                           </span>
-                        </div>
-                     </div>
+                    </div>
+                    <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring Realisasi Per Triwulan</h4>
+                    
+                    <div className="space-y-4">
+                        {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
+                           const internalReal = globalStats.tw[idx].real;
+                           const targetKPPN = Number(kppnMetrics.real?.[tw]) || 0;
+                           const deviasi = internalReal - targetKPPN;
+                           const isMatch = Math.abs(deviasi) < 1000;
+
+                           return (
+                              <div key={tw} className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-3">
+                                 <div className="flex justify-between items-center">
+                                    <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
+                                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${isMatch ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                       {isMatch ? 'Sesuai' : 'Ada Selisih'}
+                                    </span>
+                                 </div>
+                                 <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                       <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
+                                       <span className="text-xs font-bold text-slate-700">Rp {formatMoney(internalReal)}</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                       <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Angka KPPN</span>
+                                       <span className="text-xs font-bold text-blue-600 block text-right">Rp {formatMoney(targetKPPN)}</span>
+                                    </div>
+                                 </div>
+                                 <div className="pt-2 border-t border-slate-200/60 flex justify-between items-center italic">
+                                    <span className="text-[9px] font-bold text-slate-400">DEVIASI:</span>
+                                    <span className={`text-[10px] font-black ${isMatch ? 'text-slate-400' : 'text-rose-600'}`}>
+                                       Rp {formatMoney(deviasi)}
+                                    </span>
+                                 </div>
+                              </div>
+                           );
+                        })}
+                    </div>
+                    
+                    <div className="mt-6 pt-6 border-t-2 border-dashed border-slate-100 flex justify-between items-center">
+                       <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Total Selisih Akhir:</span>
+                       <span className="text-lg font-black italic text-slate-900 tracking-tighter">Rp {formatMoney(globalStats.real - sumMapValues(kppnMetrics.real))}</span>
+                    </div>
                   </div>
                </div>
 
