@@ -337,6 +337,10 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem(`meseikpa_session_${appId}`);
+    // Clear login inputs for security
+    setLoginUsername("");
+    setLoginPassword("");
+    setLoginError("");
     setActiveTab('dashboard');
   };
 
