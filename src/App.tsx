@@ -837,13 +837,13 @@ export default function App() {
                            const internalRPD = globalStats.tw[idx].rpd;
                            const targetKPPN = Number(kppnMetrics.rpd?.[tw]) || 0;
                            const deviasi = internalRPD - targetKPPN;
-                           const isMatch = Math.abs(deviasi) < 1000;
+                           const devPct = targetKPPN !== 0 ? (deviasi / targetKPPN) * 100 : 0;
                            return (
                               <div key={tw} className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-3">
                                  <div className="flex justify-between items-center">
                                     <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
-                                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${isMatch ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                                       {isMatch ? 'Sesuai' : 'Ada Selisih'}
+                                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${Math.abs(devPct) < 0.1 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                                       Deviasi: {devPct > 0 ? '+' : ''}{devPct.toFixed(2)}%
                                     </span>
                                  </div>
                                  <div className="grid grid-cols-2 gap-4">
@@ -879,13 +879,13 @@ export default function App() {
                            const internalReal = globalStats.tw[idx].real;
                            const targetKPPN = Number(kppnMetrics.real?.[tw]) || 0;
                            const deviasi = internalReal - targetKPPN;
-                           const isMatch = Math.abs(deviasi) < 1000;
+                           const devPct = targetKPPN !== 0 ? (deviasi / targetKPPN) * 100 : 0;
                            return (
                               <div key={tw} className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-3">
                                  <div className="flex justify-between items-center">
                                     <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
-                                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${isMatch ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                                       {isMatch ? 'Sesuai' : 'Ada Selisih'}
+                                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${Math.abs(devPct) < 0.1 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                                       Deviasi: {devPct > 0 ? '+' : ''}{devPct.toFixed(2)}%
                                     </span>
                                  </div>
                                  <div className="grid grid-cols-2 gap-4">
