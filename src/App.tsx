@@ -48,7 +48,9 @@ import {
   LogIn,
   KeyRound,
   Search,
-  Filter
+  Filter,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
@@ -169,6 +171,9 @@ export default function App() {
   const [isLocked, setIsLocked] = useState(false);
   const [showClearDataModal, setShowClearDataModal] = useState(false);
   
+  // State Password Visibility
+  const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
+
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newFullName, setNewFullName] = useState("");
@@ -183,6 +188,16 @@ export default function App() {
   };
 
   const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
+
+  // Efek Otomatis Set Tim Berdasarkan Profil User (Jika Bukan Admin)
+  useEffect(() => {
+    if (currentUser && currentUser.role !== 'admin') {
+      setActiveTim(currentUser.team);
+      // Pimpinan GG, Umum WA
+      if (currentUser.team === "Umum") setActiveWilayah("WA");
+      else setActiveWilayah("GG");
+    }
+  }, [currentUser]);
 
   // Excel Loader
   useEffect(() => {
@@ -375,7 +390,7 @@ export default function App() {
   }, [dataTampil]);
 
   const handleUpdateKPPN = async (category: 'rpd' | 'real', tw: string, value: string) => {
-    if (!fbUser) return;
+    if (!fbUser || currentUser?.role !== 'admin') return;
     const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
     await setDoc(docRef, {
       [category]: { ...kppnMetrics[category], [tw]: value }
@@ -400,6 +415,14 @@ export default function App() {
       addLog(`Pegawai ${newFullName} berhasil didaftarkan.`);
     } catch (e: any) { addLog("Gagal: " + e.message); }
     finally { setIsProcessing(false); }
+  };
+
+  const handleChangeUserPassword = async (id: string, newPass: string) => {
+    if (!id || !newPass || !fbUser || currentUser?.role !== 'admin') return;
+    try {
+       await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, id), { password: newPass });
+       addLog("Password user berhasil diperbarui.");
+    } catch (e: any) { console.error(e); }
   };
 
   const handleFileAnalyze = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -665,7 +688,7 @@ export default function App() {
             </h2>
           </div>
           
-          {/* SEARCH BAR GLOBAL (Digunakan agar setSearchTerm aktif) */}
+          {/* SEARCH BAR GLOBAL */}
           <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
             <div className="relative w-full">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -751,42 +774,44 @@ export default function App() {
 
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-               {/* MODUL KONFIGURASI KPPN */}
-               <div className="bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-white/10 text-white">
-                  <div className="flex items-center gap-4 mb-8">
-                     <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg"><Settings2 size={24} /></div>
-                     <div>
-                        <h3 className="text-lg font-black uppercase italic leading-tight text-white">Konfigurasi Data KPPN</h3>
-                        <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">Target resmi untuk penyandingan data</p>
-                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-400 mb-2 tracking-widest"><Target size={14} /> Target RPD KPPN</div>
-                        <div className="grid grid-cols-4 gap-4">
-                           {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
-                              <div key={tw} className="flex flex-col">
-                                 <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
-                                 <input type="number" value={kppnMetrics.rpd?.[tw] || ""} onChange={(e) => handleUpdateKPPN('rpd', tw, e.target.value)} 
-                                    className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
-                              </div>
-                           ))}
-                        </div>
-                     </div>
-                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest"><Activity size={14} /> Realisasi Anggaran KPPN</div>
-                        <div className="grid grid-cols-4 gap-4">
-                           {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
-                              <div key={tw} className="flex flex-col">
-                                 <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
-                                 <input type="number" value={kppnMetrics.real?.[tw] || ""} onChange={(e) => handleUpdateKPPN('real', tw, e.target.value)} 
-                                    className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
-                              </div>
-                           ))}
-                        </div>
-                     </div>
-                  </div>
-               </div>
+               {/* MODUL KONFIGURASI KPPN (Hanya Admin) */}
+               {currentUser?.role === 'admin' && (
+                 <div className="bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-white/10 text-white">
+                    <div className="flex items-center gap-4 mb-8">
+                       <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg"><Settings2 size={24} /></div>
+                       <div>
+                          <h3 className="text-lg font-black uppercase italic leading-tight text-white">Konfigurasi Data KPPN</h3>
+                          <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">Target resmi untuk penyandingan data</p>
+                       </div>
+                    </div>
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+                       <div className="space-y-4">
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-400 mb-2 tracking-widest"><Target size={14} /> Target RPD KPPN</div>
+                          <div className="grid grid-cols-4 gap-4">
+                             {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
+                                <div key={tw} className="flex flex-col">
+                                   <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
+                                   <input type="number" value={kppnMetrics.rpd?.[tw] || ""} onChange={(e) => handleUpdateKPPN('rpd', tw, e.target.value)} 
+                                      className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+                       <div className="space-y-4">
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest"><Activity size={14} /> Realisasi Anggaran KPPN</div>
+                          <div className="grid grid-cols-4 gap-4">
+                             {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
+                                <div key={tw} className="flex flex-col">
+                                   <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
+                                   <input type="number" value={kppnMetrics.real?.[tw] || ""} onChange={(e) => handleUpdateKPPN('real', tw, e.target.value)} 
+                                      className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+               )}
 
                {/* PANEL KOMPARASI KINERJA PER TRIWULAN */}
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -876,7 +901,7 @@ export default function App() {
                   </div>
                </div>
 
-               {/* FILTER TABEL (Digunakan agar setRapatDepth aktif) */}
+               {/* FILTER TABEL */}
                <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-200 flex items-center gap-8">
                   <div className="p-5 bg-blue-100 text-blue-600 rounded-2xl"><Filter size={28}/></div>
                   <div className="flex-1">
@@ -949,7 +974,7 @@ export default function App() {
             </div>
           )}
 
-          {activeTab === 'users' && (
+          {activeTab === 'users' && currentUser?.role === 'admin' && (
             <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
                <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
                   <h3 className="text-2xl font-black uppercase italic mb-10 flex items-center gap-4 text-white">
@@ -992,13 +1017,34 @@ export default function App() {
                <div className="bg-white rounded-[3rem] border border-slate-200 overflow-hidden shadow-sm">
                   <table className="w-full text-left text-xs">
                      <thead className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black text-slate-400">
-                        <tr><th className="px-8 py-4">Nama</th><th className="px-4 py-4">Username</th><th className="px-4 py-4 text-center">Hapus</th></tr>
+                        <tr>
+                           <th className="px-8 py-4">Nama</th>
+                           <th className="px-4 py-4">Username</th>
+                           <th className="px-4 py-4">Password</th>
+                           <th className="px-4 py-4 text-center">Hapus</th>
+                        </tr>
                      </thead>
                      <tbody className="divide-y divide-slate-50">
-                        {allUsers.map((u, i) => (
-                           <tr key={i}>
-                              <td className="px-8 py-5 font-bold text-slate-800">{u.name}</td>
-                              <td className="px-4 py-5 font-mono text-blue-600 italic">@{u.username}</td>
+                        {allUsers.map((u) => (
+                           <tr key={u.id}>
+                              <td className="px-8 py-5 font-bold text-slate-800">
+                                 <div>{u.name}</div>
+                                 <div className="text-[9px] text-blue-500 uppercase tracking-widest">{u.role} • {u.team}</div>
+                              </td>
+                              <td className="px-4 py-5 font-mono text-slate-500 italic">@{u.username}</td>
+                              <td className="px-4 py-5 font-mono">
+                                 <div className="flex items-center gap-2 group">
+                                    <input 
+                                       type={showPasswordMap[u.id] ? "text" : "password"} 
+                                       defaultValue={u.password}
+                                       onBlur={(e) => handleChangeUserPassword(u.id, e.target.value)}
+                                       className="bg-slate-100 border-none rounded-lg px-2 py-1 w-24 text-[11px] focus:ring-1 focus:ring-blue-500 transition-all" 
+                                    />
+                                    <button onClick={() => setShowPasswordMap(prev => ({ ...prev, [u.id]: !prev[u.id] }))} className="text-slate-400 hover:text-blue-500">
+                                       {showPasswordMap[u.id] ? <EyeOff size={14}/> : <Eye size={14}/>}
+                                    </button>
+                                 </div>
+                              </td>
                               <td className="px-4 py-5 text-center">
                                  <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, u.id))} className="p-2 text-rose-400 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
                               </td>
@@ -1010,7 +1056,7 @@ export default function App() {
             </div>
           )}
 
-          {activeTab === 'migrasi' && (
+          {activeTab === 'migrasi' && currentUser?.role === 'admin' && (
             <div className="max-w-4xl mx-auto py-4 animate-in slide-in-from-bottom duration-700">
                <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
                   <div className="bg-slate-900 p-8 text-white relative">
@@ -1039,25 +1085,35 @@ export default function App() {
           {(activeTab === 'rpd' || activeTab === 'realisasi') && (
             <div className="space-y-6 animate-in fade-in duration-700">
               <div className="flex items-center justify-between mb-4">
-                 <button onClick={() => setIsLocked(!isLocked)} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase shadow-md transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
-                    {isLocked ? <Lock size={14} /> : <Unlock size={14} />} {isLocked ? 'Terkunci' : 'Kunci Pengisian'}
-                 </button>
-                 <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase bg-white text-slate-600 border border-slate-200"><Eraser size={14} /> Reset Nilai</button>
+                 {/* HANYA ADMIN YANG BISA KUNCI & RESET */}
+                 {currentUser?.role === 'admin' ? (
+                    <div className="flex gap-4">
+                       <button onClick={() => setIsLocked(!isLocked)} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase shadow-md transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
+                          {isLocked ? <Lock size={14} /> : <Unlock size={14} />} {isLocked ? 'Terkunci' : 'Kunci Pengisian'}
+                       </button>
+                       <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase bg-white text-slate-600 border border-slate-200"><Eraser size={14} /> Reset Nilai</button>
+                    </div>
+                 ) : (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 italic text-[11px] font-bold">
+                       <ShieldHalf size={16} /> Mode Pengisian Tim {currentUser?.team}
+                    </div>
+                 )}
               </div>
 
+              {/* FILTER WILAYAH / TIM (Hanya Admin yang Bisa Ganti) */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                  <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
                     <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
-                      <button onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>GG</button>
-                      <button onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>WA</button>
+                      <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>GG</button>
+                      <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>WA</button>
                     </div>
                  </div>
                  <div className="lg:col-span-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tim Pelaksana</span>
                     <div className="flex flex-wrap gap-1 p-1 bg-slate-50 rounded-lg">
                       {ALL_TEAMS.filter(t => activeWilayah === "GG" ? t !== "Umum" : t === "Umum").map(tim => (
-                        <button key={tim} onClick={() => setActiveTim(tim)} className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400'}`}>{tim}</button>
+                        <button key={tim} disabled={currentUser?.role !== 'admin'} onClick={() => setActiveTim(tim)} className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 opacity-50'}`}>{tim}</button>
                       ))}
                     </div>
                  </div>
@@ -1089,6 +1145,14 @@ export default function App() {
                       {finalDisplay.map((item: any) => {
                         const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
                         const sisaPagu = activeTab === 'rpd' ? (Number(item.pagu) || 0) - (item.totalRPD || 0) : (Number(item.pagu) || 0) - (item.totalReal || 0);
+                        
+                        // LOGIKA EDITING:
+                        // 1. Admin bisa edit semuanya.
+                        // 2. Ketua Tim bisa edit RPD timnya saja.
+                        // 3. Pimpinan tidak bisa edit apapun.
+                        const canEditThisTab = (activeTab === 'rpd' && (currentUser?.role === 'admin' || currentUser?.role === 'ketua_tim')) || 
+                                              (activeTab === 'realisasi' && currentUser?.role === 'admin');
+                        
                         return (
                           <tr key={item.id} className="hover:bg-blue-50/30 transition-all">
                             <td className="px-3 py-1.5 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
@@ -1097,17 +1161,27 @@ export default function App() {
                             {twMonths[twActive].map((m: string) => (
                                 <td key={m} className="px-0 py-0 h-full border-r border-slate-100 bg-blue-50/50 group">
                                   {!isInduk && item.isDetail ? (
-                                    <input type="number" value={activeTab === 'rpd' ? (item.rpd?.[m] || "") : (item.realisasi?.[m] || "")} readOnly={isLocked}
-                                      onChange={async (e) => { if(fbUser && !isLocked) { const f = activeTab === 'rpd' ? 'rpd' : 'realisasi'; const ex = activeTab === 'rpd' ? (item.rpd || {}) : (item.realisasi || {});
-                                          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id), { [f]: { ...ex, [m]: e.target.value } }); }
-                                      }} className="no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold text-[10px] bg-teal-400 text-slate-900" placeholder="0" />
+                                    <input 
+                                      type="number" 
+                                      value={activeTab === 'rpd' ? (item.rpd?.[m] || "") : (item.realisasi?.[m] || "")} 
+                                      readOnly={isLocked || !canEditThisTab}
+                                      onChange={async (e) => { 
+                                        if(fbUser && !isLocked && canEditThisTab) { 
+                                          const f = activeTab === 'rpd' ? 'rpd' : 'realisasi'; 
+                                          const ex = activeTab === 'rpd' ? (item.rpd || {}) : (item.realisasi || {});
+                                          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id), { [f]: { ...ex, [m]: e.target.value } }); 
+                                        }
+                                      }} 
+                                      className={`no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold text-[10px] ${!canEditThisTab ? 'bg-slate-100 text-slate-400' : 'bg-teal-400 text-slate-900 focus:bg-white transition-all'}`} 
+                                      placeholder="0" 
+                                    />
                                   ) : !isInduk ? (<div className="text-right px-2 py-2 text-slate-950 font-black italic">{formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}</div>) : null}
                                 </td>
                               ))}
                               <td className="px-3 py-1.5 text-right font-black bg-slate-100/50 text-slate-950">{!isInduk ? formatMoney(activeTab === 'rpd' ? item.totalRPD : item.totalReal) : ""}</td>
                             <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-950'}`}>{!isInduk ? formatMoney(sisaPagu) : ""}</td>
                             <td className="px-2 py-2 text-center">
-                               {item.isOrphan && (
+                               {(item.isOrphan && currentUser?.role === 'admin') && (
                                  <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id))} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
                                )}
                             </td>
@@ -1136,7 +1210,7 @@ export default function App() {
               <p className="text-[11px] text-slate-500 mb-10 leading-relaxed italic">Hapus semua data? Tindakan ini tidak dapat dibatalkan.</p>
               <div className="flex flex-col gap-3">
                  <button onClick={async () => { 
-                   if (!fbUser) return;
+                   if (!fbUser || currentUser?.role !== 'admin') return;
                    setIsProcessing(true); 
                    const snap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION));
                    let batch = writeBatch(db); 
