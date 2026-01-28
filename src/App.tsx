@@ -12,71 +12,54 @@ import {
   updateDoc, 
   writeBatch, 
   getDocs, 
-  deleteDoc,
-  where
+  deleteDoc
 } from 'firebase/firestore';
 import { 
   getAuth, 
   signInAnonymously, 
+  signInWithCustomToken,
   onAuthStateChanged 
 } from 'firebase/auth';
 import { 
   LayoutDashboard, 
   FileUp, 
-  Search, 
   Trash2, 
   AlertTriangle, 
   Menu, 
-  X, 
   User,
   Info,
-  Calendar,
   Wallet,
   Activity,
   Lock,
   Unlock,
-  Eraser,
-  BarChart3,
-  Edit3,
   PieChart,
   Layers,
   ShieldCheck,
   TrendingUp,
-  ArrowUpRight,
   Target,
-  Briefcase,
-  Package,
-  HardHat,
   Users,
-  LogOut,
   UserPlus,
-  ShieldAlert,
-  Fingerprint,
   CheckCircle2,
   Settings2,
   ArrowRightLeft,
-  KeyRound,
-  ShieldHalf
+  ShieldHalf,
+  Edit3,
+  Briefcase,
+  Package,
+  HardHat,
+  LogOut,
+  Eraser
 } from 'lucide-react';
 
 // ==========================================================
-// 1. KONFIGURASI FIREBASE
+// 1. KONFIGURASI FIREBASE & GLOBAL
 // ==========================================================
-const firebaseConfig = {
-  apiKey: "AIzaSyDYqadyvJ-9RYxBNOeDxsYAY6wwE5t_y8w",
-  authDomain: "mese-ikpa.firebaseapp.com",
-  projectId: "mese-ikpa",
-  storageBucket: "mese-ikpa.firebasestorage.app",
-  messagingSenderId: "968020082155",
-  appId: "1:968020082155:web:f86188e6de15dcd8cc2dae",
-  measurementId: "G-RH2652B9CL"
-};
-
+const firebaseConfig = JSON.parse(__firebase_config);
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'meseikpa-primary-store';
 
-const APP_IDENTIFIER = "meseikpa-primary-store";
 const DATA_COLLECTION = 'pagu_anggaran';
 const USER_COLLECTION = 'users';
 const METRICS_COLLECTION = 'kppn_metrics';
@@ -128,16 +111,7 @@ const generateRowKey = (item: any, currentPath: string[]) => {
 };
 
 export default function App() {
-  // --- STATE AUTH (Login Dinonaktifkan Sementara) ---
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>({
-    name: "Admin SBB",
-    role: "admin",
-    team: "Nerwilis",
-    username: "admin"
-  });
-
-  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   // --- STATE DATA ---
@@ -146,11 +120,12 @@ export default function App() {
     rpd: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
     real: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 }
   });
+  const [allUsers, setAllUsers] = useState<any[]>([]);
 
+  // --- UI STATE ---
   const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users'>('dashboard');
   const [activeWilayah, setActiveWilayah] = useState<string>("GG");
   const [activeTim, setActiveTim] = useState<string>("Nerwilis");
-  
   const [rapatDepth, setRapatDepth] = useState<number>(2); 
   const [twActive, setTwActive] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -163,7 +138,6 @@ export default function App() {
   const [isLocked, setIsLocked] = useState(false);
   const [showClearDataModal, setShowClearDataModal] = useState(false);
   
-  // --- STATE FORM USER BARU ---
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newFullName, setNewFullName] = useState("");
@@ -171,7 +145,7 @@ export default function App() {
   const [newUserTeam, setNewUserTeam] = useState("Nerwilis");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+  const allMonths = useMemo(() => ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'], []);
   const twMonths: Record<number, string[]> = {
     1: ['Jan', 'Feb', 'Mar'], 2: ['Apr', 'Mei', 'Jun'],
     3: ['Jul', 'Ags', 'Sep'], 4: ['Okt', 'Nov', 'Des']
@@ -179,7 +153,7 @@ export default function App() {
 
   const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
 
-  // Load Excel Library
+  // Excel Loader
   useEffect(() => {
     if ((window as any).XLSX) { setLibReady(true); return; }
     const script = document.createElement('script');
@@ -188,57 +162,67 @@ export default function App() {
     document.head.appendChild(script);
   }, []);
 
-  // Firebase Base Auth (Bypass login UI tapi tetap konek DB)
+  // MANDATORY RULE 3: Auth Before Queries
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      if (!u) {
-        await signInAnonymously(auth);
-      } else {
-        setIsAuthLoading(false);
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) {
+        console.error("Auth failed:", err);
       }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setIsAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // Sync Users List
+  // MANDATORY RULE 1 & 3: Guarded Firestore Listeners
   useEffect(() => {
-    if (!auth.currentUser) return;
-    const q = query(collection(db, 'artifacts', APP_IDENTIFIER, 'public', 'data', USER_COLLECTION));
-    return onSnapshot(q, (snapshot) => {
-      setAllUsers(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-    });
-  }, [auth.currentUser]);
+    if (!user) return;
 
-  // Sync KPPN Metrics
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    const docRef = doc(db, 'artifacts', APP_IDENTIFIER, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
-    return onSnapshot(docRef, (snapshot) => {
-      if (snapshot.exists()) setKppnMetrics(snapshot.data());
-    });
-  }, [isLoggedIn]);
+    // Listeners menggunakan path absolut sesuai RULE 1
+    const unsubUsers = onSnapshot(
+      query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION)),
+      (snap) => setAllUsers(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
+      (err) => console.error("Sync users failed", err)
+    );
 
-  // Sync Main Data
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    const q = query(collection(db, 'artifacts', APP_IDENTIFIER, 'public', 'data', DATA_COLLECTION));
-    return onSnapshot(q, (snapshot) => {
-      let dataItems: any[] = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-      dataItems.sort((a, b) => (a.noUrut || 0) - (b.noUrut || 0));
-      
-      let currentWilayah = "GG";
-      const path: string[] = ["", "", "", "", "", "", "", ""];
-      const processed = dataItems.map((item: any) => {
-        if (item.kode && String(item.kode).includes("054.01.WA")) currentWilayah = "WA";
-        if (item.kode && String(item.kode).includes("054.01.GG")) currentWilayah = "GG"; 
-        const rowKey = generateRowKey(item, path);
-        return { ...item, wilayah: currentWilayah, tempPathKey: rowKey };
-      });
-      setDataTampil(processed);
-    }, (error) => {
-      addLog("Firebase Error: " + error.message);
-    });
-  }, [isLoggedIn]);
+    const unsubKppn = onSnapshot(
+      doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global'),
+      (snap) => snap.exists() && setKppnMetrics(snap.data()),
+      (err) => console.error("Sync KPPN failed", err)
+    );
+
+    const unsubData = onSnapshot(
+      query(collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION)),
+      (snap) => {
+        let items = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+        items.sort((a, b) => (a.noUrut || 0) - (b.noUrut || 0));
+        let curWil = "GG";
+        const pathArr: string[] = ["", "", "", "", "", "", "", ""];
+        const proc = items.map(item => {
+          if (item.kode && String(item.kode).includes("054.01.WA")) curWil = "WA";
+          if (item.kode && String(item.kode).includes("054.01.GG")) curWil = "GG"; 
+          return { ...item, wilayah: curWil, tempPathKey: generateRowKey(item, pathArr) };
+        });
+        setDataTampil(proc);
+      },
+      (err) => console.error("Sync data failed", err)
+    );
+
+    return () => {
+      unsubUsers();
+      unsubKppn();
+      unsubData();
+    };
+  }, [user]);
 
   const globalStats = useMemo(() => {
     const stats = { 
@@ -268,7 +252,7 @@ export default function App() {
       });
     });
     return stats;
-  }, [dataTampil]);
+  }, [dataTampil, allMonths]);
 
   const roDataList = useMemo(() => {
     const list: any[] = [];
@@ -290,19 +274,19 @@ export default function App() {
   }, [dataTampil]);
 
   const handleUpdateKPPN = async (category: 'rpd' | 'real', tw: string, value: string) => {
-    if (!isLoggedIn) return;
-    const docRef = doc(db, 'artifacts', APP_IDENTIFIER, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
+    if (!user) return;
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
     await setDoc(docRef, {
       [category]: { ...kppnMetrics[category], [tw]: value }
     }, { merge: true });
   };
 
   const handleAddUser = async () => {
-    if (!newUsername || !newPassword || !newFullName) return;
+    if (!newUsername || !newPassword || !newFullName || !user) return;
     setIsProcessing(true);
     try {
       const userId = crypto.randomUUID();
-      await setDoc(doc(db, 'artifacts', APP_IDENTIFIER, 'public', 'data', USER_COLLECTION, userId), {
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, userId), {
         uid: userId,
         username: newUsername.trim().toLowerCase(),
         password: newPassword,
@@ -311,57 +295,45 @@ export default function App() {
         team: newUserTeam,
         createdAt: new Date()
       });
-      setNewUsername(""); 
-      setNewPassword("");
-      setNewFullName("");
+      setNewUsername(""); setNewPassword(""); setNewFullName("");
       addLog(`Pegawai ${newFullName} berhasil didaftarkan.`);
-    } catch (e: any) { addLog("Gagal Tambah: " + e.message); }
+    } catch (e: any) { addLog("Gagal: " + e.message); }
     finally { setIsProcessing(false); }
   };
 
-  const handleFileAnalyze = async (inputEvent: React.ChangeEvent<HTMLInputElement>) => {
-    const file = inputEvent.target.files?.[0];
+  const handleFileAnalyze = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file || !libReady) return;
-    setIsProcessing(true);
-    setLogs([]);
-    addLog(`Menganalisa File DIPA: ${file.name}`);
+    setIsProcessing(true); setLogs([]);
+    addLog(`Menganalisa: ${file.name}`);
     try {
-      const XLSX = (window as any).XLSX;
       const reader = new FileReader();
       reader.onload = async (evt: any) => {
+        const XLSX = (window as any).XLSX;
         const wb = XLSX.read(evt.target.result, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const rawData: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
-        const parsedItems: any[] = [];
-        let counter = 1;
-        const currentPath: string[] = ["", "", "", "", "", "", "", ""];
-        for (let i = 0; i < rawData.length; i++) {
-            const row = rawData[i];
-            const colKode = row[0] ? String(row[0]).trim() : "";
-            const colUraian = [row[1], row[2], row[3]].filter(Boolean).join(" ").trim();
-            if (!colKode && !colUraian) continue;
-            const colSatuan = row[4] ? String(row[4]).trim() : "";
-            let colPagu = 0, foundPaguIndex = -1;
-            for (let j = row.length - 1; j >= 5; j--) {
-                if (typeof row[j] === 'number') { colPagu = row[j]; foundPaguIndex = j; break; }
-            }
-            let colHargaSatuan = foundPaguIndex > 5 && typeof row[foundPaguIndex - 1] === 'number' ? row[foundPaguIndex - 1] : 0;
-            const pathKey = generateRowKey({ kode: colKode, uraian: colUraian }, currentPath);
-            parsedItems.push({ kode: colKode, uraian: colUraian, satuan: colSatuan, hargaSatuan: colHargaSatuan, pagu: colPagu, pathKey, noUrut: counter++ });
+        const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        const parsed: any[] = [];
+        let count = 1;
+        const path: string[] = ["", "", "", "", "", "", "", ""];
+        for (let i = 0; i < raw.length; i++) {
+            const row = raw[i];
+            const kode = row[0] ? String(row[0]).trim() : "";
+            const uraian = [row[1], row[2], row[3]].filter(Boolean).join(" ").trim();
+            if (!kode && !uraian) continue;
+            const satuan = row[4] ? String(row[4]).trim() : "";
+            let pagu = 0, foundIdx = -1;
+            for (let j = row.length - 1; j >= 5; j--) if (typeof row[j] === 'number') { pagu = row[j]; foundIdx = j; break; }
+            let hsat = foundIdx > 5 && typeof row[foundIdx - 1] === 'number' ? row[foundIdx - 1] : 0;
+            const pKey = generateRowKey({ kode, uraian }, path);
+            parsed.push({ kode, uraian, satuan, hargaSatuan: hsat, pagu, pathKey: pKey, noUrut: count++ });
         }
-        
-        const existingKeys = new Set(dataTampil.map(d => d.tempPathKey));
-        let matchCount = 0, orphanedCount = 0;
-        parsedItems.forEach(p => { if (existingKeys.has(p.pathKey)) matchCount++; });
-        dataTampil.forEach(d => {
-            const hasData = (sumMapValues(d.rpd) > 0 || sumMapValues(d.realisasi) > 0);
-            const inNew = parsedItems.some(p => p.pathKey === d.tempPathKey);
-            if (hasData && !inNew) orphanedCount++;
-        });
-
-        setPreviewData(parsedItems);
-        setMigrationStats({ match: matchCount, new: parsedItems.length - matchCount, orphaned: orphanedCount });
-        addLog(`Analisa Selesai. Menemukan ${parsedItems.length} baris.`);
+        const existing = new Set(dataTampil.map(d => d.tempPathKey));
+        let match = 0, orphan = 0;
+        parsed.forEach(p => { if (existing.has(p.pathKey)) match++; });
+        dataTampil.forEach(d => { if (sumMapValues(d.rpd) > 0 && !parsed.some(p => p.pathKey === d.tempPathKey)) orphan++; });
+        setPreviewData(parsed);
+        setMigrationStats({ match, new: parsed.length - match, orphaned: orphan });
         setIsProcessing(false);
       };
       reader.readAsArrayBuffer(file);
@@ -369,180 +341,162 @@ export default function App() {
   };
 
   const executeMigration = async () => {
-    setIsProcessing(true);
-    addLog("Melakukan Migrasi Pintar (Backup & Restore Isian)...");
+    if (!user) return;
+    setIsProcessing(true); addLog("Memulai Migrasi...");
     try {
-        const colRef = collection(db, 'artifacts', APP_IDENTIFIER, 'public', 'data', DATA_COLLECTION);
-        const currentSnap = await getDocs(colRef);
-        const dataBackup = new Map();
-        dataTampil.forEach(item => {
-            dataBackup.set(item.tempPathKey, { rpd: item.rpd || {}, realisasi: item.realisasi || {} });
-        });
-        const orphanedItems: any[] = [];
-        const newKeysSet = new Set(previewData.map(p => p.pathKey));
-        dataTampil.forEach(item => {
-            const hasValue = (sumMapValues(item.rpd) > 0 || sumMapValues(item.realisasi) > 0);
-            if (hasValue && !newKeysSet.has(item.tempPathKey)) {
-                orphanedItems.push({ ...item, kode: `(HILANG) ${item.kode || ''}`, uraian: `[PENAMPUNGAN] ${item.uraian}`, pagu: 0, isOrphan: true });
-            }
-        });
-        let batch = writeBatch(db), opCount = 0;
-        for (const docSnapshot of currentSnap.docs) {
-            batch.delete(docSnapshot.ref);
-            if (++opCount >= 450) { await batch.commit(); batch = writeBatch(db); opCount = 0; }
+        const colRef = collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION);
+        const snap = await getDocs(colRef);
+        const backup = new Map();
+        dataTampil.forEach(d => backup.set(d.tempPathKey, { rpd: d.rpd || {}, realisasi: d.realisasi || {} }));
+        const orphans: any[] = [];
+        const newKeys = new Set(previewData.map(p => p.pathKey));
+        dataTampil.forEach(d => { if (sumMapValues(d.rpd) > 0 && !newKeys.has(d.tempPathKey)) orphans.push({ ...d, kode: `(HILANG) ${d.kode}`, isOrphan: true }); });
+        
+        let batch = writeBatch(db), op = 0;
+        for (const docSnap of snap.docs) {
+            batch.delete(docSnap.ref);
+            if (++op >= 450) { await batch.commit(); batch = writeBatch(db); op = 0; }
         }
         for (const item of previewData) {
-            const backed = dataBackup.get(item.pathKey) || { rpd: {}, realisasi: {} };
-            batch.set(doc(colRef), { ...item, ...backed, timestamp: new Date() });
-            if (++opCount >= 450) { await batch.commit(); batch = writeBatch(db); opCount = 0; }
+            const b = backup.get(item.pathKey) || { rpd: {}, realisasi: {} };
+            batch.set(doc(colRef), { ...item, ...b, timestamp: new Date() });
+            if (++op >= 450) { await batch.commit(); batch = writeBatch(db); op = 0; }
         }
-        for (const orphan of orphanedItems) {
-            const { id, ...cleanOrphan } = orphan;
-            batch.set(doc(colRef), cleanOrphan);
-            if (++opCount >= 450) { await batch.commit(); batch = writeBatch(db); opCount = 0; }
+        for (const orph of orphans) {
+            const { id: _, ...clean } = orph;
+            batch.set(doc(colRef), clean);
+            if (++op >= 450) { await batch.commit(); batch = writeBatch(db); op = 0; }
         }
-        if (opCount > 0) await batch.commit();
-        addLog("Migrasi Pintar Selesai. Seluruh isian aman.");
-        setPreviewData([]); setActiveTab('dashboard');
-    } catch (error: any) { addLog("Gagal Migrasi: " + error.message); }
-    finally { setIsProcessing(false); }
+        if (op > 0) await batch.commit();
+        addLog("Migrasi Selesai."); setPreviewData([]); setActiveTab('dashboard');
+    } catch (e: any) { addLog("Gagal: " + e.message); } finally { setIsProcessing(false); }
   };
 
   const processedData = useMemo(() => {
-    const normalData = dataTampil.filter(d => !d.isOrphan);
-    const orphanData = dataTampil.filter(d => d.isOrphan);
-    const baseSource = (activeTab === 'rapat') ? normalData : normalData.filter(d => d.wilayah === activeWilayah);
+    const normal = dataTampil.filter(d => !d.isOrphan);
+    const orphan = dataTampil.filter(d => d.isOrphan);
+    const base = (activeTab === 'rapat') ? normal : normal.filter(d => d.wilayah === activeWilayah);
     
-    const calculatedNormal = baseSource.map((item: any, index: number) => {
+    const calculatedNormal = base.map((item, index) => {
       const level = getLevel(item.kode);
-      const isNonFinancialInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
-      const isDetail = level === 8 && (Number(item.pagu) || 0) > 0 && !isNonFinancialInduk;
-      let totalRPD = 0, totalRealisasi = 0;
-      let monthRPD: Record<string, number> = {};
-      let monthReal: Record<string, number> = {};
+      const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
+      const isDetail = level === 8 && (Number(item.pagu) || 0) > 0 && !isInduk;
+      let totalRPD = 0, totalReal = 0;
+      let mRPD: Record<string, number> = {};
+      let mReal: Record<string, number> = {};
+
       if (isDetail) {
         totalRPD = sumMapValues(item.rpd);
-        totalRealisasi = sumMapValues(item.realisasi);
-      } else if (!isNonFinancialInduk) {
-        for (let i = index + 1; i < baseSource.length; i++) {
-            const next = baseSource[i];
-            const nextLevel = getLevel(next.kode);
-            if (next.kode !== "" && nextLevel <= level) break;
-            if (nextLevel === 8 && (Number(next.pagu) || 0) > 0) {
+        totalReal = sumMapValues(item.realisasi);
+      } else if (!isInduk) {
+        for (let i = index + 1; i < base.length; i++) {
+            const next = base[i];
+            const nLevel = getLevel(next.kode);
+            if (next.kode !== "" && nLevel <= level) break;
+            if (nLevel === 8 && (Number(next.pagu) || 0) > 0) {
                 totalRPD += sumMapValues(next.rpd);
-                totalRealisasi += sumMapValues(next.realisasi);
+                totalReal += sumMapValues(next.realisasi);
                 allMonths.forEach(m => {
-                    monthRPD[m] = (monthRPD[m] || 0) + (Number(next.rpd?.[m]) || 0);
-                    monthReal[m] = (monthReal[m] || 0) + (Number(next.realisasi?.[m]) || 0);
+                    mRPD[m] = (mRPD[m] || 0) + (Number(next.rpd?.[m]) || 0);
+                    mReal[m] = (mReal[m] || 0) + (Number(next.realisasi?.[m]) || 0);
                 });
             }
         }
       }
-      return { ...item, totalRPD, totalRealisasi, monthRPD, monthReal, level, isDetail };
+      return { ...item, totalRPD, totalReal, monthRPD: mRPD, monthReal: mReal, level, isDetail };
     });
 
-    const calculatedOrphan = orphanData.map(item => ({
-        ...item,
-        totalRPD: sumMapValues(item.rpd),
-        totalRealisasi: sumMapValues(item.realisasi),
-        monthRPD: item.rpd || {},
-        monthReal: item.realisasi || {},
+    const calculatedOrphan = orphan.map(item => ({
+        ...item, totalRPD: sumMapValues(item.rpd), totalReal: sumMapValues(item.realisasi),
+        monthRPD: item.rpd || {}, monthReal: item.realisasi || {},
         level: 8, isDetail: true
     }));
 
     const merged = [...calculatedNormal, ...calculatedOrphan];
-
     if (activeTab === 'rapat') return merged.filter(item => item.level <= rapatDepth);
-    
-    // Filter berdasarkan Tim pengguna yang sedang aktif
-    const allowedROs = TIM_MAPPING[activeTim] || [];
-    let isInsideAllowedRO = false;
-    return merged.filter((item: any) => {
+    const allowed = TIM_MAPPING[activeTim] || [];
+    let insideAllowed = false;
+    return merged.filter((item) => {
       if (item.isOrphan) return true; 
-      const level = getLevel(item.kode);
-      if (level === 2) isInsideAllowedRO = allowedROs.includes(item.kode);
-      return isInsideAllowedRO || level === 1; 
+      if (getLevel(item.kode) === 2) insideAllowed = allowed.includes(item.kode);
+      return insideAllowed || getLevel(item.kode) === 1; 
     });
-  }, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth]);
+  }, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth, allMonths]);
 
-  const finalDisplay = processedData.filter((d: any) => 
+  const finalDisplay = processedData.filter((d) => 
     (d.uraian && d.uraian.toLowerCase().includes(searchTerm.toLowerCase())) || 
     (d.kode && d.kode.includes(searchTerm))
   );
 
   if (isAuthLoading) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
+      <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-sans">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <span className="font-black uppercase tracking-widest italic text-sm">Menghubungkan ke Cloud...</span>
+        <span className="font-black uppercase tracking-widest text-sm italic">Menghubungkan ke Cloud SBB...</span>
       </div>
     );
   }
 
-  // --- MAIN APP RENDER ---
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-slate-900 font-sans overflow-hidden">
+      {/* Sidebar */}
       <aside className={`bg-[#0F172A] text-slate-300 transition-all duration-300 flex flex-col z-40 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
         <div className="h-16 flex items-center px-6 bg-slate-900/50 border-b border-white/5">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shrink-0 shadow-lg">M</div>
+          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shrink-0">M</div>
           {sidebarOpen && <div className="ml-3 font-black text-white italic tracking-tighter">MESEIKPA</div>}
         </div>
         <nav className="flex-1 py-6 space-y-2 px-3 overflow-y-auto custom-scrollbar">
           <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
-            <LayoutDashboard size={20} className={sidebarOpen ? 'mr-3' : 'mx-auto'} />
+            <LayoutDashboard size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Dashboard</span>}
           </button>
           <div className="py-2"><div className="h-px bg-white/10 w-full opacity-30"></div></div>
           <button onClick={() => setActiveTab('rpd')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'rpd' ? 'bg-orange-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
-            <Edit3 size={20} className={sidebarOpen ? 'mr-3' : 'mx-auto'} />
+            <Edit3 size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Entri RPD</span>}
           </button>
           <button onClick={() => setActiveTab('realisasi')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'realisasi' ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
-            <Activity size={20} className={sidebarOpen ? 'mr-3' : 'mx-auto'} />
+            <Activity size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Entri Realisasi</span>}
           </button>
           <div className="py-2"><div className="h-px bg-white/10 w-full opacity-30"></div></div>
           <button onClick={() => setActiveTab('rapat')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'rapat' ? 'bg-emerald-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
-            <PieChart size={20} className={sidebarOpen ? 'mr-3' : 'mx-auto'} />
+            <PieChart size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Rekapitulasi</span>}
           </button>
           <button onClick={() => setActiveTab('migrasi')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'migrasi' ? 'bg-slate-700 text-white' : 'hover:bg-white/5'}`}>
-            <FileUp size={20} className={sidebarOpen ? 'mr-3' : 'mx-auto'} />
+            <FileUp size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Migrasi DIPA</span>}
           </button>
           <button onClick={() => setActiveTab('users')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'users' ? 'bg-rose-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
-              <Users size={20} className={sidebarOpen ? 'mr-3' : 'mx-auto'} />
+              <Users size={20} className={sidebarOpen ? 'mr-3' : ''} />
               {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Manajemen User</span>}
           </button>
         </nav>
         <div className="p-4 border-t border-white/5">
-           <div className={`flex items-center gap-3 text-slate-500 px-3 py-3 ${sidebarOpen ? '' : 'justify-center'}`}>
-              <ShieldHalf size={20} />
-              {sidebarOpen && <span className="text-[9px] font-black uppercase tracking-widest">v4.0 Cloud</span>}
-           </div>
+           <button onClick={() => setUser(null)} className="w-full flex items-center px-3 py-3 rounded-xl hover:bg-rose-600/20 text-rose-400 transition-all">
+              <LogOut size={20} className={sidebarOpen ? 'mr-3' : ''} />
+              {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Logout Cloud</span>}
+           </button>
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-hidden">
+        {/* Header */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 z-30 shadow-sm">
           <div className="flex items-center gap-3">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"><Menu size={20} /></button>
             <h2 className="font-black text-slate-800 text-[13px] uppercase tracking-widest italic flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-              {activeTab === 'dashboard' ? 'Panel Performa' : activeTab === 'rapat' ? 'Ringkasan Rekapitulasi' : 'Administrator'}
+              BPS Kab. Seram Bagian Barat
             </h2>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex flex-col items-end mr-2">
-               <span className="text-[10px] font-black text-slate-800 uppercase mb-1 leading-none">BPS Kab. Seram Bagian Barat</span>
-               <span className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter italic">Mode: Administrator Akses Penuh</span>
-            </div>
             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg bg-blue-600`}><User size={20} /></div>
           </div>
         </header>
 
         <div className="flex-1 overflow-auto p-8 custom-scrollbar">
-          
           {activeTab === 'dashboard' && (
             <div className="space-y-8 animate-in fade-in duration-700">
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -551,41 +505,40 @@ export default function App() {
                     { label: 'Target RPD', val: globalStats.rpd, icon: Target, color: 'orange' },
                     { label: 'Realisasi', val: globalStats.real, icon: Activity, color: 'blue' },
                     { label: 'Sisa Anggaran', val: globalStats.pagu - globalStats.real, icon: ShieldCheck, color: 'emerald' },
-                  ].map((card, i) => (
-                    <div key={i} className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm relative group hover:shadow-xl transition-all">
-                       <div className="flex items-center justify-between mb-4">
-                          <div className={`p-3 bg-${card.color}-100 text-${card.color}-600 rounded-2xl`}><card.icon size={24} /></div>
-                       </div>
-                       <h4 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">{card.label}</h4>
-                       <div className="text-xl font-black text-slate-800 tracking-tighter italic">Rp {formatMoney(card.val)}</div>
-                    </div>
-                  ))}
+                  ].map((card, i) => {
+                    const CardIcon = card.icon;
+                    return (
+                      <div key={i} className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm relative group hover:shadow-xl transition-all">
+                         <div className="flex items-center justify-between mb-4">
+                            <div className={`p-3 bg-${card.color}-100 text-${card.color}-600 rounded-2xl`}><CardIcon size={24} /></div>
+                         </div>
+                         <h4 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">{card.label}</h4>
+                         <div className="text-xl font-black text-slate-800 tracking-tighter italic">Rp {formatMoney(card.val)}</div>
+                      </div>
+                    );
+                  })}
                </div>
 
                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   <div className="lg:col-span-7 bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm">
                      <div className="flex items-center justify-between mb-10">
-                        <h3 className="text-lg font-black text-slate-800 uppercase italic tracking-tighter leading-none">Grafik Performa Triwulanan (RPD vs REAL)</h3>
+                        <h3 className="text-lg font-black text-slate-800 uppercase italic tracking-tighter leading-none">Grafik Performa RPD vs REAL</h3>
                         <TrendingUp className="text-indigo-500" />
                      </div>
                      <div className="h-[300px] flex items-end justify-around gap-10 px-4">
                         {globalStats.tw.map((tw, i) => (
                            <div key={i} className="flex-1 flex flex-col items-center group">
                               <div className="flex gap-2 items-end h-full w-full">
-                                 <div className="flex-1 bg-orange-200 rounded-t-xl relative group-hover:bg-orange-300 transition-all shadow-inner" style={{ height: `${(tw.rpd / (globalStats.pagu / 2 || 1)) * 100}%` }}>
-                                    <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] py-1 px-2 rounded-lg whitespace-nowrap z-20 shadow-xl">RPD: {formatMoney(tw.rpd)}</div>
-                                 </div>
-                                 <div className="flex-1 bg-blue-500 rounded-t-xl relative shadow-lg shadow-blue-500/20 group-hover:bg-blue-600 transition-all" style={{ height: `${(tw.real / (globalStats.pagu / 2 || 1)) * 100}%` }}>
-                                    <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] py-1 px-2 rounded-lg whitespace-nowrap z-20 shadow-xl">REAL: {formatMoney(tw.real)}</div>
-                                 </div>
+                                 <div className="flex-1 bg-orange-200 rounded-t-xl relative transition-all" style={{ height: `${(tw.rpd / (globalStats.pagu / 2 || 1)) * 100}%` }}></div>
+                                 <div className="flex-1 bg-blue-500 rounded-t-xl relative shadow-lg shadow-blue-500/20 transition-all" style={{ height: `${(tw.real / (globalStats.pagu / 2 || 1)) * 100}%` }}></div>
                               </div>
-                              <div className="mt-4 text-[11px] font-black text-slate-800 tracking-widest uppercase">TW {i === 0 ? 'I' : i === 1 ? 'II' : i === 2 ? 'III' : 'IV'}</div>
+                              <div className="mt-4 text-[11px] font-black text-slate-800 tracking-widest uppercase">TW {i + 1}</div>
                            </div>
                         ))}
                      </div>
                   </div>
                   <div className="lg:col-span-5 bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm flex flex-col">
-                     <h3 className="text-lg font-black text-slate-800 uppercase italic mb-8">Peringkat Realisasi RO</h3>
+                     <h3 className="text-lg font-black text-slate-800 uppercase italic mb-8">Realisasi RO Tertinggi</h3>
                      <div className="space-y-4 overflow-y-auto max-h-[350px] custom-scrollbar pr-2">
                         {roDataList.sort((a,b) => b.real - a.real).slice(0, 10).map((ro, i) => (
                            <div key={i} className="space-y-2">
@@ -606,38 +559,35 @@ export default function App() {
 
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-               
-               {/* BARIS 0: INPUT DATA KPPN (PATOKAN) */}
                <div className="bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-white/10 text-white">
                   <div className="flex items-center gap-4 mb-8">
                      <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg"><Settings2 size={24} /></div>
                      <div>
-                        <h3 className="text-lg font-black uppercase italic leading-tight">Konfigurasi Patokan Data KPPN</h3>
-                        <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">Target RPD dan Realisasi resmi dari KPPN</p>
+                        <h3 className="text-lg font-black uppercase italic leading-tight">Konfigurasi Data KPPN</h3>
+                        <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">Target resmi untuk penyandingan data</p>
                      </div>
                   </div>
-                  
                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
                      <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-400 mb-2 tracking-widest"><Target size={14} /> Target RPD KPPN Per TW</div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-400 mb-2 tracking-widest"><Target size={14} /> Target RPD KPPN</div>
+                        <div className="grid grid-cols-4 gap-4">
                            {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
                               <div key={tw} className="flex flex-col">
                                  <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
                                  <input type="number" value={kppnMetrics.rpd?.[tw] || ""} onChange={(e) => handleUpdateKPPN('rpd', tw, e.target.value)} 
-                                    className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 focus:border-orange-500 transition-all text-orange-300" placeholder="0" />
+                                    className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10" placeholder="0" />
                               </div>
                            ))}
                         </div>
                      </div>
                      <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest"><Activity size={14} /> Realisasi Anggaran KPPN Per TW</div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest"><Activity size={14} /> Realisasi Anggaran KPPN</div>
+                        <div className="grid grid-cols-4 gap-4">
                            {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
                               <div key={tw} className="flex flex-col">
                                  <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
                                  <input type="number" value={kppnMetrics.real?.[tw] || ""} onChange={(e) => handleUpdateKPPN('real', tw, e.target.value)} 
-                                    className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 focus:border-blue-500 transition-all text-blue-300" placeholder="0" />
+                                    className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10" placeholder="0" />
                               </div>
                            ))}
                         </div>
@@ -645,86 +595,41 @@ export default function App() {
                   </div>
                </div>
 
-               {/* BARIS 1: KARTU RPD DAN REALISASI */}
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* KARTU RPD */}
-                  <div className="bg-orange-600 text-white p-8 rounded-[3rem] shadow-2xl relative overflow-hidden group">
-                     <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform"><Target size={120} /></div>
-                     <div className="flex items-center justify-between mb-8">
-                        <span className="text-xs font-black uppercase tracking-[0.3em] opacity-80 italic block">Penyandingan Target RPD</span>
-                        <ArrowRightLeft size={20} className="opacity-50" />
-                     </div>
-                     
-                     <div className="grid grid-cols-1 gap-6 relative z-10">
-                        {globalStats.tw.map((tw, i) => {
-                           const kppnVal = Number(kppnMetrics.rpd?.[`TW${i+1}`]) || 0;
-                           const achievement = kppnVal > 0 ? (tw.rpd / kppnVal * 100).toFixed(1) : "0";
-                           return (
-                              <div key={i} className="flex items-center justify-between border-b border-white/10 pb-4 last:border-0 last:pb-0">
-                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-black uppercase opacity-60">Triwulan {i+1}</span>
-                                    <div className="flex items-baseline gap-4 mt-1">
-                                       <div className="flex flex-col">
-                                          <span className="text-[9px] font-black uppercase text-white/40">Internal</span>
-                                          <span className="text-2xl font-black italic tracking-tighter">Rp {formatMoney(tw.rpd)}</span>
-                                       </div>
-                                       <div className="w-[2px] h-8 bg-white/20"></div>
-                                       <div className="flex flex-col">
-                                          <span className="text-[9px] font-black uppercase text-white/40">Patokan KPPN</span>
-                                          <span className="text-2xl font-black italic tracking-tighter text-orange-200">Rp {formatMoney(kppnVal)}</span>
-                                       </div>
-                                    </div>
-                                 </div>
-                                 <div className="flex flex-col items-end">
-                                    <span className="text-[10px] font-black uppercase opacity-50">Match</span>
-                                    <span className={`text-sm font-black italic ${Number(achievement) >= 90 ? 'text-emerald-300' : 'text-orange-200'}`}>{achievement}%</span>
-                                 </div>
-                              </div>
-                           );
-                        })}
-                     </div>
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {[
+                    { label: 'Belanja Pegawai (51)', val: globalStats.belanja.pegawai, icon: Briefcase, color: 'indigo' },
+                    { label: 'Belanja Barang (52)', val: globalStats.belanja.barang, icon: Package, color: 'emerald' },
+                    { label: 'Belanja Modal (53)', val: globalStats.belanja.modal, icon: HardHat, color: 'rose' },
+                  ].map((bel, i) => {
+                    const BelIcon = bel.icon;
+                    return (
+                      <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-lg flex items-center gap-6 group hover:border-blue-300 transition-all">
+                        <div className={`p-5 bg-${bel.color}-100 text-${bel.color}-600 rounded-3xl group-hover:scale-110 transition-all`}><BelIcon size={28} /></div>
+                        <div className="flex-1">
+                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{bel.label}</h4>
+                          <div className="text-xl font-black italic tracking-tighter text-slate-800">Rp {formatMoney(bel.val)}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+               </div>
+
+               <div className="bg-slate-900 p-8 rounded-[3rem] shadow-xl border border-white/5 flex items-center gap-8">
+                  <div className="p-5 bg-white/10 text-white rounded-2xl"><Layers size={28}/></div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Filter Struktur</label>
+                    <select value={rapatDepth} onChange={(e) => setRapatDepth(Number(e.target.value))} className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-6 text-[13px] font-black text-white outline-none">
+                        <option value={1} className="text-black">DIPA Induk</option>
+                        <option value={2} className="text-black">Output RO</option>
+                        <option value={5} className="text-black">Akun 6 Digit</option>
+                        <option value={8} className="text-black">Seluruh Rincian</option>
+                    </select>
                   </div>
-
-                  {/* KARTU REALISASI */}
-                  <div className="bg-blue-600 text-white p-8 rounded-[3rem] shadow-2xl relative overflow-hidden group">
-                     <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform"><Activity size={120} /></div>
-                     <div className="flex items-center justify-between mb-8">
-                        <span className="text-xs font-black uppercase tracking-[0.3em] opacity-80 italic block">Penyandingan Realisasi KPPN</span>
-                        <ArrowRightLeft size={20} className="opacity-50" />
-                     </div>
-
-                     <div className="grid grid-cols-1 gap-6 relative z-10">
-                        {globalStats.tw.map((tw, i) => {
-                           const kppnVal = Number(kppnMetrics.real?.[`TW${i+1}`]) || 0;
-                           const diff = tw.real - kppnVal;
-                           return (
-                              <div key={i} className="flex items-center justify-between border-b border-white/10 pb-4 last:border-0 last:pb-0">
-                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-black uppercase opacity-60">Triwulan {i+1}</span>
-                                    <div className="flex items-baseline gap-4 mt-1">
-                                       <div className="flex flex-col">
-                                          <span className="text-[9px] font-black uppercase text-white/40">Internal</span>
-                                          <span className="text-2xl font-black italic tracking-tighter">Rp {formatMoney(tw.real)}</span>
-                                       </div>
-                                       <div className="w-[2px] h-8 bg-white/20"></div>
-                                       <div className="flex flex-col">
-                                          <span className="text-[9px] font-black uppercase text-white/40">Realisasi KPPN</span>
-                                          <span className="text-2xl font-black italic tracking-tighter text-blue-200">Rp {formatMoney(kppnVal)}</span>
-                                       </div>
-                                    </div>
-                                 </div>
-                                 <div className="flex flex-col items-end">
-                                    <span className="text-[10px] font-black uppercase opacity-50">Selisih</span>
-                                    <span className={`text-sm font-black italic ${diff === 0 ? 'text-emerald-300' : 'text-rose-300'}`}>{formatMoney(diff)}</span>
-                                 </div>
-                              </div>
-                           );
-                        })}
-                     </div>
+                  <div className="flex-1">
+                     <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cari Uraian..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-6 text-[13px] font-black text-white outline-none" />
                   </div>
                </div>
 
-               {/* TABLE REKAPITULASI */}
                <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
                   <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
                     <table className="w-full border-collapse text-[10px]">
@@ -744,7 +649,7 @@ export default function App() {
                       <tbody className="divide-y divide-slate-100">
                         {finalDisplay.map((item: any) => {
                           const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
-                          const sisaPagu = (Number(item.pagu) || 0) - (item.totalRealisasi || 0);
+                          const sisaPagu = (Number(item.pagu) || 0) - (item.totalReal || 0);
                           let rowBg = "hover:bg-blue-50/30 transition-all";
                           if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
                           if (item.level === 2) rowBg = "bg-blue-100/40 font-black";
@@ -765,7 +670,7 @@ export default function App() {
                                 </td>
                               ))}
                               <td className="px-2 py-1.5 text-right font-black text-orange-800 border-r border-slate-100 bg-orange-50/30">{!isNonFinancial ? formatMoney(item.totalRPD) : ""}</td>
-                              <td className="px-2 py-1.5 text-right font-black text-blue-800 bg-blue-50/30">{!isNonFinancial ? formatMoney(item.totalRealisasi) : ""}</td>
+                              <td className="px-2 py-1.5 text-right font-black text-blue-800 bg-blue-50/30">{!isNonFinancial ? formatMoney(item.totalReal) : ""}</td>
                               <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-800'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
                             </tr>
                           );
@@ -782,87 +687,48 @@ export default function App() {
                <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
                   <div className="bg-slate-900 p-8 text-white relative">
                     <h3 className="text-xl font-black uppercase tracking-widest italic">Konsol Migrasi Cloud</h3>
-                    <p className="text-slate-400 mt-1 text-[11px]">Panel sinkronisasi struktur anggaran BPS Kab. Seram Bagian Barat.</p>
+                    <p className="text-slate-400 mt-1 text-[11px]">Sinkronisasi struktur anggaran BPS SBB.</p>
                   </div>
                   <div className="p-10 space-y-8">
-                    <div className="space-y-4">
-                      <div className="ml-11 border-2 border-dashed border-slate-200 rounded-[2.5rem] p-16 text-center hover:border-blue-400 hover:bg-blue-50/20 cursor-pointer transition-all group" onClick={() => fileInputRef.current?.click()}>
-                        <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileAnalyze} disabled={isProcessing} className="hidden" />
-                        <FileUp size={48} className="mx-auto mb-4 text-slate-300 group-hover:text-blue-500 transition-all" />
-                        <span className="text-xs font-black uppercase text-slate-400 italic">Pilih File Excel SAKTI (.xlsx)</span>
-                      </div>
+                    <div className="border-2 border-dashed border-slate-200 rounded-[2.5rem] p-16 text-center hover:border-blue-400 hover:bg-blue-50/20 cursor-pointer transition-all" onClick={() => fileInputRef.current?.click()}>
+                      <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileAnalyze} disabled={isProcessing} className="hidden" />
+                      <FileUp size={48} className="mx-auto mb-4 text-slate-300" />
+                      <span className="text-xs font-black uppercase text-slate-400 italic">Pilih File SAKTI (.xlsx)</span>
                     </div>
-
                     {previewData.length > 0 && (
-                      <div className="space-y-6 animate-in zoom-in-95 duration-300">
-                        <div className="ml-11 grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                            <span className="text-[9px] text-slate-400 font-black uppercase block mb-1">Struktur Baru</span>
-                            <span className="text-xl font-black text-slate-800">{previewData.length}</span>
-                          </div>
-                          <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
-                            <span className="text-[9px] text-emerald-600 font-black uppercase block mb-1">Isian Terpindah</span>
-                            <span className="text-xl font-black text-emerald-700">{migrationStats.match} Rincian</span>
-                          </div>
-                          <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl">
-                            <span className="text-[9px] text-rose-600 font-black uppercase block mb-1">Masuk Penampungan</span>
-                            <span className="text-xl font-black text-rose-700">{migrationStats.orphaned} Baris</span>
-                          </div>
-                        </div>
-                        <div className="ml-11 pt-4">
-                           <button onClick={executeMigration} disabled={isProcessing} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all">
-                              {isProcessing ? 'MEMPROSES MIGRASI...' : <><CheckCircle2 size={16} className="inline mr-2"/> JALANKAN PEMBARUAN</>}
-                           </button>
-                        </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="p-4 bg-slate-50 rounded-xl"><span className="text-[9px] uppercase font-black">Struktur</span><span className="text-xl font-black block">{previewData.length}</span></div>
+                        <div className="p-4 bg-emerald-50 rounded-xl"><span className="text-[9px] uppercase font-black">Match</span><span className="text-xl font-black block">{migrationStats.match}</span></div>
+                        <div className="p-4 bg-rose-50 rounded-xl"><span className="text-[9px] uppercase font-black">Orphan</span><span className="text-xl font-black block">{migrationStats.orphaned}</span></div>
+                        <button onClick={executeMigration} disabled={isProcessing} className="col-span-3 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Jalankan Pembaruan</button>
                       </div>
                     )}
-
-                    <div className="pt-8 border-t border-slate-100 space-y-4">
-                       <div className="h-32 bg-slate-950 rounded-2xl p-4 overflow-y-auto custom-scrollbar font-mono text-[9px] text-emerald-400 shadow-inner">
-                          {logs.map((l, i) => <div key={i} className="py-0.5 border-b border-white/5 last:border-0 opacity-80">{l}</div>)}
-                       </div>
+                    <div className="h-32 bg-slate-950 rounded-2xl p-4 overflow-y-auto custom-scrollbar font-mono text-[9px] text-emerald-400 shadow-inner">
+                        {logs.map((l, i) => <div key={i}>{l}</div>)}
                     </div>
                   </div>
                </div>
             </div>
           )}
 
-          {/* TAB ENTRI RPD / REALISASI */}
           {(activeTab === 'rpd' || activeTab === 'realisasi') && (
             <div className="space-y-6 animate-in fade-in duration-700">
-              <div className="flex items-center justify-between px-4 mb-2">
-                 <div className="flex items-center gap-3">
-                    <button onClick={() => setIsLocked(!isLocked)} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase shadow-md transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white hover:scale-105'}`}>
-                      {isLocked ? <Lock size={14} /> : <Unlock size={14} />} {isLocked ? 'Isian Terkunci' : 'Kunci Pengisian'}
-                    </button>
-                 </div>
+              <div className="flex items-center justify-between mb-4">
+                 <button onClick={() => setIsLocked(!isLocked)} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase shadow-md transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
+                    {isLocked ? <Lock size={14} /> : <Unlock size={14} />} {isLocked ? 'Terkunci' : 'Kunci Pengisian'}
+                 </button>
+                 <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase bg-white text-slate-600 border border-slate-200"><Eraser size={14} /> Reset Nilai</button>
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-                <div className="xl:col-span-5 bg-white p-5 rounded-[2.5rem] shadow-sm border border-slate-200 flex items-center gap-6">
-                  <div className="flex flex-col gap-3 flex-1">
-                    <div className="flex p-1 bg-slate-100 rounded-xl">
-                      <button onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>GG (PPIS)</button>
-                      <button onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>WA (DMPTTL)</button>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {ALL_TEAMS.filter(t => activeWilayah === "GG" ? t !== "Umum" : t === "Umum").map(tim => (
-                        <button key={tim} onClick={() => setActiveTim(tim)} className={`px-2 py-1 text-[9px] font-bold rounded-lg border transition-all ${activeTim === tim ? 'bg-slate-800 text-white border-slate-800 shadow-md' : 'bg-white text-slate-400 border-slate-200'}`}>{tim}</button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="xl:col-span-7 bg-white p-5 rounded-[2.5rem] shadow-sm border border-slate-200 flex items-center justify-between">
-                   <div className="flex items-center gap-4">
-                      <div className="p-3 bg-blue-100 text-blue-600 rounded-xl"><Target size={20}/></div>
-                      <div className="flex flex-col"><span className="text-[10px] text-slate-400 font-black uppercase">Tim Aktif</span><span className="text-sm font-black italic">{activeTim}</span></div>
-                   </div>
-                   <div className="flex p-1 bg-slate-100 rounded-xl">
-                      {[1,2,3,4].map(tw => (
-                         <button key={tw} onClick={() => setTwActive(tw)} className={`px-5 py-1.5 text-[10px] font-black rounded-lg transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>TW {tw === 1 ? 'I' : tw === 2 ? 'II' : tw === 3 ? 'III' : 'IV'}</button>
-                      ))}
-                   </div>
-                </div>
+              <div className="flex gap-4 mb-6">
+                 <button onClick={() => setActiveWilayah("GG")} className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${activeWilayah === "GG" ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200'}`}>Wilayah GG</button>
+                 <button onClick={() => setActiveWilayah("WA")} className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${activeWilayah === "WA" ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200'}`}>Wilayah WA</button>
+                 <div className="flex-1"></div>
+                 <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+                    {[1,2,3,4].map(tw => (
+                       <button key={tw} onClick={() => setTwActive(tw)} className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>TW {tw}</button>
+                    ))}
+                 </div>
               </div>
 
               <div className="bg-white shadow-2xl border border-slate-200 overflow-hidden rounded-[3.5rem]">
@@ -881,36 +747,28 @@ export default function App() {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {finalDisplay.map((item: any) => {
-                        const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
-                        const sisaPagu = activeTab === 'rpd' ? (Number(item.pagu) || 0) - (item.totalRPD || 0) : (Number(item.pagu) || 0) - (item.totalRealisasi || 0);
-                        let rowBg = "hover:bg-blue-50/30 transition-all";
-                        if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
-                        if (item.level === 2) rowBg = "bg-blue-100/40 font-black";
-                        if (item.isOrphan) rowBg = "bg-rose-50 italic";
+                        const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
+                        const sisaPagu = activeTab === 'rpd' ? (Number(item.pagu) || 0) - (item.totalRPD || 0) : (Number(item.pagu) || 0) - (item.totalReal || 0);
                         return (
-                          <tr key={item.id} className={rowBg}>
+                          <tr key={item.id} className="hover:bg-blue-50/30 transition-all">
                             <td className="px-3 py-1.5 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
                             <td className="px-4 py-1.5 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
-                            <td className="px-3 py-1.5 text-right font-black text-slate-950 border-r border-slate-100">{!isNonFinancial ? formatMoney(item.pagu) : ""}</td>
+                            <td className="px-3 py-1.5 text-right font-black text-slate-950 border-r border-slate-100">{!isInduk ? formatMoney(item.pagu) : ""}</td>
                             {twMonths[twActive].map((m: string) => (
                                 <td key={m} className="px-0 py-0 h-full border-r border-slate-100 bg-blue-50/50 group">
-                                  {!isNonFinancial && (
-                                    <>
-                                      {item.isDetail ? (
-                                        <input type="number" value={activeTab === 'rpd' ? (item.rpd?.[m] || "") : (item.realisasi?.[m] || "")} readOnly={isLocked}
-                                          onChange={async (e) => { if(isLoggedIn && !isLocked) { const f = activeTab === 'rpd' ? 'rpd' : 'realisasi'; const ex = activeTab === 'rpd' ? (item.rpd || {}) : (item.realisasi || {});
-                                              await updateDoc(doc(db, 'artifacts', APP_IDENTIFIER, 'public', 'data', DATA_COLLECTION, item.id), { [f]: { ...ex, [m]: e.target.value } }); }
-                                          }} className="no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold font-sans text-[10px] bg-teal-400 text-slate-900 placeholder-slate-700 focus:bg-teal-300 transition-all shadow-inner" placeholder="0" />
-                                      ) : (<div className="text-right px-2 py-2 text-slate-950 font-black italic">{formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}</div>)}
-                                    </>
-                                  )}
+                                  {!isInduk && item.isDetail ? (
+                                    <input type="number" value={activeTab === 'rpd' ? (item.rpd?.[m] || "") : (item.realisasi?.[m] || "")} readOnly={isLocked}
+                                      onChange={async (e) => { if(user && !isLocked) { const f = activeTab === 'rpd' ? 'rpd' : 'realisasi'; const ex = activeTab === 'rpd' ? (item.rpd || {}) : (item.realisasi || {});
+                                          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id), { [f]: { ...ex, [m]: e.target.value } }); }
+                                      }} className="no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold text-[10px] bg-teal-400 text-slate-900" placeholder="0" />
+                                  ) : !isInduk ? (<div className="text-right px-2 py-2 text-slate-950 font-black italic">{formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}</div>) : null}
                                 </td>
                               ))}
-                              <td className="px-3 py-1.5 text-right font-black bg-slate-100/50 text-slate-950">{!isNonFinancial ? formatMoney(activeTab === 'rpd' ? item.totalRPD : item.totalRealisasi) : ""}</td>
-                            <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-950'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
+                              <td className="px-3 py-1.5 text-right font-black bg-slate-100/50 text-slate-950">{!isInduk ? formatMoney(activeTab === 'rpd' ? item.totalRPD : item.totalReal) : ""}</td>
+                            <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-950'}`}>{!isInduk ? formatMoney(sisaPagu) : ""}</td>
                             <td className="px-2 py-2 text-center">
                                {item.isOrphan && (
-                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', APP_IDENTIFIER, 'public', 'data', DATA_COLLECTION, item.id))} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
+                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id))} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
                                )}
                             </td>
                           </tr>
@@ -927,59 +785,27 @@ export default function App() {
             <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
                <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
                   <h3 className="text-2xl font-black uppercase italic mb-10 flex items-center gap-4">
-                     <UserPlus className="text-blue-500" /> Registrasi Pegawai & Kredensial Baru
+                     <UserPlus className="text-blue-500" /> Registrasi Pegawai Baru
                   </h3>
-                  
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                     <div className="space-y-3">
-                        <label className="text-[9px] font-black uppercase text-slate-500 ml-2 tracking-widest">Username Login</label>
-                        <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:bg-white/10" placeholder="ex: budi.setiawan" />
-                     </div>
-                     <div className="space-y-3">
-                        <label className="text-[9px] font-black uppercase text-slate-500 ml-2 tracking-widest">Password Default</label>
-                        <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:bg-white/10" placeholder="••••••••" />
-                     </div>
-                     <div className="space-y-3">
-                        <label className="text-[9px] font-black uppercase text-slate-500 ml-2 tracking-widest">Nama Lengkap Pegawai</label>
-                        <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:bg-white/10" placeholder="Nama..." />
-                     </div>
-                     <div className="space-y-3">
-                        <label className="text-[9px] font-black uppercase text-slate-500 ml-2 tracking-widest">Peran Sistem</label>
-                        <select value={newUserRole} onChange={(e:any) => setNewUserRole(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none">
-                           <option value="ketua_tim" className="text-black">Ketua Tim</option>
-                           <option value="pimpinan" className="text-black">Pimpinan</option>
-                           <option value="admin" className="text-black">Administrator Utama</option>
-                        </select>
-                     </div>
-                     <div className="lg:col-span-2 space-y-3">
-                        <label className="text-[9px] font-black uppercase text-slate-500 ml-2 tracking-widest">Penugasan Tim</label>
-                        <div className="flex flex-wrap gap-2">
-                           {ALL_TEAMS.map(t => (
-                              <button key={t} onClick={() => setNewUserTeam(t)} className={`px-5 py-2.5 rounded-xl text-[10px] font-black border transition-all ${newUserTeam === t ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>
-                                 {t}
-                              </button>
-                           ))}
-                        </div>
-                     </div>
+                     <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Username..." />
+                     <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Password..." />
+                     <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap..." />
                   </div>
-                  
-                  <button onClick={handleAddUser} className="mt-12 px-14 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all">Simpan Akun Pegawai</button>
+                  <button onClick={handleAddUser} className="mt-12 px-14 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-all">Simpan Akun</button>
                </div>
-               
                <div className="bg-white rounded-[3rem] border border-slate-200 overflow-hidden shadow-sm">
                   <table className="w-full text-left text-xs">
                      <thead className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black text-slate-400">
-                        <tr><th className="px-8 py-4">Nama Pegawai</th><th className="px-4 py-4">Username</th><th className="px-4 py-4">Tim</th><th className="px-4 py-4">Role</th><th className="px-4 py-4 text-center">Hapus</th></tr>
+                        <tr><th className="px-8 py-4">Nama</th><th className="px-4 py-4">Username</th><th className="px-4 py-4 text-center">Hapus</th></tr>
                      </thead>
                      <tbody className="divide-y divide-slate-50">
                         {allUsers.map((u, i) => (
-                           <tr key={i} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-8 py-5 font-bold text-slate-800">{u.name}</td>
-                              <td className="px-4 py-5 font-mono text-[10px] text-blue-600 italic">@{u.username}</td>
-                              <td className="px-4 py-5 font-black text-slate-800 uppercase tracking-tighter">Tim {u.team}</td>
-                              <td className="px-4 py-5"><span className={`px-3 py-1 rounded-full font-black text-[9px] uppercase ${u.role === 'admin' ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-600'}`}>{u.role}</span></td>
+                           <tr key={i}>
+                              <td className="px-8 py-5 font-bold">{u.name}</td>
+                              <td className="px-4 py-5 font-mono text-blue-600 italic">@{u.username}</td>
                               <td className="px-4 py-5 text-center">
-                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', APP_IDENTIFIER, 'public', 'data', USER_COLLECTION, u.id))} className="p-2 text-rose-400 hover:bg-rose-100 rounded-lg transition-all"><Trash2 size={14}/></button>
+                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, u.id))} className="p-2 text-rose-400 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
                               </td>
                            </tr>
                         ))}
@@ -999,19 +825,19 @@ export default function App() {
            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-sm p-10 text-center border border-slate-200 animate-in zoom-in duration-200">
               <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-6"><AlertTriangle size={32} /></div>
               <h3 className="text-xl font-black text-slate-800 mb-2 italic">Konfirmasi Reset</h3>
-              <p className="text-[11px] text-slate-500 mb-10 leading-relaxed italic">Anda akan menghapus seluruh data input <b>{activeTab.toUpperCase()}</b> pada struktur anggaran saat ini. Tindakan ini tidak dapat dibatalkan.</p>
+              <p className="text-[11px] text-slate-500 mb-10 leading-relaxed italic">Hapus semua data? Tindakan ini tidak dapat dibatalkan.</p>
               <div className="flex flex-col gap-3">
                  <button onClick={async () => { 
+                   if (!user) return;
                    setIsProcessing(true); 
-                   const snap = await getDocs(collection(db, 'artifacts', APP_IDENTIFIER, 'public', 'data', DATA_COLLECTION));
+                   const snap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION));
                    let batch = writeBatch(db); 
                    const fieldToClear = activeTab === 'rpd' ? 'rpd' : 'realisasi';
                    snap.docs.forEach(d => batch.update(d.ref, { [fieldToClear]: {} }));
                    await batch.commit(); 
                    setIsProcessing(false); 
                    setShowClearDataModal(false); 
-                   addLog(`Seluruh data ${activeTab.toUpperCase()} telah dibersihkan.`);
-                 }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-rose-700 transition-all">Ya, Hapus Semua Isian</button>
+                 }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-rose-700 transition-all">Ya, Hapus Semua</button>
                  <button onClick={() => setShowClearDataModal(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase hover:bg-slate-200 transition-all">Batal</button>
               </div>
            </div>
