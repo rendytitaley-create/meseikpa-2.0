@@ -27,7 +27,6 @@ import {
   AlertTriangle, 
   Menu, 
   User,
-  Info,
   Wallet,
   Activity,
   Lock,
@@ -42,19 +41,44 @@ import {
   CheckCircle2,
   Settings2,
   ArrowRightLeft,
-  ShieldHalf,
   Edit3,
   Briefcase,
   Package,
   HardHat,
   LogOut,
-  Eraser
+  Eraser,
+  ShieldHalf
 } from 'lucide-react';
+
+// --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
+declare global {
+  const __firebase_config: string;
+  const __app_id: string;
+  const __initial_auth_token: string;
+}
 
 // ==========================================================
 // 1. KONFIGURASI FIREBASE & GLOBAL
 // ==========================================================
-const firebaseConfig = JSON.parse(__firebase_config);
+const getFirebaseConfig = () => {
+  try {
+    if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+      return JSON.parse(__firebase_config);
+    }
+    return {
+      apiKey: "AIzaSyDYqadyvJ-9RYxBNOeDxsYAY6wwE5t_y8w",
+      authDomain: "mese-ikpa.firebaseapp.com",
+      projectId: "mese-ikpa",
+      storageBucket: "mese-ikpa.firebasestorage.app",
+      messagingSenderId: "968020082155",
+      appId: "1:968020082155:web:f86188e6de15dcd8cc2dae"
+    };
+  } catch (e) {
+    return {};
+  }
+};
+
+const firebaseConfig = getFirebaseConfig();
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -162,7 +186,7 @@ export default function App() {
     document.head.appendChild(script);
   }, []);
 
-  // MANDATORY RULE 3: Auth Before Queries
+  // Auth Guard
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -172,7 +196,7 @@ export default function App() {
           await signInAnonymously(auth);
         }
       } catch (err) {
-        console.error("Auth failed:", err);
+        console.error("Autentikasi gagal:", err);
       }
     };
     initAuth();
@@ -183,38 +207,37 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // MANDATORY RULE 1 & 3: Guarded Firestore Listeners
+  // Firestore Sync
   useEffect(() => {
     if (!user) return;
 
-    // Listeners menggunakan path absolut sesuai RULE 1
     const unsubUsers = onSnapshot(
       query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION)),
       (snap) => setAllUsers(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
-      (err) => console.error("Sync users failed", err)
+      (err) => console.error("Sinkronisasi user gagal:", err)
     );
 
     const unsubKppn = onSnapshot(
       doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global'),
       (snap) => snap.exists() && setKppnMetrics(snap.data()),
-      (err) => console.error("Sync KPPN failed", err)
+      (err) => console.error("Sinkronisasi KPPN gagal:", err)
     );
 
     const unsubData = onSnapshot(
       query(collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION)),
       (snap) => {
-        let items = snap.docs.map(d => ({ ...d.data(), id: d.id }));
-        items.sort((a, b) => (a.noUrut || 0) - (b.noUrut || 0));
+        let items = snap.docs.map(d => ({ ...d.data(), id: d.id } as any));
+        items.sort((a: any, b: any) => (a.noUrut || 0) - (b.noUrut || 0));
         let curWil = "GG";
         const pathArr: string[] = ["", "", "", "", "", "", "", ""];
-        const proc = items.map(item => {
+        const proc = items.map((item: any) => {
           if (item.kode && String(item.kode).includes("054.01.WA")) curWil = "WA";
           if (item.kode && String(item.kode).includes("054.01.GG")) curWil = "GG"; 
           return { ...item, wilayah: curWil, tempPathKey: generateRowKey(item, pathArr) };
         });
         setDataTampil(proc);
       },
-      (err) => console.error("Sync data failed", err)
+      (err) => console.error("Sinkronisasi data gagal:", err)
     );
 
     return () => {
@@ -439,10 +462,9 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-slate-900 font-sans overflow-hidden">
-      {/* Sidebar */}
       <aside className={`bg-[#0F172A] text-slate-300 transition-all duration-300 flex flex-col z-40 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
         <div className="h-16 flex items-center px-6 bg-slate-900/50 border-b border-white/5">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shrink-0">M</div>
+          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shrink-0 shadow-lg">M</div>
           {sidebarOpen && <div className="ml-3 font-black text-white italic tracking-tighter">MESEIKPA</div>}
         </div>
         <nav className="flex-1 py-6 space-y-2 px-3 overflow-y-auto custom-scrollbar">
@@ -476,13 +498,12 @@ export default function App() {
         <div className="p-4 border-t border-white/5">
            <button onClick={() => setUser(null)} className="w-full flex items-center px-3 py-3 rounded-xl hover:bg-rose-600/20 text-rose-400 transition-all">
               <LogOut size={20} className={sidebarOpen ? 'mr-3' : ''} />
-              {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Logout Cloud</span>}
+              {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Logout SBB</span>}
            </button>
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-hidden">
-        {/* Header */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 z-30 shadow-sm">
           <div className="flex items-center gap-3">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"><Menu size={20} /></button>
@@ -720,14 +741,29 @@ export default function App() {
                  <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase bg-white text-slate-600 border border-slate-200"><Eraser size={14} /> Reset Nilai</button>
               </div>
 
-              <div className="flex gap-4 mb-6">
-                 <button onClick={() => setActiveWilayah("GG")} className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${activeWilayah === "GG" ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200'}`}>Wilayah GG</button>
-                 <button onClick={() => setActiveWilayah("WA")} className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${activeWilayah === "WA" ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200'}`}>Wilayah WA</button>
-                 <div className="flex-1"></div>
-                 <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-                    {[1,2,3,4].map(tw => (
-                       <button key={tw} onClick={() => setTwActive(tw)} className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>TW {tw}</button>
-                    ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                 <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
+                    <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
+                      <button onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>GG</button>
+                      <button onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>WA</button>
+                    </div>
+                 </div>
+                 <div className="lg:col-span-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tim Pelaksana</span>
+                    <div className="flex flex-wrap gap-1 p-1 bg-slate-50 rounded-lg">
+                      {ALL_TEAMS.filter(t => activeWilayah === "GG" ? t !== "Umum" : t === "Umum").map(tim => (
+                        <button key={tim} onClick={() => setActiveTim(tim)} className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400'}`}>{tim}</button>
+                      ))}
+                    </div>
+                 </div>
+                 <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Triwulan</span>
+                    <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
+                      {[1,2,3,4].map(tw => (
+                         <button key={tw} onClick={() => setTwActive(tw)} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>TW {tw}</button>
+                      ))}
+                    </div>
                  </div>
               </div>
 
@@ -788,9 +824,36 @@ export default function App() {
                      <UserPlus className="text-blue-500" /> Registrasi Pegawai Baru
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                     <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Username..." />
-                     <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Password..." />
-                     <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap..." />
+                     <div className="flex flex-col gap-2">
+                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Username</label>
+                       <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Username..." />
+                     </div>
+                     <div className="flex flex-col gap-2">
+                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Password</label>
+                       <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Password..." />
+                     </div>
+                     <div className="flex flex-col gap-2">
+                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Nama Lengkap</label>
+                       <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap..." />
+                     </div>
+                     <div className="flex flex-col gap-2">
+                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Peran Sistem</label>
+                       <select value={newUserRole} onChange={(e:any) => setNewUserRole(e.target.value)} className="w-full bg-white/10 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none">
+                          <option value="ketua_tim" className="text-black">Ketua Tim</option>
+                          <option value="pimpinan" className="text-black">Pimpinan</option>
+                          <option value="admin" className="text-black">Administrator Utama</option>
+                       </select>
+                     </div>
+                     <div className="lg:col-span-2 flex flex-col gap-2">
+                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Penugasan Tim</label>
+                        <div className="flex flex-wrap gap-2">
+                           {ALL_TEAMS.map(t => (
+                              <button key={t} onClick={() => setNewUserTeam(t)} className={`px-5 py-3 rounded-xl text-[10px] font-black border transition-all ${newUserTeam === t ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>
+                                 {t}
+                              </button>
+                           ))}
+                        </div>
+                     </div>
                   </div>
                   <button onClick={handleAddUser} className="mt-12 px-14 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-all">Simpan Akun</button>
                </div>
@@ -815,7 +878,8 @@ export default function App() {
             </div>
           )}
         </div>
-        <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center">
+        <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3">
+            <ShieldHalf size={14} className="text-slate-300" />
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">© 2026 BPS Kab. Seram Bagian Barat - Internal Cloud Access</p>
         </footer>
       </main>
