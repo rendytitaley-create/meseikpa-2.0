@@ -151,7 +151,8 @@ export default function App() {
   const [dataTampil, setDataTampil] = useState<any[]>([]);
   const [kppnMetrics, setKppnMetrics] = useState<any>({
     rpd: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
-    real: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 }
+    real: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    isLocked: false
   });
   const [allUsers, setAllUsers] = useState<any[]>([]);
 
@@ -268,7 +269,13 @@ export default function App() {
 
     const unsubKppn = onSnapshot(
       doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global'),
-      (snap) => snap.exists() && setKppnMetrics(snap.data()),
+      (snap) => {
+        if (snap.exists()) {
+          const d = snap.data();
+          setKppnMetrics(d);
+          setIsLocked(!!d.isLocked); // Sync Lock State Global
+        }
+      },
       (err) => console.error("Sinkronisasi KPPN gagal:", err)
     );
 
@@ -399,6 +406,14 @@ export default function App() {
     await setDoc(docRef, {
       [category]: { ...kppnMetrics[category], [tw]: value }
     }, { merge: true });
+  };
+
+  const handleToggleLock = async () => {
+    if (!fbUser || currentUser?.role !== 'admin') return;
+    const nextVal = !isLocked;
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
+    await setDoc(docRef, { isLocked: nextVal }, { merge: true });
+    addLog(nextVal ? "Sistem dikunci oleh Admin." : "Kunci sistem dibuka oleh Admin.");
   };
 
   const handleAddUser = async () => {
@@ -917,7 +932,8 @@ export default function App() {
                     >
                         <option value={1}>DIPA Induk</option>
                         <option value={2}>Output RO</option>
-                        <option value={5}>Akun 6 Digit</option>
+                        <option value={5}>Komponen/Subkomponen</option>
+                        <option value={7}>Akun 6 Digit</option>
                         <option value={8}>Seluruh Rincian</option>
                     </select>
                   </div>
@@ -938,6 +954,7 @@ export default function App() {
                             <th key={idx} className="px-2 py-4 text-right w-32 bg-emerald-900/40 font-black tracking-tighter border-r border-white/5">TW {tw}</th>
                           ))}
                           <th className="px-2 py-4 text-right bg-orange-900 w-28 tracking-tighter">TOTAL RPD</th>
+                          <th className="px-2 py-4 text-right bg-rose-900 w-20 tracking-tighter italic font-black uppercase">% Dev RPD</th>
                           <th className="px-2 py-4 text-right bg-blue-900 w-28 tracking-tighter">TOTAL REAL</th>
                           <th className="px-3 py-4 text-right bg-slate-900 w-28 tracking-tighter">SISA PAGU</th>
                         </tr>
@@ -946,10 +963,14 @@ export default function App() {
                         {finalDisplay.map((item: any) => {
                           const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
                           const sisaPagu = (Number(item.pagu) || 0) - (item.totalReal || 0);
+                          const internalDevPct = item.pagu > 0 ? (item.totalRPD / item.pagu) * 100 : 0;
+                          
                           let rowBg = "hover:bg-blue-50/30 transition-all";
                           if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
                           if (item.level === 2) rowBg = "bg-blue-100/40 font-black";
+                          if (item.level === 7) rowBg = "bg-slate-100 font-black"; // Akun 6 digit
                           if (item.isOrphan) rowBg = "bg-rose-50 italic";
+                          
                           return (
                             <tr key={item.id} className={rowBg}>
                               <td className="px-3 py-1.5 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
@@ -966,6 +987,7 @@ export default function App() {
                                 </td>
                               ))}
                               <td className="px-2 py-1.5 text-right font-black text-orange-800 border-r border-slate-100 bg-orange-50/30">{!isNonFinancial ? formatMoney(item.totalRPD) : ""}</td>
+                              <td className="px-2 py-1.5 text-right font-black text-rose-700 bg-rose-50 border-r border-slate-100">{!isNonFinancial ? `${internalDevPct.toFixed(1)}%` : ""}</td>
                               <td className="px-2 py-1.5 text-right font-black text-blue-800 bg-blue-50/30">{!isNonFinancial ? formatMoney(item.totalReal) : ""}</td>
                               <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-800'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
                             </tr>
@@ -1092,14 +1114,15 @@ export default function App() {
                  {/* HANYA ADMIN YANG BISA KUNCI & RESET */}
                  {currentUser?.role === 'admin' ? (
                     <div className="flex gap-4">
-                       <button onClick={() => setIsLocked(!isLocked)} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase shadow-md transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
-                          {isLocked ? <Lock size={14} /> : <Unlock size={14} />} {isLocked ? 'Terkunci' : 'Kunci Pengisian'}
+                       <button onClick={handleToggleLock} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase shadow-md transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
+                          {isLocked ? <Lock size={14} /> : <Unlock size={14} />} {isLocked ? 'Sistem Terkunci' : 'Kunci Sistem Global'}
                        </button>
                        <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase bg-white text-slate-600 border border-slate-200"><Eraser size={14} /> Reset Nilai</button>
                     </div>
                  ) : (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 italic text-[11px] font-bold">
-                       <ShieldHalf size={16} /> Mode Pengisian Tim {currentUser?.team}
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border italic text-[11px] font-bold ${isLocked ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
+                       {isLocked ? <Lock size={16} /> : <ShieldHalf size={16} />} 
+                       {isLocked ? 'Sistem Terkunci oleh Admin - Mode Lihat Saja' : `Mode Pengisian Tim ${currentUser?.team}`}
                     </div>
                  )}
               </div>
@@ -1151,10 +1174,10 @@ export default function App() {
                         const sisaPagu = activeTab === 'rpd' ? (Number(item.pagu) || 0) - (item.totalRPD || 0) : (Number(item.pagu) || 0) - (item.totalReal || 0);
                         
                         // LOGIKA EDITING:
-                        // 1. Admin bisa edit semuanya.
-                        // 2. Ketua Tim bisa edit RPD timnya saja.
+                        // 1. Admin bisa edit semuanya (kecuali status locked, opsional tetap bisa edit untuk perbaikan).
+                        // 2. Ketua Tim bisa edit RPD timnya saja JIKA sistem tidak terkunci.
                         // 3. Pimpinan tidak bisa edit apapun.
-                        const canEditThisTab = (activeTab === 'rpd' && (currentUser?.role === 'admin' || currentUser?.role === 'ketua_tim')) || 
+                        const canEditThisTab = (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || 
                                               (activeTab === 'realisasi' && currentUser?.role === 'admin');
                         
                         return (
@@ -1168,15 +1191,15 @@ export default function App() {
                                     <input 
                                       type="number" 
                                       value={activeTab === 'rpd' ? (item.rpd?.[m] || "") : (item.realisasi?.[m] || "")} 
-                                      readOnly={isLocked || !canEditThisTab}
+                                      readOnly={!canEditThisTab}
                                       onChange={async (e) => { 
-                                        if(fbUser && !isLocked && canEditThisTab) { 
+                                        if(fbUser && canEditThisTab) { 
                                           const f = activeTab === 'rpd' ? 'rpd' : 'realisasi'; 
                                           const ex = activeTab === 'rpd' ? (item.rpd || {}) : (item.realisasi || {});
                                           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id), { [f]: { ...ex, [m]: e.target.value } }); 
                                         }
                                       }} 
-                                      className={`no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold text-[10px] ${!canEditThisTab ? 'bg-slate-100 text-slate-400' : 'bg-teal-400 text-slate-900 focus:bg-white transition-all'}`} 
+                                      className={`no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold text-[10px] ${!canEditThisTab ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-teal-400 text-slate-900 focus:bg-white transition-all'}`} 
                                       placeholder="0" 
                                     />
                                   ) : !isInduk ? (<div className="text-right px-2 py-2 text-slate-950 font-black italic">{formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}</div>) : null}
