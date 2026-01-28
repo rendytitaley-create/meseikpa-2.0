@@ -12,7 +12,9 @@ import {
   updateDoc, 
   writeBatch, 
   getDocs, 
-  deleteDoc
+  deleteDoc,
+  where,
+  limit
 } from 'firebase/firestore';
 import { 
   getAuth, 
@@ -46,7 +48,9 @@ import {
   LogOut,
   Eraser,
   ShieldHalf,
-  CheckCircle2
+  CheckCircle2,
+  LogIn,
+  KeyRound
 } from 'lucide-react';
 
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
@@ -134,8 +138,14 @@ const generateRowKey = (item: any, currentPath: string[]) => {
 };
 
 export default function App() {
-  const [user, setUser] = useState<any>(null);
+  const [fbUser, setFbUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  // --- LOGIN STATE ---
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
 
   // --- STATE DATA ---
   const [dataTampil, setDataTampil] = useState<any[]>([]);
@@ -185,7 +195,7 @@ export default function App() {
     document.head.appendChild(script);
   }, []);
 
-  // Auth Guard
+  // Firebase Init & Auth Bootstrap
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -199,8 +209,35 @@ export default function App() {
       }
     };
     initAuth();
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
+      setFbUser(u);
+      
+      // Bootstrap Admin: Cek apakah user collection kosong
+      if (u) {
+        try {
+          const userSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION));
+          if (userSnap.empty) {
+            console.log("Membuat akun admin default...");
+            const adminId = crypto.randomUUID();
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, adminId), {
+              uid: adminId,
+              username: "admin",
+              password: "123",
+              name: "Administrator Utama",
+              role: "admin",
+              team: "Umum",
+              createdAt: new Date()
+            });
+          }
+        } catch (e) { console.error("Bootstrap admin error", e); }
+      }
+
+      // Check Session di LocalStorage
+      const savedUser = localStorage.getItem(`meseikpa_session_${appId}`);
+      if (savedUser) {
+        setCurrentUser(JSON.parse(savedUser));
+      }
+      
       setIsAuthLoading(false);
     });
     return () => unsubscribe();
@@ -208,7 +245,7 @@ export default function App() {
 
   // Firestore Sync
   useEffect(() => {
-    if (!user) return;
+    if (!fbUser || !currentUser) return;
 
     const unsubUsers = onSnapshot(
       query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION)),
@@ -244,7 +281,51 @@ export default function App() {
       unsubKppn();
       unsubData();
     };
-  }, [user]);
+  }, [fbUser, currentUser]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    setIsProcessing(true);
+
+    if (!fbUser) {
+        setLoginError("Koneksi ke server belum siap. Tunggu sebentar...");
+        setIsProcessing(false);
+        return;
+    }
+
+    try {
+      const qUser = query(
+        collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION),
+        where("username", "==", loginUsername.trim().toLowerCase()),
+        limit(1)
+      );
+      
+      const snap = await getDocs(qUser);
+      if (snap.empty) {
+        setLoginError("Username tidak terdaftar.");
+      } else {
+        const userData = snap.docs[0].data();
+        if (userData.password === loginPassword) {
+          setCurrentUser(userData);
+          localStorage.setItem(`meseikpa_session_${appId}`, JSON.stringify(userData));
+        } else {
+          setLoginError("Password salah.");
+        }
+      }
+    } catch (err: any) {
+      setLoginError("Terjadi kesalahan sistem login.");
+      console.error(err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem(`meseikpa_session_${appId}`);
+    setActiveTab('dashboard');
+  };
 
   const globalStats = useMemo(() => {
     const stats = { 
@@ -296,7 +377,7 @@ export default function App() {
   }, [dataTampil]);
 
   const handleUpdateKPPN = async (category: 'rpd' | 'real', tw: string, value: string) => {
-    if (!user) return;
+    if (!fbUser) return;
     const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
     await setDoc(docRef, {
       [category]: { ...kppnMetrics[category], [tw]: value }
@@ -304,7 +385,7 @@ export default function App() {
   };
 
   const handleAddUser = async () => {
-    if (!newUsername || !newPassword || !newFullName || !user) return;
+    if (!newUsername || !newPassword || !newFullName || !fbUser) return;
     setIsProcessing(true);
     try {
       const userId = crypto.randomUUID();
@@ -363,7 +444,7 @@ export default function App() {
   };
 
   const executeMigration = async () => {
-    if (!user) return;
+    if (!fbUser) return;
     setIsProcessing(true); addLog("Memulai Migrasi...");
     try {
         const colRef = collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION);
@@ -459,12 +540,81 @@ export default function App() {
     );
   }
 
+  // --- RENDER LOGIN VIEW ---
+  if (!currentUser) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#F8FAFC] font-sans p-6">
+        <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
+           <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden">
+              <div className="bg-[#0F172A] p-10 text-center relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
+                 <div className="w-16 h-16 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center text-white font-black text-2xl mb-4 shadow-lg shadow-blue-500/30">M</div>
+                 <h1 className="text-white text-3xl font-black italic tracking-tighter">MESEIKPA 2.0</h1>
+                 <p className="text-slate-400 text-[10px] uppercase font-black tracking-[0.2em] mt-2 italic">BPS Kab. Seram Bagian Barat</p>
+              </div>
+              <form onSubmit={handleLogin} className="p-10 space-y-6">
+                 {loginError && (
+                   <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 text-rose-600 animate-in slide-in-from-top duration-300">
+                      <AlertTriangle size={18} />
+                      <span className="text-xs font-bold italic">{loginError}</span>
+                   </div>
+                 )}
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Username</label>
+                    <div className="relative">
+                       <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                       <input 
+                         type="text" 
+                         value={loginUsername}
+                         onChange={(e) => setLoginUsername(e.target.value)}
+                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" 
+                         placeholder="Masukkan username..."
+                         required
+                       />
+                    </div>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Password</label>
+                    <div className="relative">
+                       <KeyRound className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                       <input 
+                         type="password" 
+                         value={loginPassword}
+                         onChange={(e) => setLoginPassword(e.target.value)}
+                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" 
+                         placeholder="••••••••"
+                         required
+                       />
+                    </div>
+                 </div>
+                 <button 
+                   type="submit" 
+                   disabled={isProcessing}
+                   className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/30 hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                 >
+                    {isProcessing ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      <><LogIn size={18}/> Masuk Sistem</>
+                    )}
+                 </button>
+              </form>
+              <div className="px-10 pb-10 text-center">
+                 <p className="text-[9px] font-black uppercase text-slate-300 tracking-widest">Akses Cloud Terenkripsi • v2.0.0</p>
+              </div>
+           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- RENDER MAIN APP VIEW ---
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-slate-900 font-sans overflow-hidden">
       <aside className={`bg-[#0F172A] text-slate-300 transition-all duration-300 flex flex-col z-40 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
         <div className="h-16 flex items-center px-6 bg-slate-900/50 border-b border-white/5">
           <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shrink-0 shadow-lg">M</div>
-          {sidebarOpen && <div className="ml-3 font-black text-white italic tracking-tighter">MESEIKPA</div>}
+          {sidebarOpen && <div className="ml-3 font-black text-white italic tracking-tighter leading-tight">MESEIKPA<br/><span className="text-[9px] uppercase tracking-[0.2em] font-bold not-italic text-blue-400">Version 2.0</span></div>}
         </div>
         <nav className="flex-1 py-6 space-y-2 px-3 overflow-y-auto custom-scrollbar">
           <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
@@ -485,19 +635,24 @@ export default function App() {
             <PieChart size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Rekapitulasi</span>}
           </button>
-          <button onClick={() => setActiveTab('migrasi')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'migrasi' ? 'bg-slate-700 text-white' : 'hover:bg-white/5'}`}>
-            <FileUp size={20} className={sidebarOpen ? 'mr-3' : ''} />
-            {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Migrasi DIPA</span>}
-          </button>
-          <button onClick={() => setActiveTab('users')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'users' ? 'bg-rose-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
-              <Users size={20} className={sidebarOpen ? 'mr-3' : ''} />
-              {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Manajemen User</span>}
-          </button>
+          
+          {currentUser.role === 'admin' && (
+            <>
+              <button onClick={() => setActiveTab('migrasi')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'migrasi' ? 'bg-slate-700 text-white' : 'hover:bg-white/5'}`}>
+                <FileUp size={20} className={sidebarOpen ? 'mr-3' : ''} />
+                {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Migrasi DIPA</span>}
+              </button>
+              <button onClick={() => setActiveTab('users')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'users' ? 'bg-rose-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
+                  <Users size={20} className={sidebarOpen ? 'mr-3' : ''} />
+                  {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Manajemen User</span>}
+              </button>
+            </>
+          )}
         </nav>
         <div className="p-4 border-t border-white/5">
-           <button onClick={() => setUser(null)} className="w-full flex items-center px-3 py-3 rounded-xl hover:bg-rose-600/20 text-rose-400 transition-all">
+           <button onClick={handleLogout} className="w-full flex items-center px-3 py-3 rounded-xl hover:bg-rose-600/20 text-rose-400 transition-all">
               <LogOut size={20} className={sidebarOpen ? 'mr-3' : ''} />
-              {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Logout SBB</span>}
+              {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Logout Sistem</span>}
            </button>
         </div>
       </aside>
@@ -512,6 +667,10 @@ export default function App() {
             </h2>
           </div>
           <div className="flex items-center gap-4">
+             <div className="flex flex-col items-end leading-none">
+                <span className="text-[11px] font-black italic text-slate-800">{currentUser.name}</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{currentUser.role} • {currentUser.team}</span>
+             </div>
             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg bg-blue-600`}><User size={20} /></div>
           </div>
         </header>
@@ -618,7 +777,6 @@ export default function App() {
 
                {/* PANEL KOMPARASI KINERJA PER TRIWULAN */}
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                  {/* KARTU KOMPARASI RPD */}
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-orange-100 text-orange-600 rounded-3xl"><Target size={28}/></div>
@@ -632,14 +790,12 @@ export default function App() {
                         </div>
                     </div>
                     <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring RPD Per Triwulan</h4>
-                    
                     <div className="space-y-4">
                         {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
                            const internalRPD = globalStats.tw[idx].rpd;
                            const targetKPPN = Number(kppnMetrics.rpd?.[tw]) || 0;
                            const deviasi = internalRPD - targetKPPN;
                            const isMatch = Math.abs(deviasi) < 1000;
-
                            return (
                               <div key={tw} className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-3">
                                  <div className="flex justify-between items-center">
@@ -658,24 +814,11 @@ export default function App() {
                                        <span className="text-xs font-bold text-orange-600 block text-right">Rp {formatMoney(targetKPPN)}</span>
                                     </div>
                                  </div>
-                                 <div className="pt-2 border-t border-slate-200/60 flex justify-between items-center italic">
-                                    <span className="text-[9px] font-bold text-slate-400">DEVIASI:</span>
-                                    <span className={`text-[10px] font-black ${isMatch ? 'text-slate-400' : 'text-rose-600'}`}>
-                                       Rp {formatMoney(deviasi)}
-                                    </span>
-                                 </div>
                               </div>
                            );
                         })}
                     </div>
-                    
-                    <div className="mt-6 pt-6 border-t-2 border-dashed border-slate-100 flex justify-between items-center">
-                       <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Total Selisih Akhir:</span>
-                       <span className="text-lg font-black italic text-slate-900 tracking-tighter">Rp {formatMoney(globalStats.rpd - sumMapValues(kppnMetrics.rpd))}</span>
-                    </div>
                   </div>
-
-                  {/* KARTU KOMPARASI REALISASI */}
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-blue-100 text-blue-600 rounded-3xl"><Activity size={28}/></div>
@@ -689,14 +832,12 @@ export default function App() {
                         </div>
                     </div>
                     <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring Realisasi Per Triwulan</h4>
-                    
                     <div className="space-y-4">
                         {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
                            const internalReal = globalStats.tw[idx].real;
                            const targetKPPN = Number(kppnMetrics.real?.[tw]) || 0;
                            const deviasi = internalReal - targetKPPN;
                            const isMatch = Math.abs(deviasi) < 1000;
-
                            return (
                               <div key={tw} className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-3">
                                  <div className="flex justify-between items-center">
@@ -715,62 +856,13 @@ export default function App() {
                                        <span className="text-xs font-bold text-blue-600 block text-right">Rp {formatMoney(targetKPPN)}</span>
                                     </div>
                                  </div>
-                                 <div className="pt-2 border-t border-slate-200/60 flex justify-between items-center italic">
-                                    <span className="text-[9px] font-bold text-slate-400">DEVIASI:</span>
-                                    <span className={`text-[10px] font-black ${isMatch ? 'text-slate-400' : 'text-rose-600'}`}>
-                                       Rp {formatMoney(deviasi)}
-                                    </span>
-                                 </div>
                               </div>
                            );
                         })}
                     </div>
-                    
-                    <div className="mt-6 pt-6 border-t-2 border-dashed border-slate-100 flex justify-between items-center">
-                       <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Total Selisih Akhir:</span>
-                       <span className="text-lg font-black italic text-slate-900 tracking-tighter">Rp {formatMoney(globalStats.real - sumMapValues(kppnMetrics.real))}</span>
-                    </div>
                   </div>
                </div>
 
-               {/* JENIS BELANJA */}
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {[
-                    { label: 'Belanja Pegawai (51)', val: globalStats.belanja.pegawai, icon: Briefcase, color: 'indigo' },
-                    { label: 'Belanja Barang (52)', val: globalStats.belanja.barang, icon: Package, color: 'emerald' },
-                    { label: 'Belanja Modal (53)', val: globalStats.belanja.modal, icon: HardHat, color: 'rose' },
-                  ].map((bel, i) => {
-                    const BelIcon = bel.icon;
-                    return (
-                      <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-lg flex items-center gap-6 group hover:border-blue-300 transition-all">
-                        <div className={`p-5 bg-${bel.color}-100 text-${bel.color}-600 rounded-3xl group-hover:scale-110 transition-all`}><BelIcon size={28} /></div>
-                        <div className="flex-1">
-                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{bel.label}</h4>
-                          <div className="text-xl font-black italic tracking-tighter text-slate-800">Rp {formatMoney(bel.val)}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-               </div>
-
-               {/* FILTER TABEL */}
-               <div className="bg-slate-900 p-8 rounded-[3rem] shadow-xl border border-white/5 flex items-center gap-8">
-                  <div className="p-5 bg-white/10 text-white rounded-2xl"><Layers size={28}/></div>
-                  <div className="flex-1">
-                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Filter Struktur</label>
-                    <select value={rapatDepth} onChange={(e) => setRapatDepth(Number(e.target.value))} className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-6 text-[13px] font-black text-white outline-none">
-                        <option value={1} className="text-black">DIPA Induk</option>
-                        <option value={2} className="text-black">Output RO</option>
-                        <option value={5} className="text-black">Akun 6 Digit</option>
-                        <option value={8} className="text-black">Seluruh Rincian</option>
-                    </select>
-                  </div>
-                  <div className="flex-1">
-                     <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cari Uraian..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-6 text-[13px] font-black text-white outline-none" />
-                  </div>
-               </div>
-
-               {/* TABEL UTAMA */}
                <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
                   <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
                     <table className="w-full border-collapse text-[10px]">
@@ -823,6 +915,67 @@ export default function App() {
             </div>
           )}
 
+          {activeTab === 'users' && (
+            <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
+               <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
+                  <h3 className="text-2xl font-black uppercase italic mb-10 flex items-center gap-4 text-white">
+                     <UserPlus className="text-blue-500" /> Registrasi Pegawai Baru
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-white">
+                     <div className="flex flex-col gap-2">
+                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Username</label>
+                       <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Username..." />
+                     </div>
+                     <div className="flex flex-col gap-2">
+                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Password</label>
+                       <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Password..." />
+                     </div>
+                     <div className="flex flex-col gap-2">
+                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Nama Lengkap</label>
+                       <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap..." />
+                     </div>
+                     <div className="flex flex-col gap-2">
+                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Peran Sistem</label>
+                       <select value={newUserRole} onChange={(e:any) => setNewUserRole(e.target.value)} className="w-full bg-white/10 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none">
+                          <option value="ketua_tim" className="text-black">Ketua Tim</option>
+                          <option value="pimpinan" className="text-black">Pimpinan</option>
+                          <option value="admin" className="text-black">Administrator Utama</option>
+                       </select>
+                     </div>
+                     <div className="lg:col-span-2 flex flex-col gap-2">
+                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Penugasan Tim</label>
+                        <div className="flex flex-wrap gap-2">
+                           {ALL_TEAMS.map(t => (
+                              <button key={t} onClick={() => setNewUserTeam(t)} className={`px-5 py-3 rounded-xl text-[10px] font-black border transition-all ${newUserTeam === t ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>
+                                 {t}
+                              </button>
+                           ))}
+                        </div>
+                     </div>
+                  </div>
+                  <button onClick={handleAddUser} className="mt-12 px-14 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-all">Simpan Akun</button>
+               </div>
+               <div className="bg-white rounded-[3rem] border border-slate-200 overflow-hidden shadow-sm">
+                  <table className="w-full text-left text-xs">
+                     <thead className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black text-slate-400">
+                        <tr><th className="px-8 py-4">Nama</th><th className="px-4 py-4">Username</th><th className="px-4 py-4 text-center">Hapus</th></tr>
+                     </thead>
+                     <tbody className="divide-y divide-slate-50">
+                        {allUsers.map((u, i) => (
+                           <tr key={i}>
+                              <td className="px-8 py-5 font-bold text-slate-800">{u.name}</td>
+                              <td className="px-4 py-5 font-mono text-blue-600 italic">@{u.username}</td>
+                              <td className="px-4 py-5 text-center">
+                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, u.id))} className="p-2 text-rose-400 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
+                              </td>
+                           </tr>
+                        ))}
+                     </tbody>
+                  </table>
+               </div>
+            </div>
+          )}
+
           {activeTab === 'migrasi' && (
             <div className="max-w-4xl mx-auto py-4 animate-in slide-in-from-bottom duration-700">
                <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
@@ -844,9 +997,6 @@ export default function App() {
                         <button onClick={executeMigration} disabled={isProcessing} className="col-span-3 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Jalankan Pembaruan</button>
                       </div>
                     )}
-                    <div className="h-32 bg-slate-950 rounded-2xl p-4 overflow-y-auto custom-scrollbar font-mono text-[9px] text-emerald-400 shadow-inner">
-                        {logs.map((l, i) => <div key={i}>{l}</div>)}
-                    </div>
                   </div>
                </div>
             </div>
@@ -914,7 +1064,7 @@ export default function App() {
                                 <td key={m} className="px-0 py-0 h-full border-r border-slate-100 bg-blue-50/50 group">
                                   {!isInduk && item.isDetail ? (
                                     <input type="number" value={activeTab === 'rpd' ? (item.rpd?.[m] || "") : (item.realisasi?.[m] || "")} readOnly={isLocked}
-                                      onChange={async (e) => { if(user && !isLocked) { const f = activeTab === 'rpd' ? 'rpd' : 'realisasi'; const ex = activeTab === 'rpd' ? (item.rpd || {}) : (item.realisasi || {});
+                                      onChange={async (e) => { if(fbUser && !isLocked) { const f = activeTab === 'rpd' ? 'rpd' : 'realisasi'; const ex = activeTab === 'rpd' ? (item.rpd || {}) : (item.realisasi || {});
                                           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id), { [f]: { ...ex, [m]: e.target.value } }); }
                                       }} className="no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold text-[10px] bg-teal-400 text-slate-900" placeholder="0" />
                                   ) : !isInduk ? (<div className="text-right px-2 py-2 text-slate-950 font-black italic">{formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}</div>) : null}
@@ -936,67 +1086,6 @@ export default function App() {
               </div>
             </div>
           )}
-
-          {activeTab === 'users' && (
-            <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
-               <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
-                  <h3 className="text-2xl font-black uppercase italic mb-10 flex items-center gap-4 text-white">
-                     <UserPlus className="text-blue-500" /> Registrasi Pegawai Baru
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-white">
-                     <div className="flex flex-col gap-2">
-                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Username</label>
-                       <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Username..." />
-                     </div>
-                     <div className="flex flex-col gap-2">
-                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Password</label>
-                       <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Password..." />
-                     </div>
-                     <div className="flex flex-col gap-2">
-                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Nama Lengkap</label>
-                       <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap..." />
-                     </div>
-                     <div className="flex flex-col gap-2">
-                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Peran Sistem</label>
-                       <select value={newUserRole} onChange={(e:any) => setNewUserRole(e.target.value)} className="w-full bg-white/10 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none">
-                          <option value="ketua_tim" className="text-black">Ketua Tim</option>
-                          <option value="pimpinan" className="text-black">Pimpinan</option>
-                          <option value="admin" className="text-black">Administrator Utama</option>
-                       </select>
-                     </div>
-                     <div className="lg:col-span-2 flex flex-col gap-2">
-                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Penugasan Tim</label>
-                        <div className="flex flex-wrap gap-2">
-                           {ALL_TEAMS.map(t => (
-                              <button key={t} onClick={() => setNewUserTeam(t)} className={`px-5 py-3 rounded-xl text-[10px] font-black border transition-all ${newUserTeam === t ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>
-                                 {t}
-                              </button>
-                           ))}
-                        </div>
-                     </div>
-                  </div>
-                  <button onClick={handleAddUser} className="mt-12 px-14 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-all">Simpan Akun</button>
-               </div>
-               <div className="bg-white rounded-[3rem] border border-slate-200 overflow-hidden shadow-sm">
-                  <table className="w-full text-left text-xs">
-                     <thead className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black text-slate-400">
-                        <tr><th className="px-8 py-4">Nama</th><th className="px-4 py-4">Username</th><th className="px-4 py-4 text-center">Hapus</th></tr>
-                     </thead>
-                     <tbody className="divide-y divide-slate-50">
-                        {allUsers.map((u, i) => (
-                           <tr key={i}>
-                              <td className="px-8 py-5 font-bold text-slate-800">{u.name}</td>
-                              <td className="px-4 py-5 font-mono text-blue-600 italic">@{u.username}</td>
-                              <td className="px-4 py-5 text-center">
-                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, u.id))} className="p-2 text-rose-400 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
-                              </td>
-                           </tr>
-                        ))}
-                     </tbody>
-                  </table>
-               </div>
-            </div>
-          )}
         </div>
         <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0">
             <ShieldHalf size={14} className="text-slate-300" />
@@ -1013,7 +1102,7 @@ export default function App() {
               <p className="text-[11px] text-slate-500 mb-10 leading-relaxed italic">Hapus semua data? Tindakan ini tidak dapat dibatalkan.</p>
               <div className="flex flex-col gap-3">
                  <button onClick={async () => { 
-                   if (!user) return;
+                   if (!fbUser) return;
                    setIsProcessing(true); 
                    const snap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION));
                    let batch = writeBatch(db); 
