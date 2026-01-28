@@ -34,7 +34,6 @@ import {
   Lock,
   Unlock,
   PieChart,
-  Layers,
   ShieldCheck,
   TrendingUp,
   Target,
@@ -42,9 +41,6 @@ import {
   UserPlus,
   Settings2,
   Edit3,
-  Briefcase,
-  Package,
-  HardHat,
   LogOut,
   Eraser,
   ShieldHalf,
@@ -164,7 +160,7 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [, setLogs] = useState<string[]>([]); // logs dihapus karena tidak dibaca, setLogs tetap untuk addLog
   const [libReady, setLibReady] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]); 
   const [migrationStats, setMigrationStats] = useState({ match: 0, new: 0, orphaned: 0 });
@@ -407,7 +403,7 @@ export default function App() {
   const handleFileAnalyze = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !libReady) return;
-    setIsProcessing(true); setLogs([]);
+    setIsProcessing(true);
     addLog(`Menganalisa: ${file.name}`);
     try {
       const reader = new FileReader();
