@@ -45,7 +45,9 @@ import {
   HardHat,
   LogOut,
   Eraser,
-  ShieldHalf
+  ShieldHalf,
+  ArrowRightLeft,
+  CheckCircle2
 } from 'lucide-react';
 
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
@@ -578,11 +580,12 @@ export default function App() {
 
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+               {/* MODUL KONFIGURASI KPPN */}
                <div className="bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-white/10 text-white">
                   <div className="flex items-center gap-4 mb-8">
                      <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg"><Settings2 size={24} /></div>
                      <div>
-                        <h3 className="text-lg font-black uppercase italic leading-tight">Konfigurasi Data KPPN</h3>
+                        <h3 className="text-lg font-black uppercase italic leading-tight text-white">Konfigurasi Data KPPN</h3>
                         <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">Target resmi untuk penyandingan data</p>
                      </div>
                   </div>
@@ -594,7 +597,7 @@ export default function App() {
                               <div key={tw} className="flex flex-col">
                                  <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
                                  <input type="number" value={kppnMetrics.rpd?.[tw] || ""} onChange={(e) => handleUpdateKPPN('rpd', tw, e.target.value)} 
-                                    className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10" placeholder="0" />
+                                    className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
                               </div>
                            ))}
                         </div>
@@ -606,7 +609,7 @@ export default function App() {
                               <div key={tw} className="flex flex-col">
                                  <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
                                  <input type="number" value={kppnMetrics.real?.[tw] || ""} onChange={(e) => handleUpdateKPPN('real', tw, e.target.value)} 
-                                    className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10" placeholder="0" />
+                                    className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
                               </div>
                            ))}
                         </div>
@@ -614,6 +617,72 @@ export default function App() {
                   </div>
                </div>
 
+               {/* PANEL KOMPARASI KINERJA (BARU) */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-lg group">
+                     <div className="flex justify-between items-start mb-6">
+                        <div className="p-4 bg-orange-100 text-orange-600 rounded-3xl"><Target size={28}/></div>
+                        <div className="text-right">
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status RPD</span>
+                           {Math.abs(globalStats.rpd - sumMapValues(kppnMetrics.rpd)) < 1000 ? (
+                              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Match</span>
+                           ) : (
+                              <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center justify-end gap-1"><AlertTriangle size={12}/> Unmatch</span>
+                           )}
+                        </div>
+                     </div>
+                     <h4 className="text-lg font-black italic text-slate-800 mb-4 uppercase tracking-tighter">Komparasi Target RPD</h4>
+                     <div className="space-y-4">
+                        <div className="flex justify-between items-center text-xs">
+                           <span className="text-slate-500 font-bold uppercase tracking-widest">Input Satker</span>
+                           <span className="font-black text-slate-800">Rp {formatMoney(globalStats.rpd)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                           <span className="text-slate-500 font-bold uppercase tracking-widest">Target KPPN</span>
+                           <span className="font-black text-orange-600 italic underline">Rp {formatMoney(sumMapValues(kppnMetrics.rpd))}</span>
+                        </div>
+                        <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Deviasi / Selisih</span>
+                           <span className={`text-sm font-black italic ${globalStats.rpd - sumMapValues(kppnMetrics.rpd) === 0 ? 'text-slate-400' : 'text-rose-600'}`}>
+                              Rp {formatMoney(globalStats.rpd - sumMapValues(kppnMetrics.rpd))}
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-lg group">
+                     <div className="flex justify-between items-start mb-6">
+                        <div className="p-4 bg-blue-100 text-blue-600 rounded-3xl"><Activity size={28}/></div>
+                        <div className="text-right">
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status Realisasi</span>
+                           {Math.abs(globalStats.real - sumMapValues(kppnMetrics.real)) < 1000 ? (
+                              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Match</span>
+                           ) : (
+                              <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center justify-end gap-1"><AlertTriangle size={12}/> Unmatch</span>
+                           )}
+                        </div>
+                     </div>
+                     <h4 className="text-lg font-black italic text-slate-800 mb-4 uppercase tracking-tighter">Komparasi Realisasi</h4>
+                     <div className="space-y-4">
+                        <div className="flex justify-between items-center text-xs">
+                           <span className="text-slate-500 font-bold uppercase tracking-widest">Input Satker</span>
+                           <span className="font-black text-slate-800">Rp {formatMoney(globalStats.real)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                           <span className="text-slate-500 font-bold uppercase tracking-widest">Angka KPPN</span>
+                           <span className="font-black text-blue-600 italic underline">Rp {formatMoney(sumMapValues(kppnMetrics.real))}</span>
+                        </div>
+                        <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Deviasi / Selisih</span>
+                           <span className={`text-sm font-black italic ${globalStats.real - sumMapValues(kppnMetrics.real) === 0 ? 'text-slate-400' : 'text-rose-600'}`}>
+                              Rp {formatMoney(globalStats.real - sumMapValues(kppnMetrics.real))}
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               {/* JENIS BELANJA */}
                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   {[
                     { label: 'Belanja Pegawai (51)', val: globalStats.belanja.pegawai, icon: Briefcase, color: 'indigo' },
@@ -633,6 +702,7 @@ export default function App() {
                   })}
                </div>
 
+               {/* FILTER TABEL */}
                <div className="bg-slate-900 p-8 rounded-[3rem] shadow-xl border border-white/5 flex items-center gap-8">
                   <div className="p-5 bg-white/10 text-white rounded-2xl"><Layers size={28}/></div>
                   <div className="flex-1">
@@ -649,6 +719,7 @@ export default function App() {
                   </div>
                </div>
 
+               {/* TABEL UTAMA */}
                <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
                   <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
                     <table className="w-full border-collapse text-[10px]">
@@ -705,7 +776,7 @@ export default function App() {
             <div className="max-w-4xl mx-auto py-4 animate-in slide-in-from-bottom duration-700">
                <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
                   <div className="bg-slate-900 p-8 text-white relative">
-                    <h3 className="text-xl font-black uppercase tracking-widest italic">Konsol Migrasi Cloud</h3>
+                    <h3 className="text-xl font-black uppercase tracking-widest italic text-white">Konsol Migrasi Cloud</h3>
                     <p className="text-slate-400 mt-1 text-[11px]">Sinkronisasi struktur anggaran BPS SBB.</p>
                   </div>
                   <div className="p-10 space-y-8">
@@ -818,10 +889,10 @@ export default function App() {
           {activeTab === 'users' && (
             <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
                <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
-                  <h3 className="text-2xl font-black uppercase italic mb-10 flex items-center gap-4">
+                  <h3 className="text-2xl font-black uppercase italic mb-10 flex items-center gap-4 text-white">
                      <UserPlus className="text-blue-500" /> Registrasi Pegawai Baru
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-white">
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Username</label>
                        <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Username..." />
@@ -863,7 +934,7 @@ export default function App() {
                      <tbody className="divide-y divide-slate-50">
                         {allUsers.map((u, i) => (
                            <tr key={i}>
-                              <td className="px-8 py-5 font-bold">{u.name}</td>
+                              <td className="px-8 py-5 font-bold text-slate-800">{u.name}</td>
                               <td className="px-4 py-5 font-mono text-blue-600 italic">@{u.username}</td>
                               <td className="px-4 py-5 text-center">
                                  <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, u.id))} className="p-2 text-rose-400 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
@@ -876,12 +947,13 @@ export default function App() {
             </div>
           )}
         </div>
-        <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3">
+        <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0">
             <ShieldHalf size={14} className="text-slate-300" />
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">© 2026 BPS Kab. Seram Bagian Barat - Internal Cloud Access</p>
         </footer>
       </main>
 
+      {/* MODAL RESET DATA */}
       {showClearDataModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-sm p-10 text-center border border-slate-200 animate-in zoom-in duration-200">
