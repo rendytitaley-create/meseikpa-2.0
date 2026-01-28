@@ -46,7 +46,6 @@ import {
   LogOut,
   Eraser,
   ShieldHalf,
-  ArrowRightLeft,
   CheckCircle2
 } from 'lucide-react';
 
