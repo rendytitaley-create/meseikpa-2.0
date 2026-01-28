@@ -46,7 +46,9 @@ import {
   ShieldHalf,
   CheckCircle2,
   LogIn,
-  KeyRound
+  KeyRound,
+  Search,
+  Filter
 } from 'lucide-react';
 
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
@@ -160,7 +162,7 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [, setLogs] = useState<string[]>([]); // logs dihapus karena tidak dibaca, setLogs tetap untuk addLog
+  const [, setLogs] = useState<string[]>([]); 
   const [libReady, setLibReady] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]); 
   const [migrationStats, setMigrationStats] = useState({ match: 0, new: 0, orphaned: 0 });
@@ -662,6 +664,21 @@ export default function App() {
               BPS Kab. Seram Bagian Barat
             </h2>
           </div>
+          
+          {/* SEARCH BAR GLOBAL (Digunakan agar setSearchTerm aktif) */}
+          <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
+            <div className="relative w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input 
+                type="text" 
+                placeholder="Cari Uraian atau Kode..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-12 pr-4 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
+              />
+            </div>
+          </div>
+
           <div className="flex items-center gap-4">
              <div className="flex flex-col items-end leading-none">
                 <span className="text-[11px] font-black italic text-slate-800">{currentUser.name}</span>
@@ -859,6 +876,27 @@ export default function App() {
                   </div>
                </div>
 
+               {/* FILTER TABEL (Digunakan agar setRapatDepth aktif) */}
+               <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-200 flex items-center gap-8">
+                  <div className="p-5 bg-blue-100 text-blue-600 rounded-2xl"><Filter size={28}/></div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Kedalaman Struktur</label>
+                    <select 
+                      value={rapatDepth} 
+                      onChange={(e) => setRapatDepth(Number(e.target.value))} 
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-6 text-[13px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    >
+                        <option value={1}>DIPA Induk</option>
+                        <option value={2}>Output RO</option>
+                        <option value={5}>Akun 6 Digit</option>
+                        <option value={8}>Seluruh Rincian</option>
+                    </select>
+                  </div>
+                  <div className="flex-[2] bg-slate-50 p-4 rounded-2xl">
+                     <p className="text-[10px] font-bold text-slate-400 italic">Gunakan bar pencarian di bagian atas untuk menyaring uraian kegiatan secara spesifik di semua halaman.</p>
+                  </div>
+               </div>
+
                <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
                   <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
                     <table className="w-full border-collapse text-[10px]">
@@ -928,7 +966,7 @@ export default function App() {
                      </div>
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Nama Lengkap</label>
-                       <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap..." />
+                       <input type="text" value={newFullName} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap..." />
                      </div>
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Peran Sistem</label>
