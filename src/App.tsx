@@ -441,15 +441,11 @@ export default function App() {
 
   const saveKppnGlobal = async () => {
     if (!fbUser || currentUser?.role !== 'admin') return;
-    setIsProcessing(true);
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
       await setDoc(docRef, kppnMetrics, { merge: true });
-      addLog("Data KPPN berhasil diperbarui.");
     } catch (e:any) {
-      addLog("Gagal menyimpan data KPPN.");
-    } finally {
-      setIsProcessing(false);
+      console.error("Gagal menyimpan data KPPN.");
     }
   };
 
@@ -458,7 +454,6 @@ export default function App() {
     const nextVal = !isLocked;
     const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
     await setDoc(docRef, { isLocked: nextVal }, { merge: true });
-    addLog(nextVal ? "Sistem dikunci oleh Admin." : "Kunci sistem dibuka oleh Admin.");
   };
 
   const handleAddUser = async () => {
@@ -476,8 +471,7 @@ export default function App() {
         createdAt: new Date()
       });
       setNewUsername(""); setNewPassword(""); setNewFullName("");
-      addLog(`Pegawai ${newFullName} berhasil didaftarkan.`);
-    } catch (e: any) { addLog("Gagal: " + e.message); }
+    } catch (e: any) { console.error("Gagal: " + e.message); }
     finally { setIsProcessing(false); }
   };
 
@@ -485,7 +479,6 @@ export default function App() {
     if (!id || !newPass || !fbUser || currentUser?.role !== 'admin') return;
     try {
        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, id), { password: newPass });
-       addLog("Password user berhasil diperbarui.");
     } catch (e: any) { console.error(e); }
   };
 
@@ -493,7 +486,6 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file || !libReady) return;
     setIsProcessing(true);
-    addLog(`Menganalisa: ${file.name}`);
     try {
       const reader = new FileReader();
       reader.onload = async (evt: any) => {
@@ -525,12 +517,12 @@ export default function App() {
         setIsProcessing(false);
       };
       reader.readAsArrayBuffer(file);
-    } catch (e: any) { setIsProcessing(false); addLog("Error: " + e.message); }
+    } catch (e: any) { setIsProcessing(false); }
   };
 
   const executeMigration = async () => {
     if (!fbUser) return;
-    setIsProcessing(true); addLog("Memulai Migrasi...");
+    setIsProcessing(true);
     try {
         const colRef = collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION);
         const snap = await getDocs(colRef);
@@ -556,8 +548,8 @@ export default function App() {
             if (++op >= 450) { await batch.commit(); batch = writeBatch(db); op = 0; }
         }
         if (op > 0) await batch.commit();
-        addLog("Migrasi Selesai."); setPreviewData([]); setActiveTab('dashboard');
-    } catch (e: any) { addLog("Gagal: " + e.message); } finally { setIsProcessing(false); }
+        setPreviewData([]); setActiveTab('dashboard');
+    } catch (e: any) { console.error(e); } finally { setIsProcessing(false); }
   };
 
   const processedData = useMemo(() => {
@@ -684,9 +676,6 @@ export default function App() {
                     )}
                  </button>
               </form>
-              <div className="px-10 pb-10 text-center">
-                 <p className="text-[9px] font-black uppercase text-slate-300 tracking-widest">Akses Cloud Terenkripsi • v2.0.0</p>
-              </div>
            </div>
         </div>
       </div>
@@ -838,69 +827,10 @@ export default function App() {
 
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-               {/* MODUL KONFIGURASI KPPN (Hanya Admin) */}
-               {currentUser?.role === 'admin' && (
-                 <div className="bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-white/10 text-white relative">
-                    <div className="flex items-center justify-between mb-8">
-                       <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg"><Settings2 size={24} /></div>
-                          <div>
-                            <h3 className="text-lg font-black uppercase italic leading-tight text-white">Konfigurasi Data KPPN</h3>
-                            <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">Target resmi untuk penyandingan data</p>
-                          </div>
-                       </div>
-                       <button onClick={saveKppnGlobal} disabled={isProcessing} className="flex items-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all">
-                         {isProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><Save size={18}/> Simpan Data KPPN</>}
-                       </button>
-                    </div>
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-                       <div className="space-y-8">
-                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-400 mb-2 tracking-widest border-b border-white/10 pb-2"><Target size={14} /> Target RPD KPPN</div>
-                          <div className="space-y-6">
-                            {['Total RPD','Belanja Pegawai (51)','Belanja Barang (52)','Belanja Modal (53)'].map((label, idx) => {
-                               const cat = idx === 0 ? 'rpd' : idx === 1 ? 'rpd51' : idx === 2 ? 'rpd52' : 'rpd53';
-                               return (
-                                <div key={label} className="grid grid-cols-4 gap-4 items-end">
-                                   <label className="col-span-4 text-[9px] font-black uppercase opacity-60 mb-[-10px]">{label}</label>
-                                   {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
-                                      <div key={tw} className="flex flex-col">
-                                         <label className="text-[8px] font-black uppercase mb-1 opacity-30">{tw}</label>
-                                         <input type="text" value={formatInputMasking(kppnMetrics[cat]?.[tw])} onChange={(e) => handleUpdateKPPN(cat, tw, e.target.value)} 
-                                            className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
-                                      </div>
-                                   ))}
-                                </div>
-                               );
-                            })}
-                          </div>
-                       </div>
-                       <div className="space-y-8">
-                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest border-b border-white/10 pb-2"><Activity size={14} /> Realisasi Anggaran KPPN</div>
-                          <div className="space-y-6">
-                            {['Total Real','Belanja Pegawai (51)','Belanja Barang (52)','Belanja Modal (53)'].map((label, idx) => {
-                               const cat = idx === 0 ? 'real' : idx === 1 ? 'real51' : idx === 2 ? 'real52' : 'real53';
-                               return (
-                                <div key={label} className="grid grid-cols-4 gap-4 items-end">
-                                   <label className="col-span-4 text-[9px] font-black uppercase opacity-60 mb-[-10px]">{label}</label>
-                                   {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
-                                      <div key={tw} className="flex flex-col">
-                                         <label className="text-[8px] font-black uppercase mb-1 opacity-30">{tw}</label>
-                                         <input type="text" value={formatInputMasking(kppnMetrics[cat]?.[tw])} onChange={(e) => handleUpdateKPPN(cat, tw, e.target.value)} 
-                                            className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
-                                      </div>
-                                   ))}
-                                </div>
-                               );
-                            })}
-                          </div>
-                       </div>
-                    </div>
-                 </div>
-               )}
-
-               {/* PANEL KOMPARASI KINERJA PER TRIWULAN */}
+               {/* INTEGRATED MONITORING CARDS (Replacing Top Config) */}
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative">
+                  {/* MONITORING RPD CARD */}
+                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative group">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-orange-100 text-orange-600 rounded-3xl"><Target size={28}/></div>
                         <div className="text-right">
@@ -912,58 +842,74 @@ export default function App() {
                            )}
                         </div>
                     </div>
-                    <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring RPD Per Triwulan</h4>
+                    <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter flex items-center gap-2">
+                      Monitoring RPD Per Triwulan
+                      {currentUser?.role === 'admin' && <span className="text-[9px] not-italic font-bold bg-blue-50 text-blue-500 px-2 py-1 rounded-lg">Admin Edit Mode</span>}
+                    </h4>
                     <div className="space-y-4">
                         {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
                            const internalRPD = globalStats.tw[idx].rpd;
                            const targetKPPN = Number(kppnMetrics.rpd?.[tw]) || 0;
                            const devPct = targetKPPN !== 0 ? ((internalRPD - targetKPPN) / targetKPPN) * 100 : 0;
                            
-                           // Sub Metrics
-                           const int51 = globalStats.tw[idx].rpd51; const tar51 = Number(kppnMetrics.rpd51?.[tw]) || 0;
-                           const int52 = globalStats.tw[idx].rpd52; const tar52 = Number(kppnMetrics.rpd52?.[tw]) || 0;
-                           const int53 = globalStats.tw[idx].rpd53; const tar53 = Number(kppnMetrics.rpd53?.[tw]) || 0;
-
                            return (
-                             <div key={tw} className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 flex flex-col gap-4">
+                             <div key={tw} className="p-6 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 flex flex-col gap-5 transition-all hover:bg-white hover:shadow-md">
                                  <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
-                                    <span className={`text-[10px] font-black uppercase px-4 py-1.5 rounded-full ${getDevColorClass(devPct)}`}>
+                                    <span className="text-xs font-black text-slate-800 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg">{tw}</span>
+                                    <span className={`text-[10px] font-black uppercase px-4 py-2 rounded-full border shadow-sm ${getDevColorClass(devPct)}`}>
                                         Deviasi RPD: {devPct.toFixed(2)}%
                                     </span>
                                  </div>
-                                 <div className="grid grid-cols-2 gap-6 pb-2 border-b border-slate-200/50">
+                                 
+                                 <div className="grid grid-cols-2 gap-8 pb-4 border-b border-slate-200/50">
                                     <div className="space-y-1">
-                                       <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
+                                       <span className="text-[9px] font-black text-slate-400 uppercase block tracking-widest">Internal Satker</span>
                                        <span className="text-sm font-black text-slate-800 italic">Rp {formatMoney(internalRPD)}</span>
                                     </div>
-                                    <div className="space-y-1">
-                                       <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Target KPPN</span>
-                                       <span className="text-sm font-black text-orange-600 block text-right italic">Rp {formatMoney(targetKPPN)}</span>
+                                    <div className="space-y-2">
+                                       <span className="text-[9px] font-black text-slate-400 uppercase block tracking-widest text-right">Target KPPN (Input)</span>
+                                       <input 
+                                          type="text" 
+                                          value={formatInputMasking(kppnMetrics.rpd?.[tw])} 
+                                          readOnly={currentUser?.role !== 'admin'}
+                                          onChange={(e) => handleUpdateKPPN('rpd', tw, e.target.value)} 
+                                          onBlur={saveKppnGlobal}
+                                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-black text-right italic outline-none focus:ring-2 focus:ring-orange-200 transition-all text-orange-600" 
+                                          placeholder="0" 
+                                       />
                                     </div>
                                  </div>
-                                 <div className="grid grid-cols-3 gap-2">
-                                   {[
-                                     { l: 'Pegawai (51)', s: int51, k: tar51 },
-                                     { l: 'Barang (52)', s: int52, k: tar52 },
-                                     { l: 'Modal (53)', s: int53, k: tar53 },
-                                   ].map(sub => {
-                                     const subDev = sub.k !== 0 ? ((sub.s - sub.k) / sub.k) * 100 : 0;
-                                     return (
-                                       <div key={sub.l} className={`p-2 rounded-xl border transition-all ${getDevColorClass(subDev)}`}>
-                                         <span className="text-[8px] font-black uppercase block leading-none mb-1">{sub.l}</span>
-                                         <span className="text-[9px] font-bold block truncate">Dev: {subDev.toFixed(1)}%</span>
-                                         <span className="text-[7px] font-bold block opacity-60 truncate">Sel: {formatMoney(sub.s - sub.k)}</span>
-                                       </div>
-                                     );
+
+                                 <div className="grid grid-cols-3 gap-3">
+                                   {['51', '52', '53'].map(code => {
+                                      const cat = `rpd${code}`;
+                                      const intVal = globalStats.tw[idx][cat as keyof typeof globalStats.tw[number]];
+                                      const tarVal = Number(kppnMetrics[cat]?.[tw]) || 0;
+                                      const subDev = tarVal !== 0 ? ((Number(intVal) - tarVal) / tarVal) * 100 : 0;
+                                      return (
+                                        <div key={code} className="flex flex-col gap-1.5">
+                                           <label className="text-[8px] font-black uppercase text-slate-400 tracking-tighter ml-1">Akun {code}</label>
+                                           <input 
+                                              type="text" 
+                                              value={formatInputMasking(kppnMetrics[cat]?.[tw])} 
+                                              readOnly={currentUser?.role !== 'admin'}
+                                              onChange={(e) => handleUpdateKPPN(cat, tw, e.target.value)}
+                                              onBlur={saveKppnGlobal}
+                                              className={`w-full border rounded-xl px-3 py-1.5 text-[10px] font-black text-right outline-none transition-all ${getDevColorClass(subDev)}`}
+                                              placeholder="0"
+                                           />
+                                        </div>
+                                      );
                                    })}
                                  </div>
-                              </div>
+                             </div>
                            );
                         })}
                     </div>
                   </div>
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative">
+
+                  {/* MONITORING REALISASI CARD */}
+                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative group">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-blue-100 text-blue-600 rounded-3xl"><Activity size={28}/></div>
                         <div className="text-right">
@@ -975,52 +921,67 @@ export default function App() {
                            )}
                         </div>
                     </div>
-                    <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring Realisasi Per Triwulan</h4>
+                    <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter flex items-center gap-2">
+                      Monitoring Realisasi Per Triwulan
+                      {currentUser?.role === 'admin' && <span className="text-[9px] not-italic font-bold bg-blue-50 text-blue-500 px-2 py-1 rounded-lg">Admin Edit Mode</span>}
+                    </h4>
                     <div className="space-y-4">
                         {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
                            const internalReal = globalStats.tw[idx].real;
                            const targetKPPN = Number(kppnMetrics.real?.[tw]) || 0;
                            const devPct = targetKPPN !== 0 ? ((internalReal - targetKPPN) / targetKPPN) * 100 : 0;
-
-                           const int51 = globalStats.tw[idx].real51; const tar51 = Number(kppnMetrics.real51?.[tw]) || 0;
-                           const int52 = globalStats.tw[idx].real52; const tar52 = Number(kppnMetrics.real52?.[tw]) || 0;
-                           const int53 = globalStats.tw[idx].real53; const tar53 = Number(kppnMetrics.real53?.[tw]) || 0;
-
+                           
                            return (
-                             <div key={tw} className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 flex flex-col gap-4">
+                             <div key={tw} className="p-6 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 flex flex-col gap-5 transition-all hover:bg-white hover:shadow-md">
                                  <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
-                                    <span className={`text-[10px] font-black uppercase px-4 py-1.5 rounded-full ${getDevColorClass(devPct)}`}>
+                                    <span className="text-xs font-black text-slate-800 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg">{tw}</span>
+                                    <span className={`text-[10px] font-black uppercase px-4 py-2 rounded-full border shadow-sm ${getDevColorClass(devPct)}`}>
                                         Deviasi Real: {devPct.toFixed(2)}%
                                     </span>
                                  </div>
-                                 <div className="grid grid-cols-2 gap-6 pb-2 border-b border-slate-200/50">
+                                 
+                                 <div className="grid grid-cols-2 gap-8 pb-4 border-b border-slate-200/50">
                                     <div className="space-y-1">
-                                       <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
+                                       <span className="text-[9px] font-black text-slate-400 uppercase block tracking-widest">Internal Satker</span>
                                        <span className="text-sm font-black text-slate-800 italic">Rp {formatMoney(internalReal)}</span>
                                     </div>
-                                    <div className="space-y-1">
-                                       <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Angka KPPN</span>
-                                       <span className="text-sm font-black text-blue-600 block text-right italic">Rp {formatMoney(targetKPPN)}</span>
+                                    <div className="space-y-2">
+                                       <span className="text-[9px] font-black text-slate-400 uppercase block tracking-widest text-right">Realisasi KPPN (Input)</span>
+                                       <input 
+                                          type="text" 
+                                          value={formatInputMasking(kppnMetrics.real?.[tw])} 
+                                          readOnly={currentUser?.role !== 'admin'}
+                                          onChange={(e) => handleUpdateKPPN('real', tw, e.target.value)} 
+                                          onBlur={saveKppnGlobal}
+                                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-black text-right italic outline-none focus:ring-2 focus:ring-blue-200 transition-all text-blue-600" 
+                                          placeholder="0" 
+                                       />
                                     </div>
                                  </div>
-                                 <div className="grid grid-cols-3 gap-2">
-                                   {[
-                                     { l: 'Pegawai (51)', s: int51, k: tar51 },
-                                     { l: 'Barang (52)', s: int52, k: tar52 },
-                                     { l: 'Modal (53)', s: int53, k: tar53 },
-                                   ].map(sub => {
-                                     const subDev = sub.k !== 0 ? ((sub.s - sub.k) / sub.k) * 100 : 0;
-                                     return (
-                                       <div key={sub.l} className={`p-2 rounded-xl border transition-all ${getDevColorClass(subDev)}`}>
-                                         <span className="text-[8px] font-black uppercase block leading-none mb-1">{sub.l}</span>
-                                         <span className="text-[9px] font-bold block truncate">Dev: {subDev.toFixed(1)}%</span>
-                                         <span className="text-[7px] font-bold block opacity-60 truncate">Sel: {formatMoney(sub.s - sub.k)}</span>
-                                       </div>
-                                     );
+
+                                 <div className="grid grid-cols-3 gap-3">
+                                   {['51', '52', '53'].map(code => {
+                                      const cat = `real${code}`;
+                                      const intVal = globalStats.tw[idx][cat as keyof typeof globalStats.tw[number]];
+                                      const tarVal = Number(kppnMetrics[cat]?.[tw]) || 0;
+                                      const subDev = tarVal !== 0 ? ((Number(intVal) - tarVal) / tarVal) * 100 : 0;
+                                      return (
+                                        <div key={code} className="flex flex-col gap-1.5">
+                                           <label className="text-[8px] font-black uppercase text-slate-400 tracking-tighter ml-1">Akun {code}</label>
+                                           <input 
+                                              type="text" 
+                                              value={formatInputMasking(kppnMetrics[cat]?.[tw])} 
+                                              readOnly={currentUser?.role !== 'admin'}
+                                              onChange={(e) => handleUpdateKPPN(cat, tw, e.target.value)}
+                                              onBlur={saveKppnGlobal}
+                                              className={`w-full border rounded-xl px-3 py-1.5 text-[10px] font-black text-right outline-none transition-all ${getDevColorClass(subDev)}`}
+                                              placeholder="0"
+                                           />
+                                        </div>
+                                      );
                                    })}
                                  </div>
-                              </div>
+                             </div>
                            );
                         })}
                     </div>
