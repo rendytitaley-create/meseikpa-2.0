@@ -892,7 +892,7 @@ export default function App() {
                                       const internalVal = globalStats.tw[idx][`real${code}` as keyof typeof globalStats.tw[number]];
                                       const targetKppn = Number(kppnMetrics[`real${code}`]?.[tw]) || 0;
                                       const devVal = targetKppn !== 0 ? ((Number(internalVal) - targetKppn) / targetKppn) * 100 : 0;
-                                      return <span key={code} className={`text-[10px] font-black px-2 py-0.5 rounded border ${getDevColorClass(devVal)}`}>{code}: {devVal.toFixed(1)}%</span>;
+                                      return <span key={code} className={`text-[12px] font-black px-3 py-1.5 rounded-xl border shadow-sm tracking-tighter ${getDevColorClass(devVal)}`}>{code}: {devVal.toFixed(1)}%</span>;
                                    })}
                                  </div>
                               </div>
@@ -907,7 +907,7 @@ export default function App() {
                                       <div key={code} className="grid grid-cols-12 items-center gap-4 bg-white p-3 rounded-2xl border border-slate-100">
                                          <div className="col-span-3 text-[10px] font-black text-slate-500 uppercase">Belanja {code}</div>
                                          <div className="col-span-4 text-center border-x border-slate-100"><span className="text-[8px] font-black text-slate-300 block mb-1">Satker (Rekap)</span><span className="text-[11px] font-black text-slate-800 italic">Rp {formatMoney(internalSub)}</span></div>
-                                         <div className="col-span-5"><span className="text-sm font-black text-slate-300 block mb-1 text-right">KPPN (Input)</span><input type="text" value={formatInputMasking(kppnMetrics[subCat]?.[tw])} readOnly={currentUser.role !== 'admin'} onChange={(e) => handleUpdateKPPN(subCat, tw, e.target.value)} onBlur={saveKppnGlobal} className={`w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[11px] font-black text-right outline-none focus:ring-2 focus:ring-blue-100 transition-all ${getDevColorClass(subDev)}`} placeholder="0" /></div>
+                                         <div className="col-span-5"><span className="text-[9px] font-black text-slate-300 block mb-1 text-right">KPPN (Input)</span><input type="text" value={formatInputMasking(kppnMetrics[subCat]?.[tw])} readOnly={currentUser.role !== 'admin'} onChange={(e) => handleUpdateKPPN(subCat, tw, e.target.value)} onBlur={saveKppnGlobal} className={`w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[11px] font-black text-right outline-none focus:ring-2 focus:ring-blue-100 transition-all ${getDevColorClass(subDev)}`} placeholder="0" /></div>
                                       </div>
                                     );
                                  })}
