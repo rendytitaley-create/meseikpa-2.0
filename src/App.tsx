@@ -50,7 +50,8 @@ import {
   Search,
   Filter,
   Eye,
-  EyeOff
+  EyeOff,
+  Save
 } from 'lucide-react';
 
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
@@ -152,6 +153,12 @@ export default function App() {
   const [kppnMetrics, setKppnMetrics] = useState<any>({
     rpd: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
     real: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    rpd51: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    real51: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    rpd52: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    real52: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    rpd53: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    real53: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
     isLocked: false
   });
   const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -354,7 +361,7 @@ export default function App() {
   const globalStats = useMemo(() => {
     const stats = { 
         pagu: 0, rpd: 0, real: 0, 
-        tw: [{ rpd: 0, real: 0 }, { rpd: 0, real: 0 }, { rpd: 0, real: 0 }, { rpd: 0, real: 0 }],
+        tw: [{ rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 }, { rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 }, { rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 }, { rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 }],
         belanja: { pegawai: 0, barang: 0, modal: 0 } 
     };
     const details = dataTampil.filter(d => !d.isOrphan && getLevel(d.kode) === 8 && (Number(d.pagu) || 0) > 0);
@@ -365,9 +372,14 @@ export default function App() {
       
       const keys = (d.tempPathKey || "").split("|");
       const accountCode = keys[6] || ""; 
-      if (accountCode.startsWith("51")) stats.belanja.pegawai += itemReal;
-      else if (accountCode.startsWith("52")) stats.belanja.barang += itemReal;
-      else if (accountCode.startsWith("53")) stats.belanja.modal += itemReal;
+      
+      const is51 = accountCode.startsWith("51");
+      const is52 = accountCode.startsWith("52");
+      const is53 = accountCode.startsWith("53");
+
+      if (is51) stats.belanja.pegawai += itemReal;
+      else if (is52) stats.belanja.barang += itemReal;
+      else if (is53) stats.belanja.modal += itemReal;
 
       allMonths.forEach((m, idx) => {
         const valRPD = (Number(d.rpd?.[m]) || 0);
@@ -376,6 +388,10 @@ export default function App() {
         const twIdx = Math.floor(idx / 3);
         stats.tw[twIdx].rpd += valRPD;
         stats.tw[twIdx].real += valReal;
+
+        if(is51) { stats.tw[twIdx].rpd51 += valRPD; stats.tw[twIdx].real51 += valReal; }
+        if(is52) { stats.tw[twIdx].rpd52 += valRPD; stats.tw[twIdx].real52 += valReal; }
+        if(is53) { stats.tw[twIdx].rpd53 += valRPD; stats.tw[twIdx].real53 += valReal; }
       });
     });
     return stats;
@@ -400,12 +416,25 @@ export default function App() {
     return list;
   }, [dataTampil]);
 
-  const handleUpdateKPPN = async (category: 'rpd' | 'real', tw: string, value: string) => {
+  const handleUpdateKPPN = (category: string, tw: string, value: string) => {
+    setKppnMetrics((prev: any) => ({
+      ...prev,
+      [category]: { ...prev[category], [tw]: value }
+    }));
+  };
+
+  const saveKppnGlobal = async () => {
     if (!fbUser || currentUser?.role !== 'admin') return;
-    const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
-    await setDoc(docRef, {
-      [category]: { ...kppnMetrics[category], [tw]: value }
-    }, { merge: true });
+    setIsProcessing(true);
+    try {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
+      await setDoc(docRef, kppnMetrics, { merge: true });
+      addLog("Data KPPN berhasil diperbarui.");
+    } catch (e:any) {
+      addLog("Gagal menyimpan data KPPN.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleToggleLock = async () => {
@@ -795,37 +824,58 @@ export default function App() {
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
                {/* MODUL KONFIGURASI KPPN (Hanya Admin) */}
                {currentUser?.role === 'admin' && (
-                 <div className="bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-white/10 text-white">
-                    <div className="flex items-center gap-4 mb-8">
-                       <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg"><Settings2 size={24} /></div>
-                       <div>
-                          <h3 className="text-lg font-black uppercase italic leading-tight text-white">Konfigurasi Data KPPN</h3>
-                          <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">Target resmi untuk penyandingan data</p>
-                       </div>
-                    </div>
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-                       <div className="space-y-4">
-                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-400 mb-2 tracking-widest"><Target size={14} /> Target RPD KPPN</div>
-                          <div className="grid grid-cols-4 gap-4">
-                             {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
-                                <div key={tw} className="flex flex-col">
-                                   <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
-                                   <input type="number" value={kppnMetrics.rpd?.[tw] || ""} onChange={(e) => handleUpdateKPPN('rpd', tw, e.target.value)} 
-                                      className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
-                                </div>
-                             ))}
+                 <div className="bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-white/10 text-white relative">
+                    <div className="flex items-center justify-between mb-8">
+                       <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg"><Settings2 size={24} /></div>
+                          <div>
+                            <h3 className="text-lg font-black uppercase italic leading-tight text-white">Konfigurasi Data KPPN</h3>
+                            <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">Target resmi untuk penyandingan data</p>
                           </div>
                        </div>
-                       <div className="space-y-4">
-                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest"><Activity size={14} /> Realisasi Anggaran KPPN</div>
-                          <div className="grid grid-cols-4 gap-4">
-                             {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
-                                <div key={tw} className="flex flex-col">
-                                   <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
-                                   <input type="number" value={kppnMetrics.real?.[tw] || ""} onChange={(e) => handleUpdateKPPN('real', tw, e.target.value)} 
-                                      className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
+                       <button onClick={saveKppnGlobal} disabled={isProcessing} className="flex items-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all">
+                          {isProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><Save size={18}/> Simpan Data KPPN</>}
+                       </button>
+                    </div>
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+                       <div className="space-y-8">
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-400 mb-2 tracking-widest border-b border-white/10 pb-2"><Target size={14} /> Target RPD KPPN</div>
+                          <div className="space-y-6">
+                            {['Total RPD','Belanja Pegawai (51)','Belanja Barang (52)','Belanja Modal (53)'].map((label, idx) => {
+                               const cat = idx === 0 ? 'rpd' : idx === 1 ? 'rpd51' : idx === 2 ? 'rpd52' : 'rpd53';
+                               return (
+                                <div key={label} className="grid grid-cols-4 gap-4 items-end">
+                                   <label className="col-span-4 text-[9px] font-black uppercase opacity-60 mb-[-10px]">{label}</label>
+                                   {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
+                                      <div key={tw} className="flex flex-col">
+                                         <label className="text-[8px] font-black uppercase mb-1 opacity-30">{tw}</label>
+                                         <input type="number" value={kppnMetrics[cat]?.[tw] || ""} onChange={(e) => handleUpdateKPPN(cat, tw, e.target.value)} 
+                                            className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
+                                      </div>
+                                   ))}
                                 </div>
-                             ))}
+                               );
+                            })}
+                          </div>
+                       </div>
+                       <div className="space-y-8">
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest border-b border-white/10 pb-2"><Activity size={14} /> Realisasi Anggaran KPPN</div>
+                          <div className="space-y-6">
+                            {['Total Real','Belanja Pegawai (51)','Belanja Barang (52)','Belanja Modal (53)'].map((label, idx) => {
+                               const cat = idx === 0 ? 'real' : idx === 1 ? 'real51' : idx === 2 ? 'real52' : 'real53';
+                               return (
+                                <div key={label} className="grid grid-cols-4 gap-4 items-end">
+                                   <label className="col-span-4 text-[9px] font-black uppercase opacity-60 mb-[-10px]">{label}</label>
+                                   {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
+                                      <div key={tw} className="flex flex-col">
+                                         <label className="text-[8px] font-black uppercase mb-1 opacity-30">{tw}</label>
+                                         <input type="number" value={kppnMetrics[cat]?.[tw] || ""} onChange={(e) => handleUpdateKPPN(cat, tw, e.target.value)} 
+                                            className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
+                                      </div>
+                                   ))}
+                                </div>
+                               );
+                            })}
                           </div>
                        </div>
                     </div>
@@ -851,25 +901,43 @@ export default function App() {
                         {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
                            const internalRPD = globalStats.tw[idx].rpd;
                            const targetKPPN = Number(kppnMetrics.rpd?.[tw]) || 0;
-                           const deviasi = internalRPD - targetKPPN;
-                           const devPct = targetKPPN !== 0 ? (deviasi / targetKPPN) * 100 : 0;
+                           const devPct = targetKPPN !== 0 ? (internalRPD / targetKPPN) * 100 : 0;
+                           
+                           // Sub Metrics
+                           const int51 = globalStats.tw[idx].rpd51; const tar51 = Number(kppnMetrics.rpd51?.[tw]) || 0;
+                           const int52 = globalStats.tw[idx].rpd52; const tar52 = Number(kppnMetrics.rpd52?.[tw]) || 0;
+                           const int53 = globalStats.tw[idx].rpd53; const tar53 = Number(kppnMetrics.rpd53?.[tw]) || 0;
+
                            return (
-                              <div key={tw} className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-3">
+                              <div key={tw} className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 flex flex-col gap-4">
                                  <div className="flex justify-between items-center">
                                     <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
-                                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${Math.abs(devPct) < 0.1 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                                       Deviasi: {devPct > 0 ? '+' : ''}{devPct.toFixed(2)}%
+                                    <span className={`text-[10px] font-black uppercase px-4 py-1.5 rounded-full ${Math.abs(devPct - 100) < 1 ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
+                                       Capaian RPD: {devPct.toFixed(2)}%
                                     </span>
                                  </div>
-                                 <div className="grid grid-cols-2 gap-4">
+                                 <div className="grid grid-cols-2 gap-6 pb-2 border-b border-slate-200/50">
                                     <div className="space-y-1">
                                        <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
-                                       <span className="text-xs font-bold text-slate-700">Rp {formatMoney(internalRPD)}</span>
+                                       <span className="text-sm font-black text-slate-800 italic">Rp {formatMoney(internalRPD)}</span>
                                     </div>
                                     <div className="space-y-1">
                                        <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Target KPPN</span>
-                                       <span className="text-xs font-bold text-orange-600 block text-right">Rp {formatMoney(targetKPPN)}</span>
+                                       <span className="text-sm font-black text-orange-600 block text-right italic">Rp {formatMoney(targetKPPN)}</span>
                                     </div>
+                                 </div>
+                                 <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                      { l: 'Pegawai (51)', s: int51, k: tar51 },
+                                      { l: 'Barang (52)', s: int52, k: tar52 },
+                                      { l: 'Modal (53)', s: int53, k: tar53 },
+                                    ].map(sub => (
+                                      <div key={sub.l} className="bg-white p-2 rounded-xl border border-slate-100">
+                                        <span className="text-[8px] font-black text-slate-400 uppercase block leading-none mb-1">{sub.l}</span>
+                                        <span className="text-[9px] font-bold text-slate-700 block truncate">S: {formatMoney(sub.s)}</span>
+                                        <span className="text-[9px] font-bold text-orange-600 block truncate">K: {formatMoney(sub.k)}</span>
+                                      </div>
+                                    ))}
                                  </div>
                               </div>
                            );
@@ -893,25 +961,42 @@ export default function App() {
                         {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
                            const internalReal = globalStats.tw[idx].real;
                            const targetKPPN = Number(kppnMetrics.real?.[tw]) || 0;
-                           const deviasi = internalReal - targetKPPN;
-                           const devPct = targetKPPN !== 0 ? (deviasi / targetKPPN) * 100 : 0;
+                           const devPct = targetKPPN !== 0 ? (internalReal / targetKPPN) * 100 : 0;
+
+                           const int51 = globalStats.tw[idx].real51; const tar51 = Number(kppnMetrics.real51?.[tw]) || 0;
+                           const int52 = globalStats.tw[idx].real52; const tar52 = Number(kppnMetrics.real52?.[tw]) || 0;
+                           const int53 = globalStats.tw[idx].real53; const tar53 = Number(kppnMetrics.real53?.[tw]) || 0;
+
                            return (
-                              <div key={tw} className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-3">
+                              <div key={tw} className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 flex flex-col gap-4">
                                  <div className="flex justify-between items-center">
                                     <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
-                                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${Math.abs(devPct) < 0.1 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                                       Deviasi: {devPct > 0 ? '+' : ''}{devPct.toFixed(2)}%
+                                    <span className={`text-[10px] font-black uppercase px-4 py-1.5 rounded-full ${devPct >= 100 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                       Capaian Real: {devPct.toFixed(2)}%
                                     </span>
                                  </div>
-                                 <div className="grid grid-cols-2 gap-4">
+                                 <div className="grid grid-cols-2 gap-6 pb-2 border-b border-slate-200/50">
                                     <div className="space-y-1">
                                        <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
-                                       <span className="text-xs font-bold text-slate-700">Rp {formatMoney(internalReal)}</span>
+                                       <span className="text-sm font-black text-slate-800 italic">Rp {formatMoney(internalReal)}</span>
                                     </div>
                                     <div className="space-y-1">
                                        <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Angka KPPN</span>
-                                       <span className="text-xs font-bold text-blue-600 block text-right">Rp {formatMoney(targetKPPN)}</span>
+                                       <span className="text-sm font-black text-blue-600 block text-right italic">Rp {formatMoney(targetKPPN)}</span>
                                     </div>
+                                 </div>
+                                 <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                      { l: 'Pegawai (51)', s: int51, k: tar51 },
+                                      { l: 'Barang (52)', s: int52, k: tar52 },
+                                      { l: 'Modal (53)', s: int53, k: tar53 },
+                                    ].map(sub => (
+                                      <div key={sub.l} className="bg-white p-2 rounded-xl border border-slate-100">
+                                        <span className="text-[8px] font-black text-slate-400 uppercase block leading-none mb-1">{sub.l}</span>
+                                        <span className="text-[9px] font-bold text-slate-700 block truncate">S: {formatMoney(sub.s)}</span>
+                                        <span className="text-[9px] font-bold text-blue-600 block truncate">K: {formatMoney(sub.k)}</span>
+                                      </div>
+                                    ))}
                                  </div>
                               </div>
                            );
@@ -924,21 +1009,21 @@ export default function App() {
                <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-200 flex items-center gap-8">
                   <div className="p-5 bg-blue-100 text-blue-600 rounded-2xl"><Filter size={28}/></div>
                   <div className="flex-1">
-                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Kedalaman Struktur</label>
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Kedalaman Struktur Rekapitulasi</label>
                     <select 
                       value={rapatDepth} 
                       onChange={(e) => setRapatDepth(Number(e.target.value))} 
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-6 text-[13px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                     >
-                        <option value={1}>DIPA Induk</option>
-                        <option value={2}>Output RO</option>
-                        <option value={5}>Komponen/Subkomponen</option>
-                        <option value={7}>Akun 6 Digit</option>
-                        <option value={8}>Seluruh Rincian</option>
+                        <option value={1}>Level 1: DIPA Induk Satker</option>
+                        <option value={2}>Level 2: Output Rincian Output (RO)</option>
+                        <option value={5}>Level 5: Komponen & Sub Komponen</option>
+                        <option value={7}>Level 7: Kode Akun (6 Digit)</option>
+                        <option value={8}>Level 8: Seluruh Detail Rincian</option>
                     </select>
                   </div>
                   <div className="flex-[2] bg-slate-50 p-4 rounded-2xl">
-                     <p className="text-[10px] font-bold text-slate-400 italic">Gunakan bar pencarian di bagian atas untuk menyaring uraian kegiatan secara spesifik di semua halaman.</p>
+                     <p className="text-[10px] font-bold text-slate-400 italic leading-relaxed">Filter di atas mengatur kedalaman hierarki anggaran yang tampil pada tabel di bawah. Gunakan fitur pencarian global di header untuk menyaring kata kunci spesifik secara real-time.</p>
                   </div>
                </div>
 
@@ -954,7 +1039,7 @@ export default function App() {
                             <th key={idx} className="px-2 py-4 text-right w-32 bg-emerald-900/40 font-black tracking-tighter border-r border-white/5">TW {tw}</th>
                           ))}
                           <th className="px-2 py-4 text-right bg-orange-900 w-28 tracking-tighter">TOTAL RPD</th>
-                          <th className="px-2 py-4 text-right bg-rose-900 w-20 tracking-tighter italic font-black uppercase">% Dev RPD</th>
+                          <th className="px-2 py-4 text-right bg-rose-900 w-20 tracking-tighter italic font-black uppercase">% DEV</th>
                           <th className="px-2 py-4 text-right bg-blue-900 w-28 tracking-tighter">TOTAL REAL</th>
                           <th className="px-3 py-4 text-right bg-slate-900 w-28 tracking-tighter">SISA PAGU</th>
                         </tr>
@@ -963,7 +1048,7 @@ export default function App() {
                         {finalDisplay.map((item: any) => {
                           const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
                           const sisaPagu = (Number(item.pagu) || 0) - (item.totalReal || 0);
-                          const internalDevPct = item.pagu > 0 ? (item.totalRPD / item.pagu) * 100 : 0;
+                          const devPctFinal = item.totalRPD > 0 ? (item.totalReal / item.totalRPD) * 100 : 0;
                           
                           let rowBg = "hover:bg-blue-50/30 transition-all";
                           if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
@@ -987,7 +1072,7 @@ export default function App() {
                                 </td>
                               ))}
                               <td className="px-2 py-1.5 text-right font-black text-orange-800 border-r border-slate-100 bg-orange-50/30">{!isNonFinancial ? formatMoney(item.totalRPD) : ""}</td>
-                              <td className="px-2 py-1.5 text-right font-black text-rose-700 bg-rose-50 border-r border-slate-100">{!isNonFinancial ? `${internalDevPct.toFixed(1)}%` : ""}</td>
+                              <td className="px-2 py-1.5 text-right font-black text-rose-700 bg-rose-50 border-r border-slate-100">{(!isNonFinancial && item.pagu > 0) ? `${devPctFinal.toFixed(1)}%` : ""}</td>
                               <td className="px-2 py-1.5 text-right font-black text-blue-800 bg-blue-50/30">{!isNonFinancial ? formatMoney(item.totalReal) : ""}</td>
                               <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-800'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
                             </tr>
@@ -1174,7 +1259,7 @@ export default function App() {
                         const sisaPagu = activeTab === 'rpd' ? (Number(item.pagu) || 0) - (item.totalRPD || 0) : (Number(item.pagu) || 0) - (item.totalReal || 0);
                         
                         // LOGIKA EDITING:
-                        // 1. Admin bisa edit semuanya (kecuali status locked, opsional tetap bisa edit untuk perbaikan).
+                        // 1. Admin bisa edit semuanya.
                         // 2. Ketua Tim bisa edit RPD timnya saja JIKA sistem tidak terkunci.
                         // 3. Pimpinan tidak bisa edit apapun.
                         const canEditThisTab = (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || 
