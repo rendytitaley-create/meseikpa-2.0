@@ -847,7 +847,7 @@ export default function App() {
                                       const internalVal = globalStats.tw[idx][`rpd${code}` as keyof typeof globalStats.tw[number]];
                                       const targetKppn = Number(kppnMetrics[`rpd${code}`]?.[tw]) || 0;
                                       const devVal = targetKppn !== 0 ? ((Number(internalVal) - targetKppn) / targetKppn) * 100 : 0;
-                                      return <span key={code} className={`text-[8px] font-black px-2 py-0.5 rounded border ${getDevColorClass(devVal)}`}>{code}: {devVal.toFixed(1)}%</span>;
+                                      return <span key={code} className={`text-[12px] font-black px-3 py-1.5 rounded-xl border shadow-sm tracking-tighter ${getDevColorClass(devVal)}`}>{code}: {devVal.toFixed(1)}%</span>;
                                    })}
                                  </div>
                               </div>
