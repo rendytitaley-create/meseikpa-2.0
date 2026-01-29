@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
@@ -51,11 +52,16 @@ import {
   Filter,
   Eye,
   EyeOff,
-  Save
+  ChevronRight,
+  Save,
+  Clock
 } from 'lucide-react';
 
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
 declare global {
+  interface Window {
+    XLSX: any;
+  }
   const __firebase_config: string;
   const __app_id: string;
   const __initial_auth_token: string;
@@ -150,16 +156,9 @@ export default function App() {
 
   // --- STATE DATA ---
   const [dataTampil, setDataTampil] = useState<any[]>([]);
-  // Penyesuaian state kppnMetrics agar support breakdown 51,52,53
   const [kppnMetrics, setKppnMetrics] = useState<any>({
-    rpd: { 
-        TW1: { b51: 0, b52: 0, b53: 0 }, TW2: { b51: 0, b52: 0, b53: 0 }, 
-        TW3: { b51: 0, b52: 0, b53: 0 }, TW4: { b51: 0, b52: 0, b53: 0 } 
-    },
-    real: { 
-        TW1: { b51: 0, b52: 0, b53: 0 }, TW2: { b51: 0, b52: 0, b53: 0 }, 
-        TW3: { b51: 0, b52: 0, b53: 0 }, TW4: { b51: 0, b52: 0, b53: 0 } 
-    },
+    rpd: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    real: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
     isLocked: false
   });
   const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -173,16 +172,14 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [, setLogs] = useState<string[]>([]); 
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [libReady, setLibReady] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]); 
   const [migrationStats, setMigrationStats] = useState({ match: 0, new: 0, orphaned: 0 });
   const [isLocked, setIsLocked] = useState(false);
   const [showClearDataModal, setShowClearDataModal] = useState(false);
   
-  // State Password Visibility
   const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
-
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newFullName, setNewFullName] = useState("");
@@ -196,8 +193,7 @@ export default function App() {
     3: ['Jul', 'Ags', 'Sep'], 4: ['Okt', 'Nov', 'Des']
   };
 
-  const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
-
+  // Efek Otomatis Set Tim Berdasarkan Profil User
   useEffect(() => {
     if (currentUser && currentUser.role !== 'admin') {
       setActiveTim(currentUser.team);
@@ -206,14 +202,16 @@ export default function App() {
     }
   }, [currentUser]);
 
+  // Excel Loader
   useEffect(() => {
-    if ((window as any).XLSX) { setLibReady(true); return; }
+    if (window.XLSX) { setLibReady(true); return; }
     const script = document.createElement('script');
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-    script.onload = () => { setLibReady(true); addLog("Sistem Excel Aktif."); };
+    script.onload = () => { setLibReady(true); };
     document.head.appendChild(script);
   }, []);
 
+  // Firebase Init & Auth
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -222,9 +220,7 @@ export default function App() {
         } else {
           await signInAnonymously(auth);
         }
-      } catch (err) {
-        console.error("Autentikasi gagal:", err);
-      }
+      } catch (err) { console.error("Autentikasi gagal:", err); }
     };
     initAuth();
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -247,17 +243,15 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // Firestore Sync
   useEffect(() => {
     if (!fbUser || !currentUser) return;
-    const unsubUsers = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION)), (snap) => setAllUsers(snap.docs.map(d => ({ ...d.data(), id: d.id }))));
-    const unsubKppn = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global'), (snap) => {
-        if (snap.exists()) {
-          const d = snap.data();
-          setKppnMetrics(d);
-          setIsLocked(!!d.isLocked);
-        }
-      });
-    const unsubData = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION)), (snap) => {
+    const unsubUsers = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION)),
+      (snap) => setAllUsers(snap.docs.map(d => ({ ...d.data(), id: d.id }))));
+    const unsubKppn = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global'),
+      (snap) => { if (snap.exists()) { const d = snap.data(); setKppnMetrics(d); setIsLocked(!!d.isLocked); } });
+    const unsubData = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION)),
+      (snap) => {
         let items = snap.docs.map(d => ({ ...d.data(), id: d.id } as any));
         items.sort((a: any, b: any) => (a.noUrut || 0) - (b.noUrut || 0));
         let curWil = "GG";
@@ -273,62 +267,54 @@ export default function App() {
   }, [fbUser, currentUser]);
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); setLoginError(""); setIsProcessing(true);
-    if (!fbUser) { setLoginError("Koneksi ke server belum siap..."); setIsProcessing(false); return; }
+    e.preventDefault();
+    setLoginError(""); setIsProcessing(true);
+    if (!fbUser) { setLoginError("Koneksi ke server belum siap."); setIsProcessing(false); return; }
     try {
-      const qUser = query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION), where("username", "==", loginUsername.trim().toLowerCase()), limit(1));
+      const qUser = query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION),
+        where("username", "==", loginUsername.trim().toLowerCase()), limit(1));
       const snap = await getDocs(qUser);
-      if (snap.empty) setLoginError("Username tidak terdaftar.");
+      if (snap.empty) { setLoginError("Username tidak terdaftar."); } 
       else {
         const userData = snap.docs[0].data();
-        if (userData.password === loginPassword) { setCurrentUser(userData); localStorage.setItem(`meseikpa_session_${appId}`, JSON.stringify(userData)); }
-        else setLoginError("Password salah.");
+        if (userData.password === loginPassword) {
+          setCurrentUser(userData);
+          localStorage.setItem(`meseikpa_session_${appId}`, JSON.stringify(userData));
+        } else { setLoginError("Password salah."); }
       }
     } catch (err: any) { setLoginError("Terjadi kesalahan sistem login."); } finally { setIsProcessing(false); }
   };
 
-  const handleLogout = () => { setCurrentUser(null); localStorage.removeItem(`meseikpa_session_${appId}`); setLoginUsername(""); setLoginPassword(""); setLoginError(""); setActiveTab('dashboard'); };
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem(`meseikpa_session_${appId}`);
+    setLoginUsername(""); setLoginPassword(""); setLoginError("");
+    setActiveTab('dashboard');
+  };
 
-  // --- PERBAIKAN LOGIKA GLOBAL STATS (BREAKDOWN 51,52,53) ---
   const globalStats = useMemo(() => {
     const stats = { 
         pagu: 0, rpd: 0, real: 0, 
-        tw: Array.from({length: 4}, () => ({ 
-            rpd: 0, real: 0, 
-            b51: { rpd: 0, real: 0 }, 
-            b52: { rpd: 0, real: 0 }, 
-            b53: { rpd: 0, real: 0 } 
-        })),
+        tw: [{ rpd: 0, real: 0 }, { rpd: 0, real: 0 }, { rpd: 0, real: 0 }, { rpd: 0, real: 0 }],
         belanja: { pegawai: 0, barang: 0, modal: 0 } 
     };
-    
     const details = dataTampil.filter(d => !d.isOrphan && getLevel(d.kode) === 8 && (Number(d.pagu) || 0) > 0);
-    
     details.forEach(d => {
       const itemReal = sumMapValues(d.realisasi);
       stats.pagu += (Number(d.pagu) || 0);
       stats.real += itemReal;
-      
       const keys = (d.tempPathKey || "").split("|");
       const accountCode = keys[6] || ""; 
-      const bPrefix = accountCode.substring(0, 2);
-
-      if (bPrefix === "51") stats.belanja.pegawai += itemReal;
-      else if (bPrefix === "52") stats.belanja.barang += itemReal;
-      else if (bPrefix === "53") stats.belanja.modal += itemReal;
-
+      if (accountCode.startsWith("51")) stats.belanja.pegawai += itemReal;
+      else if (accountCode.startsWith("52")) stats.belanja.barang += itemReal;
+      else if (accountCode.startsWith("53")) stats.belanja.modal += itemReal;
       allMonths.forEach((m, idx) => {
         const valRPD = (Number(d.rpd?.[m]) || 0);
         const valReal = (Number(d.realisasi?.[m]) || 0);
-        const twIdx = Math.floor(idx / 3);
-        
         stats.rpd += valRPD;
+        const twIdx = Math.floor(idx / 3);
         stats.tw[twIdx].rpd += valRPD;
         stats.tw[twIdx].real += valReal;
-
-        if (bPrefix === "51") { stats.tw[twIdx].b51.rpd += valRPD; stats.tw[twIdx].b51.real += valReal; }
-        else if (bPrefix === "52") { stats.tw[twIdx].b52.rpd += valRPD; stats.tw[twIdx].b52.real += valReal; }
-        else if (bPrefix === "53") { stats.tw[twIdx].b53.rpd += valRPD; stats.tw[twIdx].b53.real += valReal; }
       });
     });
     return stats;
@@ -353,26 +339,10 @@ export default function App() {
     return list;
   }, [dataTampil]);
 
-  // --- PERBAIKAN FUNGSI SIMPAN KPPN (TOTAL SIMPAN) ---
-  const handleSaveKPPNConfig = async () => {
+  const handleUpdateKPPN = async (category: 'rpd' | 'real', tw: string, value: string) => {
     if (!fbUser || currentUser?.role !== 'admin') return;
-    setIsProcessing(true);
-    try {
-        const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
-        await setDoc(docRef, kppnMetrics, { merge: true });
-        addLog("Konfigurasi KPPN Berhasil Disimpan.");
-    } catch (e: any) { addLog("Gagal Simpan: " + e.message); }
-    finally { setIsProcessing(false); }
-  };
-
-  const handleUpdateKPPNLocal = (category: 'rpd' | 'real', tw: string, type: string, value: string) => {
-    setKppnMetrics((prev: any) => ({
-        ...prev,
-        [category]: {
-            ...prev[category],
-            [tw]: { ...prev[category][tw], [type]: value }
-        }
-    }));
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
+    await setDoc(docRef, { [category]: { ...kppnMetrics[category], [tw]: value } }, { merge: true });
   };
 
   const handleToggleLock = async () => {
@@ -380,7 +350,6 @@ export default function App() {
     const nextVal = !isLocked;
     const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
     await setDoc(docRef, { isLocked: nextVal }, { merge: true });
-    addLog(nextVal ? "Sistem dikunci oleh Admin." : "Kunci sistem dibuka oleh Admin.");
   };
 
   const handleAddUser = async () => {
@@ -389,17 +358,11 @@ export default function App() {
     try {
       const userId = crypto.randomUUID();
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, userId), {
-        uid: userId, username: newUsername.trim().toLowerCase(), password: newPassword, name: newFullName, role: newUserRole, team: newUserTeam, createdAt: new Date()
+        uid: userId, username: newUsername.trim().toLowerCase(), password: newPassword,
+        name: newFullName, role: newUserRole, team: newUserTeam, createdAt: new Date()
       });
       setNewUsername(""); setNewPassword(""); setNewFullName("");
-      addLog(`Pegawai ${newFullName} berhasil didaftarkan.`);
-    } catch (e: any) { addLog("Gagal: " + e.message); }
-    finally { setIsProcessing(false); }
-  };
-
-  const handleChangeUserPassword = async (id: string, newPass: string) => {
-    if (!id || !newPass || !fbUser || currentUser?.role !== 'admin') return;
-    try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, id), { password: newPass }); addLog("Password diperbarui."); } catch (e: any) { console.error(e); }
+    } catch (e: any) { console.error(e); } finally { setIsProcessing(false); }
   };
 
   const handleFileAnalyze = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -409,7 +372,7 @@ export default function App() {
     try {
       const reader = new FileReader();
       reader.onload = async (evt: any) => {
-        const XLSX = (window as any).XLSX;
+        const XLSX = window.XLSX;
         const wb = XLSX.read(evt.target.result, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
@@ -421,16 +384,20 @@ export default function App() {
             const kode = row[0] ? String(row[0]).trim() : "";
             const uraian = [row[1], row[2], row[3]].filter(Boolean).join(" ").trim();
             if (!kode && !uraian) continue;
+            const satuan = row[4] ? String(row[4]).trim() : "";
+            let pagu = 0, foundIdx = -1;
+            for (let j = row.length - 1; j >= 5; j--) if (typeof row[j] === 'number') { pagu = row[j]; foundIdx = j; break; }
+            let hsat = foundIdx > 5 && typeof row[foundIdx - 1] === 'number' ? row[foundIdx - 1] : 0;
             const pKey = generateRowKey({ kode, uraian }, path);
-            let pagu = 0;
-            for (let j = row.length - 1; j >= 5; j--) if (typeof row[j] === 'number') { pagu = row[j]; break; }
-            parsed.push({ kode, uraian, pagu, pathKey: pKey, noUrut: count++ });
+            parsed.push({ kode, uraian, satuan, hargaSatuan: hsat, pagu, pathKey: pKey, noUrut: count++ });
         }
         const existing = new Set(dataTampil.map(d => d.tempPathKey));
         let match = 0, orphan = 0;
         parsed.forEach(p => { if (existing.has(p.pathKey)) match++; });
         dataTampil.forEach(d => { if (sumMapValues(d.rpd) > 0 && !parsed.some(p => p.pathKey === d.tempPathKey)) orphan++; });
-        setPreviewData(parsed); setMigrationStats({ match, new: parsed.length - match, orphaned: orphan }); setIsProcessing(false);
+        setPreviewData(parsed);
+        setMigrationStats({ match, new: parsed.length - match, orphaned: orphan });
+        setIsProcessing(false);
       };
       reader.readAsArrayBuffer(file);
     } catch (e: any) { setIsProcessing(false); }
@@ -461,111 +428,102 @@ export default function App() {
         }
         if (op > 0) await batch.commit();
         setPreviewData([]); setActiveTab('dashboard');
-    } catch (e: any) { } finally { setIsProcessing(false); }
+    } catch (e: any) { console.error(e); } finally { setIsProcessing(false); }
   };
 
   const processedData = useMemo(() => {
     const normal = dataTampil.filter(d => !d.isOrphan);
     const orphan = dataTampil.filter(d => d.isOrphan);
     const base = (activeTab === 'rapat') ? normal : normal.filter(d => d.wilayah === activeWilayah);
-    
-    const calculatedNormal = base.map((item, index) => {
+    const calc = base.map((item, index) => {
       const level = getLevel(item.kode);
       const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
       const isDetail = level === 8 && (Number(item.pagu) || 0) > 0 && !isInduk;
       let totalRPD = 0, totalReal = 0;
       let mRPD: Record<string, number> = {};
       let mReal: Record<string, number> = {};
-
-      if (isDetail) {
-        totalRPD = sumMapValues(item.rpd);
-        totalReal = sumMapValues(item.realisasi);
-        mRPD = item.rpd || {};
-        mReal = item.realisasi || {};
-      } else if (!isInduk) {
+      if (isDetail) { totalRPD = sumMapValues(item.rpd); totalReal = sumMapValues(item.realisasi); } 
+      else if (!isInduk) {
         for (let i = index + 1; i < base.length; i++) {
-            const next = base[i];
-            const nLevel = getLevel(next.kode);
-            if (next.kode !== "" && nLevel <= level) break;
-            if (nLevel === 8 && (Number(next.pagu) || 0) > 0) {
-                totalRPD += sumMapValues(next.rpd);
-                totalReal += sumMapValues(next.realisasi);
-                allMonths.forEach(m => {
-                    mRPD[m] = (mRPD[m] || 0) + (Number(next.rpd?.[m]) || 0);
-                    mReal[m] = (mReal[m] || 0) + (Number(next.realisasi?.[m]) || 0);
-                });
+            const n = base[i]; if (n.kode !== "" && getLevel(n.kode) <= level) break;
+            if (getLevel(n.kode) === 8 && (Number(n.pagu) || 0) > 0) {
+                totalRPD += sumMapValues(n.rpd); totalReal += sumMapValues(n.realisasi);
+                allMonths.forEach(m => { mRPD[m] = (mRPD[m] || 0) + (Number(n.rpd?.[m]) || 0); mReal[m] = (mReal[m] || 0) + (Number(n.realisasi?.[m]) || 0); });
             }
         }
       }
       return { ...item, totalRPD, totalReal, monthRPD: mRPD, monthReal: mReal, level, isDetail };
     });
-
-    const calculatedOrphan = orphan.map(item => ({
-        ...item, totalRPD: sumMapValues(item.rpd), totalReal: sumMapValues(item.realisasi),
-        monthRPD: item.rpd || {}, monthReal: item.realisasi || {},
-        level: 8, isDetail: true
-    }));
-
-    const merged = [...calculatedNormal, ...calculatedOrphan];
+    const merged = [...calc, ...orphan.map(item => ({...item, totalRPD: sumMapValues(item.rpd), totalReal: sumMapValues(item.realisasi), monthRPD: item.rpd || {}, monthReal: item.realisasi || {}, level: 8, isDetail: true}))];
     if (activeTab === 'rapat') return merged.filter(item => item.level <= rapatDepth);
     const allowed = TIM_MAPPING[activeTim] || [];
-    let insideAllowed = false;
+    let inside = false;
     return merged.filter((item) => {
       if (item.isOrphan) return true; 
-      if (getLevel(item.kode) === 2) insideAllowed = allowed.includes(item.kode);
-      return insideAllowed || getLevel(item.kode) === 1; 
+      if (getLevel(item.kode) === 2) inside = allowed.includes(item.kode);
+      return inside || getLevel(item.kode) === 1; 
     });
   }, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth, allMonths]);
 
   const finalDisplay = processedData.filter((d) => 
-    (d.uraian && d.uraian.toLowerCase().includes(searchTerm.toLowerCase())) || 
-    (d.kode && d.kode.includes(searchTerm))
+    (d.uraian && d.uraian.toLowerCase().includes(searchTerm.toLowerCase())) || (d.kode && d.kode.includes(searchTerm))
   );
+
+  const handleUpdateValue = async (itemId: string, month: string, value: string, currentData: any) => {
+    if (!fbUser) return;
+    const field = activeTab === 'rpd' ? 'rpd' : 'realisasi';
+    const existing = activeTab === 'rpd' ? (currentData.rpd || {}) : (currentData.realisasi || {});
+    setLastSaved("Menyimpan...");
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, itemId), {
+        [field]: { ...existing, [month]: value }
+      });
+      setLastSaved(`Tersimpan ${new Date().toLocaleTimeString()}`);
+      setTimeout(() => setLastSaved(null), 3000);
+    } catch (e) { setLastSaved("Gagal Simpan"); }
+  };
 
   if (isAuthLoading) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
+      <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-sans">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <span className="font-black uppercase tracking-widest text-sm italic">Menghubungkan ke Cloud SBB...</span>
+        <span className="font-black uppercase tracking-widest text-xs italic opacity-50">Menyinkronkan Cloud Data...</span>
       </div>
     );
   }
 
   if (!currentUser) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#F8FAFC] p-6">
+      <div className="h-screen flex items-center justify-center bg-[#F8FAFC] font-sans p-6">
         <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
            <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden">
-              <div className="bg-[#0F172A] p-10 text-center">
-                 <div className="w-16 h-16 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center text-white font-black text-2xl mb-4 shadow-lg">M</div>
+              <div className="bg-[#0F172A] p-10 text-center relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
+                 <div className="w-16 h-16 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center text-white font-black text-2xl mb-4 shadow-lg shadow-blue-500/30">M</div>
                  <h1 className="text-white text-3xl font-black italic tracking-tighter">MESEIKPA 2.0</h1>
                  <p className="text-slate-400 text-[10px] uppercase font-black tracking-[0.2em] mt-2 italic">BPS Kab. Seram Bagian Barat</p>
               </div>
               <form onSubmit={handleLogin} className="p-10 space-y-6">
-                 {loginError && (
-                   <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 text-rose-600">
-                      <AlertTriangle size={18} />
-                      <span className="text-xs font-bold italic">{loginError}</span>
-                   </div>
-                 )}
+                 {loginError && <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 text-rose-600 text-xs font-bold italic"><AlertTriangle size={18} />{loginError}</div>}
                  <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Username</label>
                     <div className="relative">
                        <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                       <input type="text" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20" placeholder="Username" required />
+                       <input type="text" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" placeholder="Username..." required />
                     </div>
                  </div>
                  <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Password</label>
                     <div className="relative">
                        <KeyRound className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                       <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20" placeholder="••••••••" required />
+                       <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" placeholder="••••••••" required />
                     </div>
                  </div>
-                 <button type="submit" disabled={isProcessing} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3">
+                 <button type="submit" disabled={isProcessing} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/30 hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
                     {isProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><LogIn size={18}/> Masuk Sistem</>}
                  </button>
               </form>
+              <div className="px-10 pb-10 text-center text-[9px] font-black uppercase text-slate-300 tracking-widest">Akses Cloud Terenkripsi • v2.0.1</div>
            </div>
         </div>
       </div>
@@ -574,76 +532,81 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-slate-900 font-sans overflow-hidden">
+      {/* SIDEBAR */}
       <aside className={`bg-[#0F172A] text-slate-300 transition-all duration-300 flex flex-col z-40 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
-        <div className="h-16 flex items-center px-6 bg-slate-900/50 border-b border-white/5">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shrink-0 shadow-lg">M</div>
-          {sidebarOpen && <div className="ml-3 font-black text-white italic tracking-tighter leading-tight">MESEIKPA<br/><span className="text-[9px] uppercase tracking-[0.2em] font-bold not-italic text-blue-400">Version 2.0</span></div>}
+        <div className="h-16 flex items-center px-6 bg-slate-900/50 border-b border-white/5 shrink-0">
+          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shrink-0">M</div>
+          {sidebarOpen && <div className="ml-3 font-black text-white italic tracking-tighter leading-tight uppercase">MESEIKPA<br/><span className="text-[9px] tracking-[0.2em] text-blue-400 not-italic">Cloud System</span></div>}
         </div>
-        <nav className="flex-1 py-6 space-y-2 px-3 overflow-y-auto custom-scrollbar">
-          <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
-            <LayoutDashboard size={20} className={sidebarOpen ? 'mr-3' : ''} />
-            {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Dashboard</span>}
-          </button>
-          <div className="py-2"><div className="h-px bg-white/10 w-full opacity-30"></div></div>
-          <button onClick={() => setActiveTab('rpd')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'rpd' ? 'bg-orange-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
-            <Edit3 size={20} className={sidebarOpen ? 'mr-3' : ''} />
-            {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Entri RPD</span>}
-          </button>
-          <button onClick={() => setActiveTab('realisasi')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'realisasi' ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
-            <Activity size={20} className={sidebarOpen ? 'mr-3' : ''} />
-            {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Entri Realisasi</span>}
-          </button>
-          <div className="py-2"><div className="h-px bg-white/10 w-full opacity-30"></div></div>
-          <button onClick={() => setActiveTab('rapat')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'rapat' ? 'bg-emerald-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
-            <PieChart size={20} className={sidebarOpen ? 'mr-3' : ''} />
-            {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Rekapitulasi</span>}
-          </button>
+        <nav className="flex-1 py-6 space-y-1.5 px-3 overflow-y-auto custom-scrollbar">
+          {[
+            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'indigo' },
+            { id: 'rpd', label: 'Entri RPD', icon: Edit3, color: 'orange' },
+            { id: 'realisasi', label: 'Realisasi', icon: Activity, color: 'blue' },
+            { id: 'rapat', label: 'Rekapitulasi', icon: PieChart, color: 'emerald' },
+          ].map(btn => (
+            <button key={btn.id} onClick={() => setActiveTab(btn.id as any)} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === btn.id ? `bg-${btn.color}-600 text-white shadow-lg` : 'hover:bg-white/5'}`}>
+              <btn.icon size={20} className={sidebarOpen ? 'mr-3' : ''} />
+              {sidebarOpen && <span className="font-bold text-xs uppercase tracking-wider">{btn.label}</span>}
+            </button>
+          ))}
           {currentUser.role === 'admin' && (
-            <>
-              <button onClick={() => setActiveTab('migrasi')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'migrasi' ? 'bg-slate-700 text-white' : 'hover:bg-white/5'}`}>
-                <FileUp size={20} className={sidebarOpen ? 'mr-3' : ''} />
-                {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Migrasi DIPA</span>}
-              </button>
-              <button onClick={() => setActiveTab('users')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'users' ? 'bg-rose-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
+            <div className="mt-4 pt-4 border-t border-white/5 space-y-1.5">
+               <button onClick={() => setActiveTab('migrasi')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'migrasi' ? 'bg-slate-700 text-white' : 'hover:bg-white/5'}`}>
+                  <FileUp size={20} className={sidebarOpen ? 'mr-3' : ''} />
+                  {sidebarOpen && <span className="font-bold text-xs uppercase tracking-wider">Migrasi DIPA</span>}
+               </button>
+               <button onClick={() => setActiveTab('users')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'users' ? 'bg-rose-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
                   <Users size={20} className={sidebarOpen ? 'mr-3' : ''} />
-                  {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Manajemen User</span>}
-              </button>
-            </>
+                  {sidebarOpen && <span className="font-bold text-xs uppercase tracking-wider">User Manager</span>}
+               </button>
+            </div>
           )}
         </nav>
         <div className="p-4 border-t border-white/5">
            <button onClick={handleLogout} className="w-full flex items-center px-3 py-3 rounded-xl hover:bg-rose-600/20 text-rose-400 transition-all">
               <LogOut size={20} className={sidebarOpen ? 'mr-3' : ''} />
-              {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Logout Sistem</span>}
+              {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Logout</span>}
            </button>
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-hidden relative">
+        {/* HEADER */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 z-30 shadow-sm">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"><Menu size={20} /></button>
-            <h2 className="font-black text-slate-800 text-[13px] uppercase tracking-widest italic flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-              BPS Kab. Seram Bagian Barat
-            </h2>
-          </div>
-          <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
-            <div className="relative w-full">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input type="text" placeholder="Cari Uraian atau Kode..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-12 pr-4 text-xs font-bold outline-none" />
+          <div className="flex items-center gap-4">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"><Menu size={20} /></button>
+            <div className="hidden sm:block">
+               <h2 className="font-black text-slate-800 text-[11px] uppercase tracking-[0.2em] italic flex items-center gap-2">
+                 <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                 BPS Kabupaten Seram Bagian Barat
+               </h2>
             </div>
           </div>
+          
+          <div className="flex-1 max-w-sm mx-8">
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
+              <input type="text" placeholder="Cari Kode / Uraian..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-100 border-none rounded-2xl py-2 pl-12 pr-4 text-[11px] font-bold focus:ring-2 focus:ring-blue-500/20 transition-all outline-none" />
+            </div>
+          </div>
+
           <div className="flex items-center gap-4">
-             <div className="flex flex-col items-end leading-none">
-                <span className="text-[11px] font-black italic text-slate-800">{currentUser.name}</span>
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{currentUser.role} • {currentUser.team}</span>
-             </div>
+            {lastSaved && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-full animate-in fade-in slide-in-from-right duration-300">
+                <Save size={12} className="animate-pulse" />
+                <span className="text-[9px] font-black uppercase tracking-tighter">{lastSaved}</span>
+              </div>
+            )}
+            <div className="flex flex-col items-end leading-none">
+              <span className="text-[11px] font-black italic text-slate-800">{currentUser.name}</span>
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{currentUser.team}</span>
+            </div>
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg bg-blue-600"><User size={20} /></div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-8 custom-scrollbar">
+        <div className="flex-1 overflow-auto p-4 sm:p-8 custom-scrollbar bg-[#F1F5F9]">
           {activeTab === 'dashboard' && (
             <div className="space-y-8 animate-in fade-in duration-700">
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -652,48 +615,48 @@ export default function App() {
                     { label: 'Target RPD', val: globalStats.rpd, icon: Target, color: 'orange' },
                     { label: 'Realisasi', val: globalStats.real, icon: Activity, color: 'blue' },
                     { label: 'Sisa Anggaran', val: globalStats.pagu - globalStats.real, icon: ShieldCheck, color: 'emerald' },
-                  ].map((card, i) => {
-                    const CardIcon = card.icon;
-                    return (
-                      <div key={i} className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm relative group hover:shadow-xl transition-all">
-                         <div className="flex items-center justify-between mb-4">
-                            <div className={`p-3 bg-${card.color}-100 text-${card.color}-600 rounded-2xl`}><CardIcon size={24} /></div>
-                         </div>
-                         <h4 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">{card.label}</h4>
-                         <div className="text-xl font-black text-slate-800 tracking-tighter italic">Rp {formatMoney(card.val)}</div>
-                      </div>
-                    );
-                  })}
+                  ].map((card, i) => (
+                    <div key={i} className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
+                       <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full bg-${card.color}-500/5 group-hover:scale-150 transition-transform duration-700`}></div>
+                       <div className={`p-3 bg-${card.color}-100 text-${card.color}-600 rounded-2xl w-fit mb-4`}><card.icon size={24} /></div>
+                       <h4 className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">{card.label}</h4>
+                       <div className="text-xl font-black text-slate-800 tracking-tighter italic">Rp {formatMoney(card.val)}</div>
+                    </div>
+                  ))}
                </div>
+
                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   <div className="lg:col-span-7 bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm">
                      <div className="flex items-center justify-between mb-10">
-                        <h3 className="text-lg font-black text-slate-800 uppercase italic tracking-tighter leading-none">Grafik Performa RPD vs REAL</h3>
-                        <TrendingUp className="text-indigo-500" />
+                        <h3 className="text-sm font-black text-slate-800 uppercase italic tracking-[0.1em] leading-none">Grafik Progres Triwulanan</h3>
+                        <div className="flex gap-4 text-[9px] font-black uppercase tracking-widest">
+                           <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-300"></span> RPD</div>
+                           <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500"></span> REAL</div>
+                        </div>
                      </div>
-                     <div className="h-[300px] flex items-end justify-around gap-10 px-4">
+                     <div className="h-[280px] flex items-end justify-around gap-8 px-4">
                         {globalStats.tw.map((tw, i) => (
-                           <div key={i} className="flex-1 flex flex-col items-center group">
+                           <div key={i} className="flex-1 flex flex-col items-center">
                               <div className="flex gap-2 items-end h-full w-full">
-                                 <div className="flex-1 bg-orange-200 rounded-t-xl relative transition-all" style={{ height: `${(tw.rpd / (globalStats.pagu / 2 || 1)) * 100}%` }}></div>
-                                 <div className="flex-1 bg-blue-500 rounded-t-xl relative shadow-lg shadow-blue-500/20 transition-all" style={{ height: `${(tw.real / (globalStats.pagu / 2 || 1)) * 100}%` }}></div>
+                                 <div className="flex-1 bg-orange-100 rounded-t-xl transition-all hover:bg-orange-200" style={{ height: `${(tw.rpd / (globalStats.pagu / 2.5 || 1)) * 100}%` }}></div>
+                                 <div className="flex-1 bg-blue-600 rounded-t-xl shadow-lg shadow-blue-500/10 transition-all hover:bg-blue-700" style={{ height: `${(tw.real / (globalStats.pagu / 2.5 || 1)) * 100}%` }}></div>
                               </div>
-                              <div className="mt-4 text-[11px] font-black text-slate-800 tracking-widest uppercase">TW {i + 1}</div>
+                              <div className="mt-4 text-[10px] font-black text-slate-500 tracking-widest uppercase">TW {i + 1}</div>
                            </div>
                         ))}
                      </div>
                   </div>
                   <div className="lg:col-span-5 bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm flex flex-col">
-                     <h3 className="text-lg font-black text-slate-800 uppercase italic mb-8">Realisasi RO Tertinggi</h3>
-                     <div className="space-y-4 overflow-y-auto max-h-[350px] custom-scrollbar pr-2">
-                        {roDataList.sort((a,b) => b.real - a.real).slice(0, 10).map((ro, i) => (
-                           <div key={i} className="space-y-2">
-                              <div className="flex justify-between text-[10px] font-bold">
-                                 <span className="truncate w-48">{ro.kode} - {ro.uraian}</span>
-                                 <span>Rp {formatMoney(ro.real)}</span>
+                     <h3 className="text-sm font-black text-slate-800 uppercase italic mb-8">Top Realisasi RO</h3>
+                     <div className="space-y-4 overflow-y-auto max-h-[300px] custom-scrollbar pr-2">
+                        {roDataList.sort((a,b) => b.real - a.real).slice(0, 8).map((ro, i) => (
+                           <div key={i} className="group">
+                              <div className="flex justify-between text-[10px] font-bold mb-1.5">
+                                 <span className="truncate w-48 text-slate-600 group-hover:text-blue-600 transition-colors uppercase">{ro.kode} - {ro.uraian}</span>
+                                 <span className="text-slate-800">Rp {formatMoney(ro.real)}</span>
                               </div>
-                              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                 <div className="h-full bg-blue-500" style={{ width: `${(ro.real / (ro.pagu || 1)) * 100}%` }}></div>
+                              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden p-0.5">
+                                 <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(ro.real / (ro.pagu || 1)) * 100}%` }}></div>
                               </div>
                            </div>
                         ))}
@@ -705,255 +668,114 @@ export default function App() {
 
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-               {/* MODUL KONFIGURASI KPPN (PERBAIKAN INPUT BREAKDOWN 51,52,53) */}
+               {/* CONFIG KPPN - Hanya Admin */}
                {currentUser?.role === 'admin' && (
                  <div className="bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-white/10 text-white">
-                    <div className="flex items-center justify-between mb-8">
-                       <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg"><Settings2 size={24} /></div>
-                          <div>
-                             <h3 className="text-lg font-black uppercase italic leading-tight text-white">Konfigurasi Data Target KPPN</h3>
-                             <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase italic">Input per jenis belanja (51, 52, 53) per triwulan</p>
+                    <div className="flex items-center gap-4 mb-8">
+                       <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center"><Settings2 size={24} /></div>
+                       <div>
+                          <h3 className="text-lg font-black uppercase italic leading-tight text-white">Target KPPN Monitor</h3>
+                          <p className="text-slate-500 text-[10px] font-bold tracking-widest uppercase">Sinkronisasi data resmi dari SAKTI/KPPN</p>
+                       </div>
+                    </div>
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+                       <div className="space-y-4">
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-400 mb-2 tracking-widest"><Target size={14} /> Target RPD KPPN</div>
+                          <div className="grid grid-cols-4 gap-4">
+                             {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
+                                <div key={tw} className="flex flex-col">
+                                   <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
+                                   <input type="number" value={kppnMetrics.rpd?.[tw] || ""} onChange={(e) => handleUpdateKPPN('rpd', tw, e.target.value)} 
+                                      className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
+                                </div>
+                             ))}
                           </div>
                        </div>
-                       <button 
-                        onClick={handleSaveKPPNConfig} 
-                        disabled={isProcessing}
-                        className="flex items-center gap-2 px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20"
-                       >
-                         {isProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><Save size={18}/> Simpan Konfigurasi</>}
-                       </button>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 gap-8">
-                        <div className="bg-white/5 rounded-[2rem] p-6 border border-white/5">
-                            <h4 className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                                <Target size={14}/> Target RPD Resmi KPPN
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
-                                    <div key={tw} className="space-y-3 p-4 bg-white/5 rounded-2xl border border-white/5">
-                                        <div className="text-[11px] font-black text-white border-b border-white/10 pb-2 mb-2">{tw}</div>
-                                        {[51, 52, 53].map(type => (
-                                            <div key={type} className="flex flex-col gap-1">
-                                                <label className="text-[9px] font-bold text-slate-500 uppercase">Akun {type}</label>
-                                                <input 
-                                                    type="number" 
-                                                    value={kppnMetrics.rpd?.[tw]?.[`b${type}`] || ""} 
-                                                    onChange={(e) => handleUpdateKPPNLocal('rpd', tw, `b${type}`, e.target.value)}
-                                                    className="bg-slate-800/50 border border-white/10 rounded-lg px-3 py-2 text-[11px] font-black text-white focus:ring-1 focus:ring-orange-500 outline-none transition-all no-spinner"
-                                                    placeholder="0"
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="bg-white/5 rounded-[2rem] p-6 border border-white/5">
-                            <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                                <Activity size={14}/> Angka Realisasi Resmi KPPN
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
-                                    <div key={tw} className="space-y-3 p-4 bg-white/5 rounded-2xl border border-white/5">
-                                        <div className="text-[11px] font-black text-white border-b border-white/10 pb-2 mb-2">{tw}</div>
-                                        {[51, 52, 53].map(type => (
-                                            <div key={type} className="flex flex-col gap-1">
-                                                <label className="text-[9px] font-bold text-slate-500 uppercase">Akun {type}</label>
-                                                <input 
-                                                    type="number" 
-                                                    value={kppnMetrics.real?.[tw]?.[`b${type}`] || ""} 
-                                                    onChange={(e) => handleUpdateKPPNLocal('real', tw, `b${type}`, e.target.value)}
-                                                    className="bg-slate-800/50 border border-white/10 rounded-lg px-3 py-2 text-[11px] font-black text-white focus:ring-1 focus:ring-blue-500 outline-none transition-all no-spinner"
-                                                    placeholder="0"
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                       <div className="space-y-4">
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest"><Activity size={14} /> Realisasi KPPN</div>
+                          <div className="grid grid-cols-4 gap-4">
+                             {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
+                                <div key={tw} className="flex flex-col">
+                                   <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
+                                   <input type="number" value={kppnMetrics.real?.[tw] || ""} onChange={(e) => handleUpdateKPPN('real', tw, e.target.value)} 
+                                      className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
+                                </div>
+                             ))}
+                          </div>
+                       </div>
                     </div>
                  </div>
                )}
 
-               {/* PANEL MONITORING (PERBAIKAN RUMUS & BREAKDOWN) */}
-               <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                  {/* MONITORING RPD */}
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl">
-                    <div className="flex justify-between items-start mb-6">
-                        <div className="p-4 bg-orange-100 text-orange-600 rounded-3xl"><Target size={28}/></div>
-                        <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter">Monitoring RPD Per Triwulan</h4>
-                    </div>
-                    <div className="space-y-6">
-                        {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
-                           const stats = globalStats.tw[idx];
-                           const target = kppnMetrics.rpd?.[tw] || {};
-                           
-                           // Rumus Deviasi: Internal / Target KPPN * 100
-                           const getDev = (satker: number, kppn: any) => {
-                             const targetVal = Number(kppn) || 0;
-                             return targetVal === 0 ? 0 : (satker / targetVal) * 100;
-                           };
-
-                           const totalDev = getDev(stats.rpd, Object.values(target).reduce((a:any,b:any)=>a+(Number(b)||0), 0));
-
-                           return (
-                              <div key={tw} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4">
-                                 <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                                    <span className="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">{tw} TOTAL</span>
-                                    <span className={`text-[11px] font-black px-4 py-1 rounded-full ${Math.abs(totalDev - 100) < 0.1 ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
-                                        Deviasi: {totalDev.toFixed(2)}%
-                                    </span>
-                                 </div>
-                                 <div className="grid grid-cols-1 gap-3">
-                                    {[51, 52, 53].map(type => {
-                                        const sVal = (stats as any)[`b${type}`].rpd;
-                                        const kVal = target[`b${type}`] || 0;
-                                        const dev = getDev(sVal, kVal);
-                                        return (
-                                            <div key={type} className="flex items-center justify-between text-[10px] bg-white p-3 rounded-xl border border-slate-100">
-                                                <div className="font-black text-slate-400">AKUN {type}</div>
-                                                <div className="flex gap-6 items-center">
-                                                    <div className="text-right"><span className="block text-[8px] uppercase opacity-50">Satker</span><b>{formatMoney(sVal)}</b></div>
-                                                    <div className="text-right text-orange-600"><span className="block text-[8px] uppercase opacity-50">KPPN</span><b>{formatMoney(kVal)}</b></div>
-                                                    <div className="w-16 text-right font-black text-indigo-600 border-l pl-3">{dev.toFixed(1)}%</div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                 </div>
-                              </div>
-                           );
-                        })}
+               {/* TABEL REKAPITULASI */}
+               <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200 flex flex-col md:flex-row items-center gap-6">
+                  <div className="w-full md:w-64">
+                    <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Filter Kedalaman</label>
+                    <div className="relative">
+                       <Filter size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                       <select value={rapatDepth} onChange={(e) => setRapatDepth(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 pl-10 pr-4 text-[11px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20">
+                           <option value={1}>DIPA INDUK (LEVEL 1)</option>
+                           <option value={2}>OUTPUT RO (LEVEL 2)</option>
+                           <option value={5}>SUBKOMPONEN (LEVEL 5)</option>
+                           <option value={7}>AKUN 6 DIGIT (LEVEL 7)</option>
+                           <option value={8}>DETAIL RINCIAN (LEVEL 8)</option>
+                       </select>
                     </div>
                   </div>
-
-                  {/* MONITORING REALISASI */}
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl">
-                    <div className="flex justify-between items-start mb-6">
-                        <div className="p-4 bg-blue-100 text-blue-600 rounded-3xl"><Activity size={28}/></div>
-                        <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter">Monitoring Realisasi Per Triwulan</h4>
-                    </div>
-                    <div className="space-y-6">
-                        {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
-                           const stats = globalStats.tw[idx];
-                           const kppn = kppnMetrics.real?.[tw] || {};
-                           
-                           const getDev = (satker: number, kppnVal: any) => {
-                             const targetVal = Number(kppnVal) || 0;
-                             return targetVal === 0 ? 0 : (satker / targetVal) * 100;
-                           };
-
-                           const totalDev = getDev(stats.real, Object.values(kppn).reduce((a:any,b:any)=>a+(Number(b)||0), 0));
-
-                           return (
-                              <div key={tw} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4">
-                                 <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                                    <span className="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">{tw} TOTAL</span>
-                                    <span className={`text-[11px] font-black px-4 py-1 rounded-full ${Math.abs(totalDev - 100) < 0.1 ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
-                                        Deviasi: {totalDev.toFixed(2)}%
-                                    </span>
-                                 </div>
-                                 <div className="grid grid-cols-1 gap-3">
-                                    {[51, 52, 53].map(type => {
-                                        const sVal = (stats as any)[`b${type}`].real;
-                                        const kVal = kppn[`b${type}`] || 0;
-                                        const dev = getDev(sVal, kVal);
-                                        return (
-                                            <div key={type} className="flex items-center justify-between text-[10px] bg-white p-3 rounded-xl border border-slate-100">
-                                                <div className="font-black text-slate-400">AKUN {type}</div>
-                                                <div className="flex gap-6 items-center">
-                                                    <div className="text-right"><span className="block text-[8px] uppercase opacity-50">Satker</span><b>{formatMoney(sVal)}</b></div>
-                                                    <div className="text-right text-blue-600"><span className="block text-[8px] uppercase opacity-50">KPPN</span><b>{formatMoney(kVal)}</b></div>
-                                                    <div className="w-16 text-right font-black text-indigo-600 border-l pl-3">{dev.toFixed(1)}%</div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                 </div>
-                              </div>
-                           );
-                        })}
-                    </div>
+                  <div className="flex-1 text-[10px] font-bold text-slate-400 italic bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                     Gunakan filter kedalaman untuk melihat ringkasan performa per Program, Output, hingga Akun detail. Data disinkronkan secara real-time antar tim.
                   </div>
                </div>
 
-               {/* PERBAIKAN FILTER KEDALAMAN (DESAIN RAMPING) */}
-               <div className="bg-white p-4 px-8 rounded-[2rem] shadow-xl border border-slate-200 flex flex-wrap items-center gap-6">
-                  <div className="flex items-center gap-3">
-                     <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><Filter size={18}/></div>
-                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Filter Kedalaman</label>
-                  </div>
-                  <div className="flex-1 min-w-[200px]">
-                    <select 
-                      value={rapatDepth} 
-                      onChange={(e) => setRapatDepth(Number(e.target.value))} 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2 px-4 text-[12px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20"
-                    >
-                        <option value={1}>1 - DIPA Induk</option>
-                        <option value={2}>2 - Output RO</option>
-                        <option value={5}>5 - Komponen/Subkomponen</option>
-                        <option value={7}>7 - Akun 6 Digit</option>
-                        <option value={8}>8 - Seluruh Rincian</option>
-                    </select>
-                  </div>
-                  <div className="text-[10px] font-bold text-slate-400 italic">Breakdown tetap dipertahankan otomatis berdasarkan kedalaman pilihan.</div>
-               </div>
-
-               <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-                  <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
+               <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden">
+                  <div className="overflow-x-auto custom-scrollbar max-h-[70vh]">
                     <table className="w-full border-collapse text-[10px]">
-                      <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase text-center">
+                      <thead className="sticky top-0 z-30 bg-slate-900 text-white font-black uppercase text-center">
                         <tr>
-                          <th className="px-3 py-4 text-left w-20">Kode</th>
-                          <th className="px-4 py-4 text-left min-w-[350px]">Uraian</th>
-                          <th className="px-3 py-4 text-right w-28">Pagu DIPA</th>
-                          {['I','II','III','IV'].map((tw, idx) => (
-                            <th key={idx} className="px-2 py-4 text-right w-32 bg-emerald-900/40 font-black tracking-tighter border-r border-white/5">TW {tw}</th>
+                          <th className="px-3 py-4 text-left w-24 sticky left-0 bg-slate-900 z-40 border-r border-white/5">KODE</th>
+                          <th className="px-4 py-4 text-left min-w-[300px] sticky left-24 bg-slate-900 z-40 border-r border-white/5">URAIAN KEGIATAN</th>
+                          <th className="px-3 py-4 text-right w-28">PAGU DIPA</th>
+                          {['I','II','III','IV'].map((tw, i) => (
+                            <th key={i} className="px-2 py-4 text-right w-28 bg-white/5 border-r border-white/5">TW {tw}</th>
                           ))}
-                          <th className="px-2 py-4 text-right bg-orange-900 w-28">TOTAL RPD</th>
-                          {/* PERBAIKAN JUDUL DAN RUMUS %DEV */}
-                          <th className="px-2 py-4 text-right bg-rose-900 w-20 tracking-tighter italic font-black uppercase">% DEV</th>
-                          <th className="px-2 py-4 text-right bg-blue-900 w-28">TOTAL REAL</th>
-                          <th className="px-3 py-4 text-right bg-slate-900 w-28">SISA PAGU</th>
+                          <th className="px-2 py-4 text-right bg-orange-600/20 w-28">TOTAL RPD</th>
+                          <th className="px-2 py-4 text-right bg-blue-600/20 w-28">TOTAL REAL</th>
+                          <th className="px-3 py-4 text-right bg-slate-800 w-28">SISA PAGU</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {finalDisplay.map((item: any) => {
                           const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
                           const sisaPagu = (Number(item.pagu) || 0) - (item.totalReal || 0);
-                          
-                          // Rumus Baru: Total Real / Total RPD * 100
-                          const devPctTable = item.totalRPD > 0 ? (item.totalReal / item.totalRPD) * 100 : 0;
-                          
-                          let rowBg = "hover:bg-blue-50/30 transition-all";
-                          if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
-                          if (item.level === 2) rowBg = "bg-blue-100/40 font-black";
-                          if (item.level === 7) rowBg = "bg-slate-100 font-black";
-                          if (item.isOrphan) rowBg = "bg-rose-50 italic";
+                          let rowStyle = "hover:bg-blue-50/50 transition-colors";
+                          if (item.level === 1) rowStyle = "bg-amber-50 font-black";
+                          if (item.level === 2) rowStyle = "bg-blue-50/50 font-black";
+                          if (item.level === 7) rowStyle = "bg-slate-50 font-bold";
+                          if (item.isOrphan) rowStyle = "bg-rose-50 italic";
                           
                           return (
-                            <tr key={item.id} className={rowBg}>
-                              <td className="px-3 py-1.5 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
-                              <td className="px-4 py-1.5 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
-                              <td className="px-3 py-1.5 text-right font-black border-r border-slate-100">{!isNonFinancial ? formatMoney(item.pagu) : ""}</td>
+                            <tr key={item.id} className={rowStyle}>
+                              <td className={`px-3 py-2 border-r border-slate-100 text-slate-400 font-mono sticky left-0 z-10 ${item.level <= 2 ? 'bg-inherit' : 'bg-white'}`}>{item.kode}</td>
+                              <td className={`px-4 py-2 border-r border-slate-100 text-slate-800 sticky left-24 z-10 ${item.level <= 2 ? 'bg-inherit' : 'bg-white'}`} style={{ paddingLeft: `${(item.level * 12)}px` }}>
+                                <div className="flex items-center gap-2">
+                                  {item.level <= 2 && <ChevronRight size={10} className="text-blue-500" />}
+                                  <span className="truncate max-w-[400px]">{item.uraian}</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-right font-black border-r border-slate-100">{!isNonFinancial ? formatMoney(item.pagu) : ""}</td>
                               {[1,2,3,4].map(tw => (
                                 <td key={tw} className="px-2 py-2 text-right border-r border-slate-100">
                                   {!isNonFinancial && (
-                                    <div className="flex flex-col text-[10px] font-black">
-                                      <span className="text-orange-600">{formatMoney(twMonths[tw].reduce((a,m)=>a+(Number(item.monthRPD?.[m])||0),0))}</span>
-                                      <span className="text-blue-600">{formatMoney(twMonths[tw].reduce((a,m)=>a+(Number(item.monthReal?.[m])||0),0))}</span>
+                                    <div className="flex flex-col gap-0.5 text-[9px] font-black">
+                                      <span className="text-orange-500">R: {formatMoney(twMonths[tw].reduce((a,m)=>a+(Number(item.monthRPD?.[m])||0),0))}</span>
+                                      <span className="text-blue-600">A: {formatMoney(twMonths[tw].reduce((a,m)=>a+(Number(item.monthReal?.[m])||0),0))}</span>
                                     </div>
                                   )}
                                 </td>
                               ))}
-                              <td className="px-2 py-1.5 text-right font-black text-orange-800 border-r border-slate-100 bg-orange-50/30">{!isNonFinancial ? formatMoney(item.totalRPD) : ""}</td>
-                              <td className="px-2 py-1.5 text-right font-black text-rose-700 bg-rose-50 border-r border-slate-100">{!isNonFinancial ? `${devPctTable.toFixed(1)}%` : ""}</td>
-                              <td className="px-2 py-1.5 text-right font-black text-blue-800 bg-blue-50/30">{!isNonFinancial ? formatMoney(item.totalReal) : ""}</td>
-                              <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-800'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
+                              <td className="px-2 py-2 text-right font-black text-orange-700 bg-orange-50/30 border-r border-slate-100">{!isNonFinancial ? formatMoney(item.totalRPD) : ""}</td>
+                              <td className="px-2 py-2 text-right font-black text-blue-800 bg-blue-50/30 border-r border-slate-100">{!isNonFinancial ? formatMoney(item.totalReal) : ""}</td>
+                              <td className={`px-3 py-2 text-right font-black ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-800'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
                             </tr>
                           );
                         })}
@@ -964,196 +786,122 @@ export default function App() {
             </div>
           )}
 
-          {activeTab === 'users' && currentUser?.role === 'admin' && (
-            <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
-               <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
-                  <h3 className="text-2xl font-black uppercase italic mb-10 flex items-center gap-4 text-white">
-                     <UserPlus className="text-blue-500" /> Registrasi Pegawai Baru
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                     <div className="flex flex-col gap-2">
-                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Username</label>
-                       <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Username" />
-                     </div>
-                     <div className="flex flex-col gap-2">
-                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Password</label>
-                       <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Password" />
-                     </div>
-                     <div className="flex flex-col gap-2">
-                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Nama Lengkap</label>
-                       <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap" />
-                     </div>
-                     <div className="flex flex-col gap-2">
-                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Peran Sistem</label>
-                       <select value={newUserRole} onChange={(e:any) => setNewUserRole(e.target.value)} className="w-full bg-white/10 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none">
-                          <option value="ketua_tim" className="text-black">Ketua Tim</option>
-                          <option value="pimpinan" className="text-black">Pimpinan</option>
-                          <option value="admin" className="text-black">Administrator Utama</option>
-                       </select>
-                     </div>
-                     <div className="lg:col-span-2 flex flex-col gap-2">
-                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Penugasan Tim</label>
-                        <div className="flex flex-wrap gap-2">
-                           {ALL_TEAMS.map(t => (
-                             <button key={t} onClick={() => setNewUserTeam(t)} className={`px-5 py-3 rounded-xl text-[10px] font-black border transition-all ${newUserTeam === t ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>
-                                 {t}
-                             </button>
-                           ))}
-                        </div>
-                     </div>
-                  </div>
-                  <button onClick={handleAddUser} className="mt-12 px-14 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Simpan Akun</button>
-               </div>
-               <div className="bg-white rounded-[3rem] border border-slate-200 overflow-hidden shadow-sm">
-                  <table className="w-full text-left text-xs">
-                     <thead className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black text-slate-400">
-                       <tr><th className="px-8 py-4">Nama</th><th className="px-4 py-4">Username</th><th className="px-4 py-4">Password</th><th className="px-4 py-4 text-center">Hapus</th></tr>
-                     </thead>
-                     <tbody className="divide-y divide-slate-50">
-                        {allUsers.map((u) => (
-                           <tr key={u.id}>
-                              <td className="px-8 py-5 font-bold text-slate-800">
-                                 <div>{u.name}</div>
-                                 <div className="text-[9px] text-blue-500 uppercase tracking-widest">{u.role} • {u.team}</div>
-                              </td>
-                              <td className="px-4 py-5 font-mono text-slate-500 italic">@{u.username}</td>
-                              <td className="px-4 py-5 font-mono">
-                                 <div className="flex items-center gap-2">
-                                    <input type={showPasswordMap[u.id] ? "text" : "password"} defaultValue={u.password} onBlur={(e) => handleChangeUserPassword(u.id, e.target.value)} className="bg-slate-100 border-none rounded-lg px-2 py-1 w-24 text-[11px] focus:ring-1 focus:ring-blue-500" />
-                                    <button onClick={() => setShowPasswordMap(prev => ({ ...prev, [u.id]: !prev[u.id] }))} className="text-slate-400 hover:text-blue-500">
-                                       {showPasswordMap[u.id] ? <EyeOff size={14}/> : <Eye size={14}/>}
-                                    </button>
-                                 </div>
-                              </td>
-                              <td className="px-4 py-5 text-center">
-                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, u.id))} className="p-2 text-rose-400 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
-                              </td>
-                           </tr>
-                        ))}
-                     </tbody>
-                  </table>
-               </div>
-            </div>
-          )}
-
-          {activeTab === 'migrasi' && currentUser?.role === 'admin' && (
-            <div className="max-w-4xl mx-auto py-4 animate-in slide-in-from-bottom duration-700">
-               <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-                  <div className="bg-slate-900 p-8 text-white relative">
-                    <h3 className="text-xl font-black uppercase tracking-widest italic text-white">Konsol Migrasi Cloud</h3>
-                    <p className="text-slate-400 mt-1 text-[11px]">Sinkronisasi struktur anggaran BPS SBB.</p>
-                  </div>
-                  <div className="p-10 space-y-8">
-                    <div className="border-2 border-dashed border-slate-200 rounded-[2.5rem] p-16 text-center hover:border-blue-400 hover:bg-blue-50/20 cursor-pointer transition-all" onClick={() => fileInputRef.current?.click()}>
-                      <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileAnalyze} disabled={isProcessing} className="hidden" />
-                      <FileUp size={48} className="mx-auto mb-4 text-slate-300" />
-                      <span className="text-xs font-black uppercase text-slate-400 italic">Pilih File SAKTI (.xlsx)</span>
-                    </div>
-                    {previewData.length > 0 && (
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="p-4 bg-slate-50 rounded-xl"><span className="text-[9px] uppercase font-black">Struktur</span><span className="text-xl font-black block">{previewData.length}</span></div>
-                        <div className="p-4 bg-emerald-50 rounded-xl"><span className="text-[9px] uppercase font-black">Match</span><span className="text-xl font-black block">{migrationStats.match}</span></div>
-                        <div className="p-4 bg-rose-50 rounded-xl"><span className="text-[9px] uppercase font-black">Orphan</span><span className="text-xl font-black block">{migrationStats.orphaned}</span></div>
-                        <button onClick={executeMigration} disabled={isProcessing} className="col-span-3 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Jalankan Pembaruan</button>
-                      </div>
-                    )}
-                  </div>
-               </div>
-            </div>
-          )}
-
+          {/* TAB ENTRi RPD / REALISASI */}
           {(activeTab === 'rpd' || activeTab === 'realisasi') && (
-            <div className="space-y-6 animate-in fade-in duration-700">
-              <div className="flex items-center justify-between mb-4">
-                 {currentUser?.role === 'admin' ? (
-                    <div className="flex gap-4">
-                       <button onClick={handleToggleLock} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase shadow-md transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
-                          {isLocked ? <Lock size={14} /> : <Unlock size={14} />} {isLocked ? 'Sistem Terkunci' : 'Kunci Sistem Global'}
-                       </button>
-                       <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase bg-white text-slate-600 border border-slate-200"><Eraser size={14} /> Reset Nilai</button>
+            <div className="space-y-6 animate-in fade-in duration-700 pb-20">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                 <div className="flex items-center gap-3">
+                    <div className={`p-3 rounded-2xl ${activeTab === 'rpd' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                       {activeTab === 'rpd' ? <Edit3 size={24}/> : <Activity size={24}/>}
                     </div>
-                 ) : (
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border italic text-[11px] font-bold ${isLocked ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                       {isLocked ? <Lock size={16} /> : <ShieldHalf size={16} />} 
-                       {isLocked ? 'Sistem Terkunci oleh Admin - Mode Lihat Saja' : `Mode Pengisian Tim ${currentUser?.team}`}
+                    <div>
+                       <h3 className="text-lg font-black uppercase italic leading-none text-slate-800">Manajemen {activeTab}</h3>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                          {isLocked ? 'Mode Terkunci (Read Only)' : `Penyusunan Anggaran Tim ${currentUser.team}`}
+                       </p>
+                    </div>
+                 </div>
+
+                 {currentUser?.role === 'admin' && (
+                    <div className="flex gap-2">
+                       <button onClick={handleToggleLock} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[10px] uppercase transition-all shadow-sm ${isLocked ? 'bg-rose-600 text-white' : 'bg-slate-800 text-white hover:bg-slate-700'}`}>
+                          {isLocked ? <Lock size={14} /> : <Unlock size={14} />} {isLocked ? 'Buka Kunci' : 'Kunci Sistem'}
+                       </button>
+                       <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[10px] uppercase bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+                          <Eraser size={14} /> Reset
+                       </button>
                     </div>
                  )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                 <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
-                    <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
-                      <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>GG</button>
-                      <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>WA</button>
+
+              {/* FILTERS */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                 <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 flex flex-col gap-2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Wilayah Kerja</span>
+                    <div className="flex gap-1 p-1 bg-slate-50 rounded-xl border border-slate-100">
+                      <button disabled={currentUser.role !== 'admin'} onClick={() => setActiveWilayah("GG")} className={`flex-1 py-2 text-[10px] font-black rounded-lg transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>GALALA</button>
+                      <button disabled={currentUser.role !== 'admin'} onClick={() => setActiveWilayah("WA")} className={`flex-1 py-2 text-[10px] font-black rounded-lg transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>WAIHAONG</button>
                     </div>
                  </div>
-                 <div className="lg:col-span-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tim Pelaksana</span>
-                    <div className="flex flex-wrap gap-1 p-1 bg-slate-50 rounded-lg">
+                 <div className="md:col-span-2 bg-white p-4 rounded-3xl shadow-sm border border-slate-200 flex flex-col gap-2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Tim Pelaksana</span>
+                    <div className="flex flex-wrap gap-1">
                       {ALL_TEAMS.filter(t => activeWilayah === "GG" ? t !== "Umum" : t === "Umum").map(tim => (
-                        <button key={tim} disabled={currentUser?.role !== 'admin'} onClick={() => setActiveTim(tim)} className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 opacity-50'}`}>{tim}</button>
+                        <button key={tim} disabled={currentUser.role !== 'admin'} onClick={() => setActiveTim(tim)} className={`px-4 py-2 text-[10px] font-black rounded-xl transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-400 border border-slate-100 hover:bg-slate-100'}`}>
+                          {tim}
+                        </button>
                       ))}
                     </div>
                  </div>
-                 <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Triwulan</span>
-                    <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
+                 <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 flex flex-col gap-2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Triwulan Berjalan</span>
+                    <div className="flex gap-1 p-1 bg-slate-50 rounded-xl border border-slate-100">
                       {[1,2,3,4].map(tw => (
-                         <button key={tw} onClick={() => setTwActive(tw)} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>TW {tw}</button>
+                         <button key={tw} onClick={() => setTwActive(tw)} className={`flex-1 py-2 text-[10px] font-black rounded-lg transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>TW {tw}</button>
                       ))}
                     </div>
                  </div>
               </div>
-              <div className="bg-white shadow-2xl border border-slate-200 overflow-hidden rounded-[3.5rem]">
+
+              {/* MAIN ENTRY TABLE */}
+              <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
                   <table className="w-full border-collapse text-[10px]">
-                    <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase text-center">
+                    <thead className="sticky top-0 z-30 bg-slate-900 text-white font-black uppercase text-center">
                       <tr>
-                        <th className="px-3 py-4 text-left w-20">Kode</th>
-                        <th className="px-4 py-4 text-left min-w-[350px]">Uraian</th>
-                        <th className="px-3 py-4 text-right w-28">Pagu DIPA</th>
-                        {twMonths[twActive].map(m => (<th key={m} className={`px-2 py-4 text-right w-24 ${activeTab === 'rpd' ? 'bg-orange-900' : 'bg-blue-900'}`}>{m}</th>))}
-                        <th className="px-3 py-4 text-right bg-slate-800 w-28 uppercase">Total {activeTab}</th>
-                        <th className="px-3 py-4 text-right bg-slate-900 w-28 tracking-tighter">SISA PAGU</th>
-                        <th className="px-2 py-4 text-center">Opsi</th>
+                        <th className="px-3 py-4 text-left w-24 sticky left-0 bg-slate-900 z-40 border-r border-white/5">KODE</th>
+                        <th className="px-4 py-4 text-left min-w-[300px] sticky left-24 bg-slate-900 z-40 border-r border-white/5">URAIAN KEGIATAN</th>
+                        <th className="px-3 py-4 text-right w-28 bg-slate-900/90">PAGU DIPA</th>
+                        {twMonths[twActive].map(m => (
+                          <th key={m} className={`px-2 py-4 text-right w-28 border-r border-white/5 ${activeTab === 'rpd' ? 'bg-orange-600/20' : 'bg-blue-600/20'}`}>{m}</th>
+                        ))}
+                        <th className="px-3 py-4 text-right bg-slate-800 w-28 uppercase">TOTAL {activeTab}</th>
+                        <th className="px-3 py-4 text-right bg-slate-900 w-28">SISA PAGU</th>
+                        <th className="px-2 py-4 text-center w-12 bg-slate-900">...</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {finalDisplay.map((item: any) => {
                         const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
                         const sisaPagu = activeTab === 'rpd' ? (Number(item.pagu) || 0) - (item.totalRPD || 0) : (Number(item.pagu) || 0) - (item.totalReal || 0);
-                        const canEditThisTab = (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || 
-                                              (activeTab === 'realisasi' && currentUser?.role === 'admin');
+                        const canEdit = (activeTab === 'rpd' && (currentUser.role === 'admin' || (currentUser.role === 'ketua_tim' && !isLocked))) || (activeTab === 'realisasi' && currentUser.role === 'admin');
+                        
                         return (
-                          <tr key={item.id} className="hover:bg-blue-50/30 transition-all">
-                            <td className="px-3 py-1.5 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
-                            <td className="px-4 py-1.5 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
-                            <td className="px-3 py-1.5 text-right font-black text-slate-950 border-r border-slate-100">{!isInduk ? formatMoney(item.pagu) : ""}</td>
+                          <tr key={item.id} className="group hover:bg-slate-50 transition-colors">
+                            <td className={`px-3 py-2.5 border-r border-slate-100 text-slate-400 font-mono sticky left-0 z-10 bg-white group-hover:bg-slate-50`}>{item.kode}</td>
+                            <td className={`px-4 py-2.5 border-r border-slate-100 font-bold text-slate-800 sticky left-24 z-10 bg-white group-hover:bg-slate-50`} style={{ paddingLeft: `${(item.level * 12)}px` }}>
+                               <span className="truncate block max-w-[350px]">{item.uraian}</span>
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-black text-slate-950 border-r border-slate-100 bg-slate-50/30">
+                               {!isInduk ? formatMoney(item.pagu) : ""}
+                            </td>
                             {twMonths[twActive].map((m: string) => (
-                                <td key={m} className="px-0 py-0 h-full border-r border-slate-100 bg-blue-50/50 group">
+                                <td key={m} className="px-0 py-0 border-r border-slate-100 focus-within:bg-blue-50 transition-all">
                                   {!isInduk && item.isDetail ? (
                                     <input 
                                       type="number" 
                                       value={activeTab === 'rpd' ? (item.rpd?.[m] || "") : (item.realisasi?.[m] || "")} 
-                                      readOnly={!canEditThisTab}
-                                      onChange={async (e) => { 
-                                        if(fbUser && canEditThisTab) { 
-                                          const f = activeTab === 'rpd' ? 'rpd' : 'realisasi'; 
-                                          const ex = activeTab === 'rpd' ? (item.rpd || {}) : (item.realisasi || {});
-                                          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id), { [f]: { ...ex, [m]: e.target.value } }); 
-                                        }
-                                      }} 
-                                      className={`no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold text-[10px] ${!canEditThisTab ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-teal-400 text-slate-900 focus:bg-white'}`} 
+                                      readOnly={!canEdit}
+                                      onChange={(e) => handleUpdateValue(item.id, m, e.target.value, item)} 
+                                      className={`no-spinner w-full h-full text-right px-3 py-2.5 outline-none font-bold text-[10px] transition-all bg-transparent focus:bg-white focus:shadow-inner ${!canEdit ? 'text-slate-400 cursor-not-allowed opacity-50' : 'text-slate-900'}`} 
                                       placeholder="0" 
                                     />
-                                  ) : !isInduk ? (<div className="text-right px-2 py-2 text-slate-950 font-black italic">{formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}</div>) : null}
+                                  ) : !isInduk ? (
+                                    <div className="text-right px-3 py-2.5 text-slate-950 font-black italic bg-slate-100/30">
+                                      {formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}
+                                    </div>
+                                  ) : null}
                                 </td>
-                            ))}
-                              <td className="px-3 py-1.5 text-right font-black bg-slate-100/50 text-slate-950">{!isInduk ? formatMoney(activeTab === 'rpd' ? item.totalRPD : item.totalReal) : ""}</td>
-                            <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-950'}`}>{!isInduk ? formatMoney(sisaPagu) : ""}</td>
+                              ))}
+                            <td className={`px-3 py-2.5 text-right font-black border-r border-slate-100 ${activeTab === 'rpd' ? 'text-orange-700 bg-orange-50/20' : 'text-blue-800 bg-blue-50/20'}`}>
+                               {!isInduk ? formatMoney(activeTab === 'rpd' ? item.totalRPD : item.totalReal) : ""}
+                            </td>
+                            <td className={`px-3 py-2.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-900'}`}>
+                               {!isInduk ? formatMoney(sisaPagu) : ""}
+                            </td>
                             <td className="px-2 py-2 text-center">
-                               {(item.isOrphan && currentUser?.role === 'admin') && (
-                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id))} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
+                               {item.isOrphan && currentUser.role === 'admin' && (
+                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id))} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg"><Trash2 size={12}/></button>
                                )}
                             </td>
                           </tr>
@@ -1165,19 +913,130 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* TAB MIGRASI / USERS (Tetap sama seperti logika sebelumnya namun dengan UI yang disesuaikan sedikit) */}
+          {activeTab === 'users' && currentUser?.role === 'admin' && (
+            <div className="max-w-5xl mx-auto space-y-8 animate-in slide-in-from-bottom duration-500">
+               <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-xl">
+                  <h3 className="text-xl font-black uppercase italic mb-8 flex items-center gap-3"><UserPlus className="text-blue-500" /> Registrasi Akun Pegawai</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                     {[
+                        { label: 'Username', val: newUsername, set: setNewUsername, type: 'text', ph: 'contoh: admin_bps' },
+                        { label: 'Password', val: newPassword, set: setNewPassword, type: 'text', ph: '••••••••' },
+                        { label: 'Nama Lengkap', val: newFullName, set: setNewFullName, type: 'text', ph: 'Nama sesuai SK...' },
+                     ].map((inp, idx) => (
+                        <div key={idx} className="flex flex-col gap-1.5">
+                           <label className="text-[9px] font-black uppercase text-slate-500 ml-4">{inp.label}</label>
+                           <input type={inp.type} value={inp.val} onChange={(e) => inp.set(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white text-[11px] font-bold outline-none focus:bg-white/10 transition-all" placeholder={inp.ph} />
+                        </div>
+                     ))}
+                     <div className="flex flex-col gap-1.5">
+                        <label className="text-[9px] font-black uppercase text-slate-500 ml-4">Peran</label>
+                        <select value={newUserRole} onChange={(e:any) => setNewUserRole(e.target.value)} className="w-full bg-white/10 border border-white/10 rounded-xl py-3 px-4 text-white text-[11px] font-bold outline-none">
+                           <option value="ketua_tim" className="text-black">Ketua Tim</option>
+                           <option value="pimpinan" className="text-black">Pimpinan</option>
+                           <option value="admin" className="text-black">Administrator</option>
+                        </select>
+                     </div>
+                     <div className="lg:col-span-2 flex flex-col gap-1.5">
+                        <label className="text-[9px] font-black uppercase text-slate-500 ml-4">Grup Tim</label>
+                        <div className="flex flex-wrap gap-2">
+                           {ALL_TEAMS.map(t => (
+                              <button key={t} onClick={() => setNewUserTeam(t)} className={`px-4 py-2 rounded-xl text-[9px] font-black border transition-all ${newUserTeam === t ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>
+                                 {t}
+                              </button>
+                           ))}
+                        </div>
+                     </div>
+                  </div>
+                  <button onClick={handleAddUser} className="mt-8 px-8 py-3.5 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all">Daftarkan Akun</button>
+               </div>
+               
+               <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
+                  <table className="w-full text-left text-[10px]">
+                     <thead className="bg-slate-50 border-b border-slate-100 uppercase font-black text-slate-400">
+                        <tr>
+                           <th className="px-8 py-4">Nama Pegawai</th>
+                           <th className="px-4 py-4">Username</th>
+                           <th className="px-4 py-4">Keamanan</th>
+                           <th className="px-4 py-4 text-center">Aksi</th>
+                        </tr>
+                     </thead>
+                     <tbody className="divide-y divide-slate-50">
+                        {allUsers.map((u) => (
+                           <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="px-8 py-4 font-bold text-slate-800">
+                                 <div>{u.name}</div>
+                                 <div className="text-[9px] text-blue-500 uppercase tracking-widest">{u.role} • {u.team}</div>
+                              </td>
+                              <td className="px-4 py-4 font-mono text-slate-400 italic">@{u.username}</td>
+                              <td className="px-4 py-4">
+                                 <div className="flex items-center gap-2">
+                                    <input type={showPasswordMap[u.id] ? "text" : "password"} defaultValue={u.password} onBlur={async (e) => {
+                                       await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, u.id), { password: e.target.value });
+                                    }} className="bg-slate-100 border-none rounded-lg px-2 py-1.5 w-32 font-mono text-[11px]" />
+                                    <button onClick={() => setShowPasswordMap(prev => ({ ...prev, [u.id]: !prev[u.id] }))} className="text-slate-300 hover:text-blue-500 transition-colors">
+                                       {showPasswordMap[u.id] ? <EyeOff size={14}/> : <Eye size={14}/>}
+                                    </button>
+                                 </div>
+                              </td>
+                              <td className="px-4 py-4 text-center">
+                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, u.id))} className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"><Trash2 size={16}/></button>
+                              </td>
+                           </tr>
+                        ))}
+                     </tbody>
+                  </table>
+               </div>
+            </div>
+          )}
+
+          {activeTab === 'migrasi' && (
+            <div className="max-w-3xl mx-auto py-10 animate-in slide-in-from-bottom duration-700">
+               <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
+                  <div className="bg-slate-900 p-10 text-white relative">
+                    <div className="absolute top-0 right-0 p-10 opacity-10"><FileUp size={80} /></div>
+                    <h3 className="text-xl font-black uppercase tracking-widest italic text-white">Cloud Migrasi SAKTI</h3>
+                    <p className="text-slate-400 mt-2 text-xs font-bold leading-relaxed">Pastikan file Excel berasal dari ekspor SAKTI dengan kolom Kode, Uraian, Satuan, dan Pagu yang sesuai.</p>
+                  </div>
+                  <div className="p-10 space-y-8">
+                    <div className="group border-2 border-dashed border-slate-200 rounded-[2.5rem] p-16 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                      <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileAnalyze} disabled={isProcessing} className="hidden" />
+                      <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform"><FileUp size={32} className="text-blue-500" /></div>
+                      <span className="text-xs font-black uppercase text-slate-400 italic">Klik untuk Unggah File SAKTI (.xlsx)</span>
+                    </div>
+                    {previewData.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in zoom-in duration-300">
+                        <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 text-center"><span className="text-[9px] uppercase font-black text-slate-400 block mb-1">Total Struktur</span><span className="text-xl font-black">{previewData.length}</span></div>
+                        <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-100 text-center"><span className="text-[9px] uppercase font-black text-emerald-400 block mb-1">Match Existing</span><span className="text-xl font-black text-emerald-700">{migrationStats.match}</span></div>
+                        <div className="p-5 bg-rose-50 rounded-2xl border border-rose-100 text-center"><span className="text-[9px] uppercase font-black text-rose-400 block mb-1">Orphaned</span><span className="text-xl font-black text-rose-700">{migrationStats.orphaned}</span></div>
+                        <button onClick={executeMigration} disabled={isProcessing} className="sm:col-span-3 py-5 bg-blue-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+                           {isProcessing ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><CheckCircle2 size={20}/> Jalankan Migrasi Data</>}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+               </div>
+            </div>
+          )}
         </div>
-        <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0">
-            <ShieldHalf size={14} className="text-slate-300" />
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">© 2026 BPS Kab. Seram Bagian Barat - Internal Cloud Access</p>
+
+        <footer className="h-10 bg-white border-t border-slate-200 px-8 flex items-center justify-between shrink-0">
+           <div className="flex items-center gap-2">
+              <Clock size={12} className="text-slate-300" />
+              <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest italic">V2.0.1 Stable Release</span>
+           </div>
+           <p className="text-[9px] font-black uppercase text-slate-300 tracking-[0.2em]">BPS SBB - Internal Tools Only</p>
         </footer>
       </main>
 
+      {/* MODAL RESET */}
       {showClearDataModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
-           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-sm p-10 text-center border border-slate-200 animate-in zoom-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm p-10 text-center border border-slate-200 animate-in zoom-in duration-300">
               <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-6"><AlertTriangle size={32} /></div>
-              <h3 className="text-xl font-black text-slate-800 mb-2 italic">Konfirmasi Reset</h3>
-              <p className="text-[11px] text-slate-500 mb-10 leading-relaxed italic">Hapus semua data? Tindakan ini tidak dapat dibatalkan.</p>
+              <h3 className="text-xl font-black text-slate-800 mb-2 italic tracking-tighter uppercase">Konfirmasi Reset</h3>
+              <p className="text-[11px] text-slate-500 mb-8 leading-relaxed italic">Hapus semua data {activeTab}? Tindakan ini permanen dan akan berpengaruh pada seluruh tim.</p>
               <div className="flex flex-col gap-3">
                  <button onClick={async () => { 
                    if (!fbUser || currentUser?.role !== 'admin') return;
@@ -1187,8 +1046,8 @@ export default function App() {
                    const fieldToClear = activeTab === 'rpd' ? 'rpd' : 'realisasi';
                    snap.docs.forEach(d => batch.update(d.ref, { [fieldToClear]: {} }));
                    await batch.commit(); setIsProcessing(false); setShowClearDataModal(false); 
-                 }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-rose-700 transition-all">Ya, Hapus Semua</button>
-                 <button onClick={() => setShowClearDataModal(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase hover:bg-slate-200">Batal</button>
+                 }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-rose-700 transition-all">Ya, Kosongkan Data</button>
+                 <button onClick={() => setShowClearDataModal(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-xs uppercase hover:bg-slate-200 transition-all">Batal</button>
               </div>
            </div>
         </div>
@@ -1199,6 +1058,8 @@ export default function App() {
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .no-spinner::-webkit-outer-spin-button, .no-spinner::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .no-spinner { -moz-appearance: textfield; }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fade-in 0.5s ease-out; }
       `}} />
     </div>
   );
