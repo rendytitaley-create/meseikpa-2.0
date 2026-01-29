@@ -36,7 +36,7 @@ import {
   Unlock,
   PieChart,
   ShieldCheck,
-  TrendingUp,
+  // TrendingUp dihapus karena tidak digunakan di JSX
   Target,
   Users,
   UserPlus,
@@ -44,7 +44,7 @@ import {
   Edit3,
   LogOut,
   Eraser,
-  ShieldHalf,
+  // ShieldHalf dihapus karena tidak digunakan di JSX
   CheckCircle2,
   LogIn,
   KeyRound,
@@ -914,7 +914,6 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB MIGRASI / USERS (Tetap sama seperti logika sebelumnya namun dengan UI yang disesuaikan sedikit) */}
           {activeTab === 'users' && currentUser?.role === 'admin' && (
             <div className="max-w-5xl mx-auto space-y-8 animate-in slide-in-from-bottom duration-500">
                <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-xl">
