@@ -39,7 +39,6 @@ import {
   Target,
   Users,
   UserPlus,
-  Settings2,
   Edit3,
   LogOut,
   Eraser,
@@ -51,7 +50,6 @@ import {
   Filter,
   Eye,
   EyeOff,
-  Save
 } from 'lucide-react';
 
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
