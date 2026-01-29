@@ -103,9 +103,23 @@ const TIM_MAPPING: Record<string, string[]> = {
 };
 
 // --- FUNGSI UTILITY ---
+
 const formatMoney = (val: any) => {
   const num = Number(val);
   return num ? num.toLocaleString('id-ID') : '0';
+};
+
+const formatInputSeparator = (val: string) => {
+  if (!val) return "";
+  const digits = val.replace(/\D/g, "");
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
+
+const getDeviateColor = (pct: number) => {
+  const absolutePct = Math.abs(pct);
+  if (absolutePct < 5) return "text-emerald-500 font-black";
+  if (absolutePct < 20) return "text-amber-500 font-black";
+  return "text-rose-600 font-black";
 };
 
 const cleanString = (str: any) => String(str || "").replace(/\s+/g, "").trim().toUpperCase();
@@ -897,53 +911,55 @@ export default function App() {
                         </div>
                     </div>
                     <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring RPD Per Triwulan</h4>
-                    <div className="space-y-4">
-                        {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
-                           const internalRPD = globalStats.tw[idx].rpd;
-                           const targetKPPN = Number(kppnMetrics.rpd?.[tw]) || 0;
-                           const devPct = targetKPPN !== 0 ? (internalRPD / targetKPPN) * 100 : 0;
-                           
-                           // Sub Metrics
-                           const int51 = globalStats.tw[idx].rpd51; const tar51 = Number(kppnMetrics.rpd51?.[tw]) || 0;
-                           const int52 = globalStats.tw[idx].rpd52; const tar52 = Number(kppnMetrics.rpd52?.[tw]) || 0;
-                           const int53 = globalStats.tw[idx].rpd53; const tar53 = Number(kppnMetrics.rpd53?.[tw]) || 0;
+<div className="space-y-4">
+  {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
+    const internalRPD = globalStats.tw[idx].rpd;
+    const targetKPPN = Number(kppnMetrics.rpd?.[tw]) || 0;
+    // RUMUS DEVIASI: Selisih Mutlak
+    const devPct = targetKPPN !== 0 ? ((internalRPD - targetKPPN) / targetKPPN) * 100 : 0;
+    
+    const subItems = [
+      { label: 'Pegawai (51)', s: globalStats.tw[idx].rpd51, k: Number(kppnMetrics.rpd51?.[tw]) || 0 },
+      { label: 'Barang (52)', s: globalStats.tw[idx].rpd52, k: Number(kppnMetrics.rpd52?.[tw]) || 0 },
+      { label: 'Modal (53)', s: globalStats.tw[idx].rpd53, k: Number(kppnMetrics.rpd53?.[tw]) || 0 }
+    ];
 
-                           return (
-                              <div key={tw} className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 flex flex-col gap-4">
-                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
-                                    <span className={`text-[10px] font-black uppercase px-4 py-1.5 rounded-full ${Math.abs(devPct - 100) < 1 ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
-                                       Capaian RPD: {devPct.toFixed(2)}%
-                                    </span>
-                                 </div>
-                                 <div className="grid grid-cols-2 gap-6 pb-2 border-b border-slate-200/50">
-                                    <div className="space-y-1">
-                                       <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
-                                       <span className="text-sm font-black text-slate-800 italic">Rp {formatMoney(internalRPD)}</span>
-                                    </div>
-                                    <div className="space-y-1">
-                                       <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Target KPPN</span>
-                                       <span className="text-sm font-black text-orange-600 block text-right italic">Rp {formatMoney(targetKPPN)}</span>
-                                    </div>
-                                 </div>
-                                 <div className="grid grid-cols-3 gap-2">
-                                    {[
-                                      { l: 'Pegawai (51)', s: int51, k: tar51 },
-                                      { l: 'Barang (52)', s: int52, k: tar52 },
-                                      { l: 'Modal (53)', s: int53, k: tar53 },
-                                    ].map(sub => (
-                                      <div key={sub.l} className="bg-white p-2 rounded-xl border border-slate-100">
-                                        <span className="text-[8px] font-black text-slate-400 uppercase block leading-none mb-1">{sub.l}</span>
-                                        <span className="text-[9px] font-bold text-slate-700 block truncate">S: {formatMoney(sub.s)}</span>
-                                        <span className="text-[9px] font-bold text-orange-600 block truncate">K: {formatMoney(sub.k)}</span>
-                                      </div>
-                                    ))}
-                                 </div>
-                              </div>
-                           );
-                        })}
-                    </div>
-                  </div>
+    return (
+      <div key={tw} className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <span className="text-xs font-black uppercase tracking-widest">{tw}</span>
+          <span className={`text-[10px] font-black uppercase px-4 py-1.5 rounded-full bg-white border border-slate-100 ${getDeviateColor(devPct)}`}>
+            Deviasi: {devPct.toFixed(2)}%
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-6 pb-2 border-b border-slate-200/50">
+          <div className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
+            <span className="text-sm font-black text-slate-800 italic">Rp {formatMoney(internalRPD)}</span>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Target KPPN</span>
+            <span className="text-sm font-black text-orange-600 block text-right italic">Rp {formatMoney(targetKPPN)}</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {subItems.map(sub => {
+            const subDev = sub.k !== 0 ? ((sub.s - sub.k) / sub.k) * 100 : 0;
+            return (
+              <div key={sub.label} className="bg-white p-2 rounded-xl border border-slate-100">
+                <span className="text-[8px] font-black text-slate-400 uppercase block leading-none mb-1">{sub.label}</span>
+                <span className="text-[9px] font-bold text-slate-700 block truncate">S: {formatMoney(sub.s)}</span>
+                <span className="text-[9px] font-bold text-orange-600 block truncate">K: {formatMoney(sub.k)}</span>
+                <span className={`text-[8px] font-black block mt-1 ${getDeviateColor(subDev)}`}>D: {subDev.toFixed(1)}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  })}
+</div>
+</div>
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-blue-100 text-blue-600 rounded-3xl"><Activity size={28}/></div>
@@ -956,54 +972,58 @@ export default function App() {
                            )}
                         </div>
                     </div>
-                    <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring Realisasi Per Triwulan</h4>
-                    <div className="space-y-4">
-                        {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
-                           const internalReal = globalStats.tw[idx].real;
-                           const targetKPPN = Number(kppnMetrics.real?.[tw]) || 0;
-                           const devPct = targetKPPN !== 0 ? (internalReal / targetKPPN) * 100 : 0;
+                   <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring Realisasi Per Triwulan</h4>
+<div className="space-y-4">
+  {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
+    // Variabel diganti menjadi .real (bukan .rpd)
+    const internalReal = globalStats.tw[idx].real;
+    const targetKPPN = Number(kppnMetrics.real?.[tw]) || 0;
+    
+    // RUMUS DEVIASI: Selisih Mutlak Realisasi terhadap angka KPPN
+    const devPct = targetKPPN !== 0 ? ((internalReal - targetKPPN) / targetKPPN) * 100 : 0;
 
-                           const int51 = globalStats.tw[idx].real51; const tar51 = Number(kppnMetrics.real51?.[tw]) || 0;
-                           const int52 = globalStats.tw[idx].real52; const tar52 = Number(kppnMetrics.real52?.[tw]) || 0;
-                           const int53 = globalStats.tw[idx].real53; const tar53 = Number(kppnMetrics.real53?.[tw]) || 0;
+    const subItems = [
+      { label: 'Pegawai (51)', s: globalStats.tw[idx].real51, k: Number(kppnMetrics.real51?.[tw]) || 0 },
+      { label: 'Barang (52)', s: globalStats.tw[idx].real52, k: Number(kppnMetrics.real52?.[tw]) || 0 },
+      { label: 'Modal (53)', s: globalStats.tw[idx].real53, k: Number(kppnMetrics.real53?.[tw]) || 0 }
+    ];
 
-                           return (
-                              <div key={tw} className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 flex flex-col gap-4">
-                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
-                                    <span className={`text-[10px] font-black uppercase px-4 py-1.5 rounded-full ${devPct >= 100 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                                       Capaian Real: {devPct.toFixed(2)}%
-                                    </span>
-                                 </div>
-                                 <div className="grid grid-cols-2 gap-6 pb-2 border-b border-slate-200/50">
-                                    <div className="space-y-1">
-                                       <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
-                                       <span className="text-sm font-black text-slate-800 italic">Rp {formatMoney(internalReal)}</span>
-                                    </div>
-                                    <div className="space-y-1">
-                                       <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Angka KPPN</span>
-                                       <span className="text-sm font-black text-blue-600 block text-right italic">Rp {formatMoney(targetKPPN)}</span>
-                                    </div>
-                                 </div>
-                                 <div className="grid grid-cols-3 gap-2">
-                                    {[
-                                      { l: 'Pegawai (51)', s: int51, k: tar51 },
-                                      { l: 'Barang (52)', s: int52, k: tar52 },
-                                      { l: 'Modal (53)', s: int53, k: tar53 },
-                                    ].map(sub => (
-                                      <div key={sub.l} className="bg-white p-2 rounded-xl border border-slate-100">
-                                        <span className="text-[8px] font-black text-slate-400 uppercase block leading-none mb-1">{sub.l}</span>
-                                        <span className="text-[9px] font-bold text-slate-700 block truncate">S: {formatMoney(sub.s)}</span>
-                                        <span className="text-[9px] font-bold text-blue-600 block truncate">K: {formatMoney(sub.k)}</span>
-                                      </div>
-                                    ))}
-                                 </div>
-                              </div>
-                           );
-                        })}
-                    </div>
-                  </div>
-               </div>
+    return (
+      <div key={tw} className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <span className="text-xs font-black uppercase tracking-widest">{tw}</span>
+          {/* Warna otomatis: Hijau < 5%, Kuning < 20%, Merah >= 20% */}
+          <span className={`text-[10px] font-black uppercase px-4 py-1.5 rounded-full bg-white border border-slate-100 ${getDeviateColor(devPct)}`}>
+            Deviasi: {devPct.toFixed(2)}%
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-6 pb-2 border-b border-slate-200/50">
+          <div className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
+            <span className="text-sm font-black text-slate-800 italic">Rp {formatMoney(internalReal)}</span>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Angka KPPN</span>
+            <span className="text-sm font-black text-blue-600 block text-right italic">Rp {formatMoney(targetKPPN)}</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {subItems.map(sub => {
+            const subDev = sub.k !== 0 ? ((sub.s - sub.k) / sub.k) * 100 : 0;
+            return (
+              <div key={sub.label} className="bg-white p-2 rounded-xl border border-slate-100">
+                <span className="text-[8px] font-black text-slate-400 uppercase block leading-none mb-1">{sub.label}</span>
+                <span className="text-[9px] font-bold text-slate-700 block truncate">S: {formatMoney(sub.s)}</span>
+                <span className="text-[9px] font-bold text-blue-600 block truncate">K: {formatMoney(sub.k)}</span>
+                <span className={`text-[8px] font-black block mt-1 ${getDeviateColor(subDev)}`}>D: {subDev.toFixed(1)}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  })}
+</div>
 
                {/* FILTER TABEL */}
                <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-200 flex items-center gap-8">
@@ -1072,7 +1092,12 @@ export default function App() {
                                 </td>
                               ))}
                               <td className="px-2 py-1.5 text-right font-black text-orange-800 border-r border-slate-100 bg-orange-50/30">{!isNonFinancial ? formatMoney(item.totalRPD) : ""}</td>
-                              <td className="px-2 py-1.5 text-right font-black text-rose-700 bg-rose-50 border-r border-slate-100">{(!isNonFinancial && item.pagu > 0) ? `${devPctFinal.toFixed(1)}%` : ""}</td>
+                              <td className={`px-2 py-1.5 text-right bg-rose-50 border-r border-slate-100 ${getDeviateColor(item.totalRPD > 0 ? ((item.totalReal - item.totalRPD) / item.totalRPD) * 100 : 0)}`}>
+  {(!isNF && item.totalRPD > 0) ? 
+    `${Math.abs(((item.totalReal - item.totalRPD) / item.totalRPD) * 100).toFixed(1)}%` 
+    : ""
+  }
+</td>
                               <td className="px-2 py-1.5 text-right font-black text-blue-800 bg-blue-50/30">{!isNonFinancial ? formatMoney(item.totalReal) : ""}</td>
                               <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-800'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
                             </tr>
