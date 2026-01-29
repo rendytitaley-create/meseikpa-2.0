@@ -103,23 +103,9 @@ const TIM_MAPPING: Record<string, string[]> = {
 };
 
 // --- FUNGSI UTILITY ---
-
 const formatMoney = (val: any) => {
   const num = Number(val);
   return num ? num.toLocaleString('id-ID') : '0';
-};
-
-const formatInputSeparator = (val: string) => {
-  if (!val) return "";
-  const digits = val.replace(/\D/g, "");
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-};
-
-const getDeviateColor = (pct: number) => {
-  const absolutePct = Math.abs(pct);
-  if (absolutePct < 5) return "text-emerald-500 font-black";
-  if (absolutePct < 20) return "text-amber-500 font-black";
-  return "text-rose-600 font-black";
 };
 
 const cleanString = (str: any) => String(str || "").replace(/\s+/g, "").trim().toUpperCase();
@@ -835,155 +821,269 @@ export default function App() {
           )}
 
           {activeTab === 'rapat' && (
-  <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-    {/* 1. KONFIGURASI KPPN */}
-    {currentUser?.role === 'admin' && (
-      <div className="bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-white/10 text-white relative">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg"><Settings2 size={24} /></div>
-            <div>
-              <h3 className="text-lg font-black uppercase italic leading-tight text-white">Konfigurasi Data KPPN</h3>
-              <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase italic">Pemisah titik otomatis aktif</p>
-            </div>
-          </div>
-          <button onClick={saveKppnGlobal} disabled={isProcessing} className="flex items-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all">
-            {isProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><Save size={18}/> Simpan Data</>}
-          </button>
-        </div>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-          <div className="space-y-8">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-400 mb-2 tracking-widest border-b border-white/10 pb-2"><Target size={14} /> Target RPD KPPN</div>
-            <div className="space-y-6">
-              {['rpd', 'rpd51', 'rpd52', 'rpd53'].map((cat) => (
-                <div key={cat} className="grid grid-cols-4 gap-4 items-end">
-                  {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
-                    <div key={tw} className="flex flex-col">
-                      <label className="text-[8px] font-black uppercase mb-1 opacity-30">{cat} {tw}</label>
-                      <input type="text" value={formatInputSeparator(String(kppnMetrics[cat]?.[tw] || ""))} onChange={(e) => handleUpdateKPPN(cat, tw, e.target.value)} className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none text-white text-right" placeholder="0" />
+            <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+               {/* MODUL KONFIGURASI KPPN (Hanya Admin) */}
+               {currentUser?.role === 'admin' && (
+                 <div className="bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-white/10 text-white relative">
+                    <div className="flex items-center justify-between mb-8">
+                       <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg"><Settings2 size={24} /></div>
+                          <div>
+                            <h3 className="text-lg font-black uppercase italic leading-tight text-white">Konfigurasi Data KPPN</h3>
+                            <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">Target resmi untuk penyandingan data</p>
+                          </div>
+                       </div>
+                       <button onClick={saveKppnGlobal} disabled={isProcessing} className="flex items-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all">
+                          {isProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><Save size={18}/> Simpan Data KPPN</>}
+                       </button>
                     </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-8">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest border-b border-white/10 pb-2"><Activity size={14} /> Realisasi KPPN</div>
-            <div className="space-y-6">
-              {['real', 'real51', 'real52', 'real53'].map((cat) => (
-                <div key={cat} className="grid grid-cols-4 gap-4 items-end">
-                  {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
-                    <div key={tw} className="flex flex-col">
-                      <label className="text-[8px] font-black uppercase mb-1 opacity-30">{cat} {tw}</label>
-                      <input type="text" value={formatInputSeparator(String(kppnMetrics[cat]?.[tw] || ""))} onChange={(e) => handleUpdateKPPN(cat, tw, e.target.value)} className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none text-white text-right" placeholder="0" />
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+                       <div className="space-y-8">
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-400 mb-2 tracking-widest border-b border-white/10 pb-2"><Target size={14} /> Target RPD KPPN</div>
+                          <div className="space-y-6">
+                            {['Total RPD','Belanja Pegawai (51)','Belanja Barang (52)','Belanja Modal (53)'].map((label, idx) => {
+                               const cat = idx === 0 ? 'rpd' : idx === 1 ? 'rpd51' : idx === 2 ? 'rpd52' : 'rpd53';
+                               return (
+                                <div key={label} className="grid grid-cols-4 gap-4 items-end">
+                                   <label className="col-span-4 text-[9px] font-black uppercase opacity-60 mb-[-10px]">{label}</label>
+                                   {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
+                                      <div key={tw} className="flex flex-col">
+                                         <label className="text-[8px] font-black uppercase mb-1 opacity-30">{tw}</label>
+                                         <input type="number" value={kppnMetrics[cat]?.[tw] || ""} onChange={(e) => handleUpdateKPPN(cat, tw, e.target.value)} 
+                                            className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
+                                      </div>
+                                   ))}
+                                </div>
+                               );
+                            })}
+                          </div>
+                       </div>
+                       <div className="space-y-8">
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest border-b border-white/10 pb-2"><Activity size={14} /> Realisasi Anggaran KPPN</div>
+                          <div className="space-y-6">
+                            {['Total Real','Belanja Pegawai (51)','Belanja Barang (52)','Belanja Modal (53)'].map((label, idx) => {
+                               const cat = idx === 0 ? 'real' : idx === 1 ? 'real51' : idx === 2 ? 'real52' : 'real53';
+                               return (
+                                <div key={label} className="grid grid-cols-4 gap-4 items-end">
+                                   <label className="col-span-4 text-[9px] font-black uppercase opacity-60 mb-[-10px]">{label}</label>
+                                   {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
+                                      <div key={tw} className="flex flex-col">
+                                         <label className="text-[8px] font-black uppercase mb-1 opacity-30">{tw}</label>
+                                         <input type="number" value={kppnMetrics[cat]?.[tw] || ""} onChange={(e) => handleUpdateKPPN(cat, tw, e.target.value)} 
+                                            className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
+                                      </div>
+                                   ))}
+                                </div>
+                               );
+                            })}
+                          </div>
+                       </div>
                     </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
+                 </div>
+               )}
 
-    {/* 2. KARTU MONITORING */}
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-      {/* KARTU RPD */}
-      <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative">
-        <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring RPD Per Triwulan</h4>
-        <div className="space-y-4">
-          {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
-            const iT = globalStats.tw[idx].rpd; const tK = Number(kppnMetrics.rpd?.[tw]) || 0;
-            const dP = tK !== 0 ? ((iT - tK) / tK) * 100 : 0;
-            return (
-              <div key={tw} className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 flex flex-col gap-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-black uppercase">{tw}</span>
-                  <span className={`text-[10px] font-black uppercase px-4 py-1.5 rounded-full bg-white border ${getDeviateColor(dP)}`}>Dev: {dP.toFixed(2)}%</span>
-                </div>
-                <div className="grid grid-cols-2 gap-6 pb-2 border-b">
-                  <div><span className="text-[9px] font-black text-slate-400 uppercase block">Internal</span><span className="text-sm font-black text-slate-800">Rp {formatMoney(iT)}</span></div>
-                  <div className="text-right"><span className="text-[9px] font-black text-slate-400 uppercase block">KPPN</span><span className="text-sm font-black text-orange-600">Rp {formatMoney(tK)}</span></div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* KARTU REALISASI */}
-      <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative">
-        <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring Realisasi Per Triwulan</h4>
-        <div className="space-y-4">
-          {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
-            const iT = globalStats.tw[idx].real; const tK = Number(kppnMetrics.real?.[tw]) || 0;
-            const dP = tK !== 0 ? ((iT - tK) / tK) * 100 : 0;
-            return (
-              <div key={tw} className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 flex flex-col gap-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-black uppercase">{tw}</span>
-                  <span className={`text-[10px] font-black uppercase px-4 py-1.5 rounded-full bg-white border ${getDeviateColor(dP)}`}>Dev: {dP.toFixed(2)}%</span>
-                </div>
-                <div className="grid grid-cols-2 gap-6 pb-2 border-b">
-                  <div><span className="text-[9px] font-black text-slate-400 uppercase block">Internal</span><span className="text-sm font-black text-slate-800">Rp {formatMoney(iT)}</span></div>
-                  <div className="text-right"><span className="text-[9px] font-black text-slate-400 uppercase block">KPPN</span><span className="text-sm font-black text-blue-600">Rp {formatMoney(tK)}</span></div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-
-    {/* 3. TABEL REKAPITULASI */}
-    <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-      <div className="overflow-x-auto max-h-[72vh]">
-        <table className="w-full border-collapse text-[10px]">
-          <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase text-center">
-            <tr>
-              <th className="px-3 py-4 text-left w-20">Kode</th>
-              <th className="px-4 py-4 text-left min-w-[350px]">Uraian</th>
-              <th className="px-3 py-4 text-right w-28">Pagu</th>
-              {['I','II','III','IV'].map(t => <th key={t} className="px-2 py-4 text-right w-32 bg-emerald-900/40">TW {t}</th>)}
-              <th className="px-2 py-4 text-right bg-orange-900 w-28">TOTAL RPD</th>
-              <th className="px-2 py-4 text-right bg-rose-900 w-20">% DEV</th>
-              <th className="px-2 py-4 text-right bg-blue-900 w-28">TOTAL REAL</th>
-              <th className="px-3 py-4 text-right bg-slate-900 w-28">SISA</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {finalDisplay.map((item: any) => {
-              const isNF = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
-              const sisa = (Number(item.pagu) || 0) - (item.totalReal || 0);
-              const devPct = item.totalRPD > 0 ? ((item.totalReal - item.totalRPD) / item.totalRPD) * 100 : 0;
-              return (
-                <tr key={item.id} className="hover:bg-blue-50/30">
-                  <td className="px-3 py-1.5 border-r italic text-slate-400">{item.kode}</td>
-                  <td className="px-4 py-1.5 border-r font-bold text-slate-800" style={{ paddingLeft: `${item.level * 10}px` }}>{item.uraian}</td>
-                  <td className="px-3 py-1.5 text-right font-black">{!isNF ? formatMoney(item.pagu) : ""}</td>
-                  {[1,2,3,4].map(tw => (
-                    <td key={tw} className="px-2 py-2 text-right border-r">
-                      {!isNF && (
-                        <div className="flex flex-col">
-                          <span className="text-orange-600">{formatMoney(twMonths[tw].reduce((a,m)=>a+(Number(item.monthRPD?.[m])||0),0))}</span>
-                          <span className="text-blue-600">{formatMoney(twMonths[tw].reduce((a,m)=>a+(Number(item.monthReal?.[m])||0),0))}</span>
+               {/* PANEL KOMPARASI KINERJA PER TRIWULAN */}
+               <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative">
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="p-4 bg-orange-100 text-orange-600 rounded-3xl"><Target size={28}/></div>
+                        <div className="text-right">
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status Global RPD</span>
+                           {Math.abs(globalStats.rpd - sumMapValues(kppnMetrics.rpd)) < 1000 ? (
+                              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Match</span>
+                           ) : (
+                              <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center justify-end gap-1"><AlertTriangle size={12}/> Unmatch</span>
+                           )}
                         </div>
-                      )}
-                    </td>
-                  ))}
-                  <td className="px-2 py-1.5 text-right font-black bg-orange-50/30">{!isNF ? formatMoney(item.totalRPD) : ""}</td>
-                  <td className={`px-2 py-1.5 text-right bg-rose-50 ${getDeviateColor(devPct)}`}>{(!isNF && item.totalRPD > 0) ? `${Math.abs(devPct).toFixed(1)}%` : ""}</td>
-                  <td className="px-2 py-1.5 text-right font-black bg-blue-50/30">{!isNF ? formatMoney(item.totalReal) : ""}</td>
-                  <td className="px-3 py-1.5 text-right font-black">{!isNF ? formatMoney(sisa) : ""}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-)}
+                    </div>
+                    <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring RPD Per Triwulan</h4>
+                    <div className="space-y-4">
+                        {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
+                           const internalRPD = globalStats.tw[idx].rpd;
+                           const targetKPPN = Number(kppnMetrics.rpd?.[tw]) || 0;
+                           const devPct = targetKPPN !== 0 ? (internalRPD / targetKPPN) * 100 : 0;
+                           
+                           // Sub Metrics
+                           const int51 = globalStats.tw[idx].rpd51; const tar51 = Number(kppnMetrics.rpd51?.[tw]) || 0;
+                           const int52 = globalStats.tw[idx].rpd52; const tar52 = Number(kppnMetrics.rpd52?.[tw]) || 0;
+                           const int53 = globalStats.tw[idx].rpd53; const tar53 = Number(kppnMetrics.rpd53?.[tw]) || 0;
+
+                           return (
+                              <div key={tw} className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 flex flex-col gap-4">
+                                 <div className="flex justify-between items-center">
+                                    <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
+                                    <span className={`text-[10px] font-black uppercase px-4 py-1.5 rounded-full ${Math.abs(devPct - 100) < 1 ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
+                                       Capaian RPD: {devPct.toFixed(2)}%
+                                    </span>
+                                 </div>
+                                 <div className="grid grid-cols-2 gap-6 pb-2 border-b border-slate-200/50">
+                                    <div className="space-y-1">
+                                       <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
+                                       <span className="text-sm font-black text-slate-800 italic">Rp {formatMoney(internalRPD)}</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                       <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Target KPPN</span>
+                                       <span className="text-sm font-black text-orange-600 block text-right italic">Rp {formatMoney(targetKPPN)}</span>
+                                    </div>
+                                 </div>
+                                 <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                      { l: 'Pegawai (51)', s: int51, k: tar51 },
+                                      { l: 'Barang (52)', s: int52, k: tar52 },
+                                      { l: 'Modal (53)', s: int53, k: tar53 },
+                                    ].map(sub => (
+                                      <div key={sub.l} className="bg-white p-2 rounded-xl border border-slate-100">
+                                        <span className="text-[8px] font-black text-slate-400 uppercase block leading-none mb-1">{sub.l}</span>
+                                        <span className="text-[9px] font-bold text-slate-700 block truncate">S: {formatMoney(sub.s)}</span>
+                                        <span className="text-[9px] font-bold text-orange-600 block truncate">K: {formatMoney(sub.k)}</span>
+                                      </div>
+                                    ))}
+                                 </div>
+                              </div>
+                           );
+                        })}
+                    </div>
+                  </div>
+                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative">
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="p-4 bg-blue-100 text-blue-600 rounded-3xl"><Activity size={28}/></div>
+                        <div className="text-right">
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status Global Realisasi</span>
+                           {Math.abs(globalStats.real - sumMapValues(kppnMetrics.real)) < 1000 ? (
+                              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Match</span>
+                           ) : (
+                              <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center justify-end gap-1"><AlertTriangle size={12}/> Unmatch</span>
+                           )}
+                        </div>
+                    </div>
+                    <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring Realisasi Per Triwulan</h4>
+                    <div className="space-y-4">
+                        {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
+                           const internalReal = globalStats.tw[idx].real;
+                           const targetKPPN = Number(kppnMetrics.real?.[tw]) || 0;
+                           const devPct = targetKPPN !== 0 ? (internalReal / targetKPPN) * 100 : 0;
+
+                           const int51 = globalStats.tw[idx].real51; const tar51 = Number(kppnMetrics.real51?.[tw]) || 0;
+                           const int52 = globalStats.tw[idx].real52; const tar52 = Number(kppnMetrics.real52?.[tw]) || 0;
+                           const int53 = globalStats.tw[idx].real53; const tar53 = Number(kppnMetrics.real53?.[tw]) || 0;
+
+                           return (
+                              <div key={tw} className="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 flex flex-col gap-4">
+                                 <div className="flex justify-between items-center">
+                                    <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
+                                    <span className={`text-[10px] font-black uppercase px-4 py-1.5 rounded-full ${devPct >= 100 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                       Capaian Real: {devPct.toFixed(2)}%
+                                    </span>
+                                 </div>
+                                 <div className="grid grid-cols-2 gap-6 pb-2 border-b border-slate-200/50">
+                                    <div className="space-y-1">
+                                       <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
+                                       <span className="text-sm font-black text-slate-800 italic">Rp {formatMoney(internalReal)}</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                       <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Angka KPPN</span>
+                                       <span className="text-sm font-black text-blue-600 block text-right italic">Rp {formatMoney(targetKPPN)}</span>
+                                    </div>
+                                 </div>
+                                 <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                      { l: 'Pegawai (51)', s: int51, k: tar51 },
+                                      { l: 'Barang (52)', s: int52, k: tar52 },
+                                      { l: 'Modal (53)', s: int53, k: tar53 },
+                                    ].map(sub => (
+                                      <div key={sub.l} className="bg-white p-2 rounded-xl border border-slate-100">
+                                        <span className="text-[8px] font-black text-slate-400 uppercase block leading-none mb-1">{sub.l}</span>
+                                        <span className="text-[9px] font-bold text-slate-700 block truncate">S: {formatMoney(sub.s)}</span>
+                                        <span className="text-[9px] font-bold text-blue-600 block truncate">K: {formatMoney(sub.k)}</span>
+                                      </div>
+                                    ))}
+                                 </div>
+                              </div>
+                           );
+                        })}
+                    </div>
+                  </div>
+               </div>
+
+               {/* FILTER TABEL */}
+               <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-200 flex items-center gap-8">
+                  <div className="p-5 bg-blue-100 text-blue-600 rounded-2xl"><Filter size={28}/></div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Kedalaman Struktur Rekapitulasi</label>
+                    <select 
+                      value={rapatDepth} 
+                      onChange={(e) => setRapatDepth(Number(e.target.value))} 
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-6 text-[13px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    >
+                        <option value={1}>Level 1: DIPA Induk Satker</option>
+                        <option value={2}>Level 2: Output Rincian Output (RO)</option>
+                        <option value={5}>Level 5: Komponen & Sub Komponen</option>
+                        <option value={7}>Level 7: Kode Akun (6 Digit)</option>
+                        <option value={8}>Level 8: Seluruh Detail Rincian</option>
+                    </select>
+                  </div>
+                  <div className="flex-[2] bg-slate-50 p-4 rounded-2xl">
+                     <p className="text-[10px] font-bold text-slate-400 italic leading-relaxed">Filter di atas mengatur kedalaman hierarki anggaran yang tampil pada tabel di bawah. Gunakan fitur pencarian global di header untuk menyaring kata kunci spesifik secara real-time.</p>
+                  </div>
+               </div>
+
+               <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
+                  <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
+                    <table className="w-full border-collapse text-[10px]">
+                      <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase text-center shadow-lg">
+                        <tr>
+                          <th className="px-3 py-4 text-left w-20">Kode</th>
+                          <th className="px-4 py-4 text-left min-w-[350px]">Uraian</th>
+                          <th className="px-3 py-4 text-right w-28">Pagu DIPA</th>
+                          {['I','II','III','IV'].map((tw, idx) => (
+                            <th key={idx} className="px-2 py-4 text-right w-32 bg-emerald-900/40 font-black tracking-tighter border-r border-white/5">TW {tw}</th>
+                          ))}
+                          <th className="px-2 py-4 text-right bg-orange-900 w-28 tracking-tighter">TOTAL RPD</th>
+                          <th className="px-2 py-4 text-right bg-rose-900 w-20 tracking-tighter italic font-black uppercase">% DEV</th>
+                          <th className="px-2 py-4 text-right bg-blue-900 w-28 tracking-tighter">TOTAL REAL</th>
+                          <th className="px-3 py-4 text-right bg-slate-900 w-28 tracking-tighter">SISA PAGU</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {finalDisplay.map((item: any) => {
+                          const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
+                          const sisaPagu = (Number(item.pagu) || 0) - (item.totalReal || 0);
+                          const devPctFinal = item.totalRPD > 0 ? (item.totalReal / item.totalRPD) * 100 : 0;
+                          
+                          let rowBg = "hover:bg-blue-50/30 transition-all";
+                          if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
+                          if (item.level === 2) rowBg = "bg-blue-100/40 font-black";
+                          if (item.level === 7) rowBg = "bg-slate-100 font-black"; // Akun 6 digit
+                          if (item.isOrphan) rowBg = "bg-rose-50 italic";
+                          
+                          return (
+                            <tr key={item.id} className={rowBg}>
+                              <td className="px-3 py-1.5 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
+                              <td className="px-4 py-1.5 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
+                              <td className="px-3 py-1.5 text-right font-black border-r border-slate-100">{!isNonFinancial ? formatMoney(item.pagu) : ""}</td>
+                              {[1,2,3,4].map(tw => (
+                                <td key={tw} className="px-2 py-2 text-right border-r border-slate-100">
+                                  {!isNonFinancial && (
+                                    <div className="flex flex-col text-[10px] font-black">
+                                      <span className="text-orange-600">{formatMoney(twMonths[tw].reduce((a,m)=>a+(Number(item.monthRPD?.[m])||0),0))}</span>
+                                      <span className="text-blue-600">{formatMoney(twMonths[tw].reduce((a,m)=>a+(Number(item.monthReal?.[m])||0),0))}</span>
+                                    </div>
+                                  )}
+                                </td>
+                              ))}
+                              <td className="px-2 py-1.5 text-right font-black text-orange-800 border-r border-slate-100 bg-orange-50/30">{!isNonFinancial ? formatMoney(item.totalRPD) : ""}</td>
+                              <td className="px-2 py-1.5 text-right font-black text-rose-700 bg-rose-50 border-r border-slate-100">{(!isNonFinancial && item.pagu > 0) ? `${devPctFinal.toFixed(1)}%` : ""}</td>
+                              <td className="px-2 py-1.5 text-right font-black text-blue-800 bg-blue-50/30">{!isNonFinancial ? formatMoney(item.totalReal) : ""}</td>
+                              <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-800'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+               </div>
+            </div>
+          )}
 
           {activeTab === 'users' && currentUser?.role === 'admin' && (
             <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
