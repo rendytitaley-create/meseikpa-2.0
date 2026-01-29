@@ -50,7 +50,8 @@ import {
   Search,
   Filter,
   Eye,
-  EyeOff
+  EyeOff,
+  Save
 } from 'lucide-react';
 
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
@@ -149,9 +150,16 @@ export default function App() {
 
   // --- STATE DATA ---
   const [dataTampil, setDataTampil] = useState<any[]>([]);
+  // Penyesuaian state kppnMetrics agar support breakdown 51,52,53
   const [kppnMetrics, setKppnMetrics] = useState<any>({
-    rpd: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
-    real: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    rpd: { 
+        TW1: { b51: 0, b52: 0, b53: 0 }, TW2: { b51: 0, b52: 0, b53: 0 }, 
+        TW3: { b51: 0, b52: 0, b53: 0 }, TW4: { b51: 0, b52: 0, b53: 0 } 
+    },
+    real: { 
+        TW1: { b51: 0, b52: 0, b53: 0 }, TW2: { b51: 0, b52: 0, b53: 0 }, 
+        TW3: { b51: 0, b52: 0, b53: 0 }, TW4: { b51: 0, b52: 0, b53: 0 } 
+    },
     isLocked: false
   });
   const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -190,17 +198,14 @@ export default function App() {
 
   const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
 
-  // Efek Otomatis Set Tim Berdasarkan Profil User (Jika Bukan Admin)
   useEffect(() => {
     if (currentUser && currentUser.role !== 'admin') {
       setActiveTim(currentUser.team);
-      // Pimpinan GG, Umum WA
       if (currentUser.team === "Umum") setActiveWilayah("WA");
       else setActiveWilayah("GG");
     }
   }, [currentUser]);
 
-  // Excel Loader
   useEffect(() => {
     if ((window as any).XLSX) { setLibReady(true); return; }
     const script = document.createElement('script');
@@ -209,7 +214,6 @@ export default function App() {
     document.head.appendChild(script);
   }, []);
 
-  // Firebase Init & Auth Bootstrap
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -225,63 +229,35 @@ export default function App() {
     initAuth();
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setFbUser(u);
-      
-      // Bootstrap Admin: Cek apakah user collection kosong
       if (u) {
         try {
           const userSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION));
           if (userSnap.empty) {
-            console.log("Membuat akun admin default...");
             const adminId = crypto.randomUUID();
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, adminId), {
-              uid: adminId,
-              username: "admin",
-              password: "123",
-              name: "Administrator Utama",
-              role: "admin",
-              team: "Umum",
-              createdAt: new Date()
+              uid: adminId, username: "admin", password: "123", name: "Administrator Utama", role: "admin", team: "Umum", createdAt: new Date()
             });
           }
         } catch (e) { console.error("Bootstrap admin error", e); }
       }
-
-      // Check Session di LocalStorage
       const savedUser = localStorage.getItem(`meseikpa_session_${appId}`);
-      if (savedUser) {
-        setCurrentUser(JSON.parse(savedUser));
-      }
-      
+      if (savedUser) setCurrentUser(JSON.parse(savedUser));
       setIsAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // Firestore Sync
   useEffect(() => {
     if (!fbUser || !currentUser) return;
-
-    const unsubUsers = onSnapshot(
-      query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION)),
-      (snap) => setAllUsers(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
-      (err) => console.error("Sinkronisasi user gagal:", err)
-    );
-
-    const unsubKppn = onSnapshot(
-      doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global'),
-      (snap) => {
+    const unsubUsers = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION)), (snap) => setAllUsers(snap.docs.map(d => ({ ...d.data(), id: d.id }))));
+    const unsubKppn = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global'), (snap) => {
         if (snap.exists()) {
           const d = snap.data();
           setKppnMetrics(d);
-          setIsLocked(!!d.isLocked); // Sync Lock State Global
+          setIsLocked(!!d.isLocked);
         }
-      },
-      (err) => console.error("Sinkronisasi KPPN gagal:", err)
-    );
-
-    const unsubData = onSnapshot(
-      query(collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION)),
-      (snap) => {
+      });
+    const unsubData = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION)), (snap) => {
         let items = snap.docs.map(d => ({ ...d.data(), id: d.id } as any));
         items.sort((a: any, b: any) => (a.noUrut || 0) - (b.noUrut || 0));
         let curWil = "GG";
@@ -292,72 +268,42 @@ export default function App() {
           return { ...item, wilayah: curWil, tempPathKey: generateRowKey(item, pathArr) };
         });
         setDataTampil(proc);
-      },
-      (err) => console.error("Sinkronisasi data gagal:", err)
-    );
-
-    return () => {
-      unsubUsers();
-      unsubKppn();
-      unsubData();
-    };
+      });
+    return () => { unsubUsers(); unsubKppn(); unsubData(); };
   }, [fbUser, currentUser]);
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
-    setIsProcessing(true);
-
-    if (!fbUser) {
-        setLoginError("Koneksi ke server belum siap. Tunggu sebentar...");
-        setIsProcessing(false);
-        return;
-    }
-
+    e.preventDefault(); setLoginError(""); setIsProcessing(true);
+    if (!fbUser) { setLoginError("Koneksi ke server belum siap..."); setIsProcessing(false); return; }
     try {
-      const qUser = query(
-        collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION),
-        where("username", "==", loginUsername.trim().toLowerCase()),
-        limit(1)
-      );
-      
+      const qUser = query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION), where("username", "==", loginUsername.trim().toLowerCase()), limit(1));
       const snap = await getDocs(qUser);
-      if (snap.empty) {
-        setLoginError("Username tidak terdaftar.");
-      } else {
+      if (snap.empty) setLoginError("Username tidak terdaftar.");
+      else {
         const userData = snap.docs[0].data();
-        if (userData.password === loginPassword) {
-          setCurrentUser(userData);
-          localStorage.setItem(`meseikpa_session_${appId}`, JSON.stringify(userData));
-        } else {
-          setLoginError("Password salah.");
-        }
+        if (userData.password === loginPassword) { setCurrentUser(userData); localStorage.setItem(`meseikpa_session_${appId}`, JSON.stringify(userData)); }
+        else setLoginError("Password salah.");
       }
-    } catch (err: any) {
-      setLoginError("Terjadi kesalahan sistem login.");
-      console.error(err);
-    } finally {
-      setIsProcessing(false);
-    }
+    } catch (err: any) { setLoginError("Terjadi kesalahan sistem login."); } finally { setIsProcessing(false); }
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem(`meseikpa_session_${appId}`);
-    // Clear login inputs for security
-    setLoginUsername("");
-    setLoginPassword("");
-    setLoginError("");
-    setActiveTab('dashboard');
-  };
+  const handleLogout = () => { setCurrentUser(null); localStorage.removeItem(`meseikpa_session_${appId}`); setLoginUsername(""); setLoginPassword(""); setLoginError(""); setActiveTab('dashboard'); };
 
+  // --- PERBAIKAN LOGIKA GLOBAL STATS (BREAKDOWN 51,52,53) ---
   const globalStats = useMemo(() => {
     const stats = { 
         pagu: 0, rpd: 0, real: 0, 
-        tw: [{ rpd: 0, real: 0 }, { rpd: 0, real: 0 }, { rpd: 0, real: 0 }, { rpd: 0, real: 0 }],
+        tw: Array.from({length: 4}, () => ({ 
+            rpd: 0, real: 0, 
+            b51: { rpd: 0, real: 0 }, 
+            b52: { rpd: 0, real: 0 }, 
+            b53: { rpd: 0, real: 0 } 
+        })),
         belanja: { pegawai: 0, barang: 0, modal: 0 } 
     };
+    
     const details = dataTampil.filter(d => !d.isOrphan && getLevel(d.kode) === 8 && (Number(d.pagu) || 0) > 0);
+    
     details.forEach(d => {
       const itemReal = sumMapValues(d.realisasi);
       stats.pagu += (Number(d.pagu) || 0);
@@ -365,17 +311,24 @@ export default function App() {
       
       const keys = (d.tempPathKey || "").split("|");
       const accountCode = keys[6] || ""; 
-      if (accountCode.startsWith("51")) stats.belanja.pegawai += itemReal;
-      else if (accountCode.startsWith("52")) stats.belanja.barang += itemReal;
-      else if (accountCode.startsWith("53")) stats.belanja.modal += itemReal;
+      const bPrefix = accountCode.substring(0, 2);
+
+      if (bPrefix === "51") stats.belanja.pegawai += itemReal;
+      else if (bPrefix === "52") stats.belanja.barang += itemReal;
+      else if (bPrefix === "53") stats.belanja.modal += itemReal;
 
       allMonths.forEach((m, idx) => {
         const valRPD = (Number(d.rpd?.[m]) || 0);
         const valReal = (Number(d.realisasi?.[m]) || 0);
-        stats.rpd += valRPD;
         const twIdx = Math.floor(idx / 3);
+        
+        stats.rpd += valRPD;
         stats.tw[twIdx].rpd += valRPD;
         stats.tw[twIdx].real += valReal;
+
+        if (bPrefix === "51") { stats.tw[twIdx].b51.rpd += valRPD; stats.tw[twIdx].b51.real += valReal; }
+        else if (bPrefix === "52") { stats.tw[twIdx].b52.rpd += valRPD; stats.tw[twIdx].b52.real += valReal; }
+        else if (bPrefix === "53") { stats.tw[twIdx].b53.rpd += valRPD; stats.tw[twIdx].b53.real += valReal; }
       });
     });
     return stats;
@@ -400,12 +353,26 @@ export default function App() {
     return list;
   }, [dataTampil]);
 
-  const handleUpdateKPPN = async (category: 'rpd' | 'real', tw: string, value: string) => {
+  // --- PERBAIKAN FUNGSI SIMPAN KPPN (TOTAL SIMPAN) ---
+  const handleSaveKPPNConfig = async () => {
     if (!fbUser || currentUser?.role !== 'admin') return;
-    const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
-    await setDoc(docRef, {
-      [category]: { ...kppnMetrics[category], [tw]: value }
-    }, { merge: true });
+    setIsProcessing(true);
+    try {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
+        await setDoc(docRef, kppnMetrics, { merge: true });
+        addLog("Konfigurasi KPPN Berhasil Disimpan.");
+    } catch (e: any) { addLog("Gagal Simpan: " + e.message); }
+    finally { setIsProcessing(false); }
+  };
+
+  const handleUpdateKPPNLocal = (category: 'rpd' | 'real', tw: string, type: string, value: string) => {
+    setKppnMetrics((prev: any) => ({
+        ...prev,
+        [category]: {
+            ...prev[category],
+            [tw]: { ...prev[category][tw], [type]: value }
+        }
+    }));
   };
 
   const handleToggleLock = async () => {
@@ -422,13 +389,7 @@ export default function App() {
     try {
       const userId = crypto.randomUUID();
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, userId), {
-        uid: userId,
-        username: newUsername.trim().toLowerCase(),
-        password: newPassword,
-        name: newFullName,
-        role: newUserRole,
-        team: newUserTeam,
-        createdAt: new Date()
+        uid: userId, username: newUsername.trim().toLowerCase(), password: newPassword, name: newFullName, role: newUserRole, team: newUserTeam, createdAt: new Date()
       });
       setNewUsername(""); setNewPassword(""); setNewFullName("");
       addLog(`Pegawai ${newFullName} berhasil didaftarkan.`);
@@ -438,17 +399,13 @@ export default function App() {
 
   const handleChangeUserPassword = async (id: string, newPass: string) => {
     if (!id || !newPass || !fbUser || currentUser?.role !== 'admin') return;
-    try {
-       await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, id), { password: newPass });
-       addLog("Password user berhasil diperbarui.");
-    } catch (e: any) { console.error(e); }
+    try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, id), { password: newPass }); addLog("Password diperbarui."); } catch (e: any) { console.error(e); }
   };
 
   const handleFileAnalyze = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !libReady) return;
     setIsProcessing(true);
-    addLog(`Menganalisa: ${file.name}`);
     try {
       const reader = new FileReader();
       reader.onload = async (evt: any) => {
@@ -464,28 +421,24 @@ export default function App() {
             const kode = row[0] ? String(row[0]).trim() : "";
             const uraian = [row[1], row[2], row[3]].filter(Boolean).join(" ").trim();
             if (!kode && !uraian) continue;
-            const satuan = row[4] ? String(row[4]).trim() : "";
-            let pagu = 0, foundIdx = -1;
-            for (let j = row.length - 1; j >= 5; j--) if (typeof row[j] === 'number') { pagu = row[j]; foundIdx = j; break; }
-            let hsat = foundIdx > 5 && typeof row[foundIdx - 1] === 'number' ? row[foundIdx - 1] : 0;
             const pKey = generateRowKey({ kode, uraian }, path);
-            parsed.push({ kode, uraian, satuan, hargaSatuan: hsat, pagu, pathKey: pKey, noUrut: count++ });
+            let pagu = 0;
+            for (let j = row.length - 1; j >= 5; j--) if (typeof row[j] === 'number') { pagu = row[j]; break; }
+            parsed.push({ kode, uraian, pagu, pathKey: pKey, noUrut: count++ });
         }
         const existing = new Set(dataTampil.map(d => d.tempPathKey));
         let match = 0, orphan = 0;
         parsed.forEach(p => { if (existing.has(p.pathKey)) match++; });
         dataTampil.forEach(d => { if (sumMapValues(d.rpd) > 0 && !parsed.some(p => p.pathKey === d.tempPathKey)) orphan++; });
-        setPreviewData(parsed);
-        setMigrationStats({ match, new: parsed.length - match, orphaned: orphan });
-        setIsProcessing(false);
+        setPreviewData(parsed); setMigrationStats({ match, new: parsed.length - match, orphaned: orphan }); setIsProcessing(false);
       };
       reader.readAsArrayBuffer(file);
-    } catch (e: any) { setIsProcessing(false); addLog("Error: " + e.message); }
+    } catch (e: any) { setIsProcessing(false); }
   };
 
   const executeMigration = async () => {
     if (!fbUser) return;
-    setIsProcessing(true); addLog("Memulai Migrasi...");
+    setIsProcessing(true);
     try {
         const colRef = collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION);
         const snap = await getDocs(colRef);
@@ -494,12 +447,8 @@ export default function App() {
         const orphans: any[] = [];
         const newKeys = new Set(previewData.map(p => p.pathKey));
         dataTampil.forEach(d => { if (sumMapValues(d.rpd) > 0 && !newKeys.has(d.tempPathKey)) orphans.push({ ...d, kode: `(HILANG) ${d.kode}`, isOrphan: true }); });
-        
         let batch = writeBatch(db), op = 0;
-        for (const docSnap of snap.docs) {
-            batch.delete(docSnap.ref);
-            if (++op >= 450) { await batch.commit(); batch = writeBatch(db); op = 0; }
-        }
+        for (const docSnap of snap.docs) { batch.delete(docSnap.ref); if (++op >= 450) { await batch.commit(); batch = writeBatch(db); op = 0; } }
         for (const item of previewData) {
             const b = backup.get(item.pathKey) || { rpd: {}, realisasi: {} };
             batch.set(doc(colRef), { ...item, ...b, timestamp: new Date() });
@@ -511,8 +460,8 @@ export default function App() {
             if (++op >= 450) { await batch.commit(); batch = writeBatch(db); op = 0; }
         }
         if (op > 0) await batch.commit();
-        addLog("Migrasi Selesai."); setPreviewData([]); setActiveTab('dashboard');
-    } catch (e: any) { addLog("Gagal: " + e.message); } finally { setIsProcessing(false); }
+        setPreviewData([]); setActiveTab('dashboard');
+    } catch (e: any) { } finally { setIsProcessing(false); }
   };
 
   const processedData = useMemo(() => {
@@ -531,6 +480,8 @@ export default function App() {
       if (isDetail) {
         totalRPD = sumMapValues(item.rpd);
         totalReal = sumMapValues(item.realisasi);
+        mRPD = item.rpd || {};
+        mReal = item.realisasi || {};
       } else if (!isInduk) {
         for (let i = index + 1; i < base.length; i++) {
             const next = base[i];
@@ -573,28 +524,26 @@ export default function App() {
 
   if (isAuthLoading) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-sans">
+      <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
         <span className="font-black uppercase tracking-widest text-sm italic">Menghubungkan ke Cloud SBB...</span>
       </div>
     );
   }
 
-  // --- RENDER LOGIN VIEW ---
   if (!currentUser) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#F8FAFC] font-sans p-6">
+      <div className="h-screen flex items-center justify-center bg-[#F8FAFC] p-6">
         <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
            <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden">
-              <div className="bg-[#0F172A] p-10 text-center relative overflow-hidden">
-                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
-                 <div className="w-16 h-16 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center text-white font-black text-2xl mb-4 shadow-lg shadow-blue-500/30">M</div>
+              <div className="bg-[#0F172A] p-10 text-center">
+                 <div className="w-16 h-16 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center text-white font-black text-2xl mb-4 shadow-lg">M</div>
                  <h1 className="text-white text-3xl font-black italic tracking-tighter">MESEIKPA 2.0</h1>
                  <p className="text-slate-400 text-[10px] uppercase font-black tracking-[0.2em] mt-2 italic">BPS Kab. Seram Bagian Barat</p>
               </div>
               <form onSubmit={handleLogin} className="p-10 space-y-6">
                  {loginError && (
-                   <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 text-rose-600 animate-in slide-in-from-top duration-300">
+                   <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 text-rose-600">
                       <AlertTriangle size={18} />
                       <span className="text-xs font-bold italic">{loginError}</span>
                    </div>
@@ -603,52 +552,26 @@ export default function App() {
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Username</label>
                     <div className="relative">
                        <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                       <input 
-                         type="text" 
-                         value={loginUsername}
-                         onChange={(e) => setLoginUsername(e.target.value)}
-                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" 
-                         placeholder="Masukkan username..."
-                         required
-                       />
+                       <input type="text" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20" placeholder="Username" required />
                     </div>
                  </div>
                  <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Password</label>
                     <div className="relative">
                        <KeyRound className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                       <input 
-                         type="password" 
-                         value={loginPassword}
-                         onChange={(e) => setLoginPassword(e.target.value)}
-                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" 
-                         placeholder="••••••••"
-                         required
-                       />
+                       <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20" placeholder="••••••••" required />
                     </div>
                  </div>
-                 <button 
-                   type="submit" 
-                   disabled={isProcessing}
-                   className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/30 hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-                 >
-                    {isProcessing ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                      <><LogIn size={18}/> Masuk Sistem</>
-                    )}
+                 <button type="submit" disabled={isProcessing} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3">
+                    {isProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><LogIn size={18}/> Masuk Sistem</>}
                  </button>
               </form>
-              <div className="px-10 pb-10 text-center">
-                 <p className="text-[9px] font-black uppercase text-slate-300 tracking-widest">Akses Cloud Terenkripsi • v2.0.0</p>
-              </div>
            </div>
         </div>
       </div>
     );
   }
 
-  // --- RENDER MAIN APP VIEW ---
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-slate-900 font-sans overflow-hidden">
       <aside className={`bg-[#0F172A] text-slate-300 transition-all duration-300 flex flex-col z-40 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
@@ -675,7 +598,6 @@ export default function App() {
             <PieChart size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Rekapitulasi</span>}
           </button>
-          
           {currentUser.role === 'admin' && (
             <>
               <button onClick={() => setActiveTab('migrasi')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'migrasi' ? 'bg-slate-700 text-white' : 'hover:bg-white/5'}`}>
@@ -706,27 +628,18 @@ export default function App() {
               BPS Kab. Seram Bagian Barat
             </h2>
           </div>
-          
-          {/* SEARCH BAR GLOBAL */}
           <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
             <div className="relative w-full">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Cari Uraian atau Kode..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-12 pr-4 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
-              />
+              <input type="text" placeholder="Cari Uraian atau Kode..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-12 pr-4 text-xs font-bold outline-none" />
             </div>
           </div>
-
           <div className="flex items-center gap-4">
              <div className="flex flex-col items-end leading-none">
                 <span className="text-[11px] font-black italic text-slate-800">{currentUser.name}</span>
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{currentUser.role} • {currentUser.team}</span>
              </div>
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg bg-blue-600`}><User size={20} /></div>
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg bg-blue-600"><User size={20} /></div>
           </div>
         </header>
 
@@ -752,7 +665,6 @@ export default function App() {
                     );
                   })}
                </div>
-
                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   <div className="lg:col-span-7 bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm">
                      <div className="flex items-center justify-between mb-10">
@@ -793,125 +705,174 @@ export default function App() {
 
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-               {/* MODUL KONFIGURASI KPPN (Hanya Admin) */}
+               {/* MODUL KONFIGURASI KPPN (PERBAIKAN INPUT BREAKDOWN 51,52,53) */}
                {currentUser?.role === 'admin' && (
                  <div className="bg-slate-900 rounded-[3rem] p-8 shadow-2xl border border-white/10 text-white">
-                    <div className="flex items-center gap-4 mb-8">
-                       <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg"><Settings2 size={24} /></div>
-                       <div>
-                          <h3 className="text-lg font-black uppercase italic leading-tight text-white">Konfigurasi Data KPPN</h3>
-                          <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">Target resmi untuk penyandingan data</p>
+                    <div className="flex items-center justify-between mb-8">
+                       <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg"><Settings2 size={24} /></div>
+                          <div>
+                             <h3 className="text-lg font-black uppercase italic leading-tight text-white">Konfigurasi Data Target KPPN</h3>
+                             <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase italic">Input per jenis belanja (51, 52, 53) per triwulan</p>
+                          </div>
                        </div>
+                       <button 
+                        onClick={handleSaveKPPNConfig} 
+                        disabled={isProcessing}
+                        className="flex items-center gap-2 px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20"
+                       >
+                         {isProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><Save size={18}/> Simpan Konfigurasi</>}
+                       </button>
                     </div>
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-                       <div className="space-y-4">
-                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-orange-400 mb-2 tracking-widest"><Target size={14} /> Target RPD KPPN</div>
-                          <div className="grid grid-cols-4 gap-4">
-                             {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
-                                <div key={tw} className="flex flex-col">
-                                   <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
-                                   <input type="number" value={kppnMetrics.rpd?.[tw] || ""} onChange={(e) => handleUpdateKPPN('rpd', tw, e.target.value)} 
-                                      className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
-                                </div>
-                             ))}
-                          </div>
-                       </div>
-                       <div className="space-y-4">
-                          <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest"><Activity size={14} /> Realisasi Anggaran KPPN</div>
-                          <div className="grid grid-cols-4 gap-4">
-                             {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
-                                <div key={tw} className="flex flex-col">
-                                   <label className="text-[9px] font-black uppercase mb-1 opacity-50">{tw}</label>
-                                   <input type="number" value={kppnMetrics.real?.[tw] || ""} onChange={(e) => handleUpdateKPPN('real', tw, e.target.value)} 
-                                      className="no-spinner bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] font-black outline-none focus:bg-white/10 text-white" placeholder="0" />
-                                </div>
-                             ))}
-                          </div>
-                       </div>
+                    
+                    <div className="grid grid-cols-1 gap-8">
+                        <div className="bg-white/5 rounded-[2rem] p-6 border border-white/5">
+                            <h4 className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                                <Target size={14}/> Target RPD Resmi KPPN
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
+                                    <div key={tw} className="space-y-3 p-4 bg-white/5 rounded-2xl border border-white/5">
+                                        <div className="text-[11px] font-black text-white border-b border-white/10 pb-2 mb-2">{tw}</div>
+                                        {[51, 52, 53].map(type => (
+                                            <div key={type} className="flex flex-col gap-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase">Akun {type}</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={kppnMetrics.rpd?.[tw]?.[`b${type}`] || ""} 
+                                                    onChange={(e) => handleUpdateKPPNLocal('rpd', tw, `b${type}`, e.target.value)}
+                                                    className="bg-slate-800/50 border border-white/10 rounded-lg px-3 py-2 text-[11px] font-black text-white focus:ring-1 focus:ring-orange-500 outline-none transition-all no-spinner"
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="bg-white/5 rounded-[2rem] p-6 border border-white/5">
+                            <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                                <Activity size={14}/> Angka Realisasi Resmi KPPN
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
+                                    <div key={tw} className="space-y-3 p-4 bg-white/5 rounded-2xl border border-white/5">
+                                        <div className="text-[11px] font-black text-white border-b border-white/10 pb-2 mb-2">{tw}</div>
+                                        {[51, 52, 53].map(type => (
+                                            <div key={type} className="flex flex-col gap-1">
+                                                <label className="text-[9px] font-bold text-slate-500 uppercase">Akun {type}</label>
+                                                <input 
+                                                    type="number" 
+                                                    value={kppnMetrics.real?.[tw]?.[`b${type}`] || ""} 
+                                                    onChange={(e) => handleUpdateKPPNLocal('real', tw, `b${type}`, e.target.value)}
+                                                    className="bg-slate-800/50 border border-white/10 rounded-lg px-3 py-2 text-[11px] font-black text-white focus:ring-1 focus:ring-blue-500 outline-none transition-all no-spinner"
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                  </div>
                )}
 
-               {/* PANEL KOMPARASI KINERJA PER TRIWULAN */}
+               {/* PANEL MONITORING (PERBAIKAN RUMUS & BREAKDOWN) */}
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative">
+                  {/* MONITORING RPD */}
+                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-orange-100 text-orange-600 rounded-3xl"><Target size={28}/></div>
-                        <div className="text-right">
-                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status Global RPD</span>
-                           {Math.abs(globalStats.rpd - sumMapValues(kppnMetrics.rpd)) < 1000 ? (
-                              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Match</span>
-                           ) : (
-                              <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center justify-end gap-1"><AlertTriangle size={12}/> Unmatch</span>
-                           )}
-                        </div>
+                        <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter">Monitoring RPD Per Triwulan</h4>
                     </div>
-                    <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring RPD Per Triwulan</h4>
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
-                           const internalRPD = globalStats.tw[idx].rpd;
-                           const targetKPPN = Number(kppnMetrics.rpd?.[tw]) || 0;
-                           const deviasi = internalRPD - targetKPPN;
-                           const devPct = targetKPPN !== 0 ? (deviasi / targetKPPN) * 100 : 0;
+                           const stats = globalStats.tw[idx];
+                           const target = kppnMetrics.rpd?.[tw] || {};
+                           
+                           // Rumus Deviasi: Internal / Target KPPN * 100
+                           const getDev = (satker: number, kppn: any) => {
+                             const targetVal = Number(kppn) || 0;
+                             return targetVal === 0 ? 0 : (satker / targetVal) * 100;
+                           };
+
+                           const totalDev = getDev(stats.rpd, Object.values(target).reduce((a:any,b:any)=>a+(Number(b)||0), 0));
+
                            return (
-                              <div key={tw} className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-3">
-                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
-                                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${Math.abs(devPct) < 0.1 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                                       Deviasi: {devPct > 0 ? '+' : ''}{devPct.toFixed(2)}%
+                              <div key={tw} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4">
+                                 <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                                    <span className="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">{tw} TOTAL</span>
+                                    <span className={`text-[11px] font-black px-4 py-1 rounded-full ${Math.abs(totalDev - 100) < 0.1 ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
+                                        Deviasi: {totalDev.toFixed(2)}%
                                     </span>
                                  </div>
-                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                       <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
-                                       <span className="text-xs font-bold text-slate-700">Rp {formatMoney(internalRPD)}</span>
-                                    </div>
-                                    <div className="space-y-1">
-                                       <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Target KPPN</span>
-                                       <span className="text-xs font-bold text-orange-600 block text-right">Rp {formatMoney(targetKPPN)}</span>
-                                    </div>
+                                 <div className="grid grid-cols-1 gap-3">
+                                    {[51, 52, 53].map(type => {
+                                        const sVal = (stats as any)[`b${type}`].rpd;
+                                        const kVal = target[`b${type}`] || 0;
+                                        const dev = getDev(sVal, kVal);
+                                        return (
+                                            <div key={type} className="flex items-center justify-between text-[10px] bg-white p-3 rounded-xl border border-slate-100">
+                                                <div className="font-black text-slate-400">AKUN {type}</div>
+                                                <div className="flex gap-6 items-center">
+                                                    <div className="text-right"><span className="block text-[8px] uppercase opacity-50">Satker</span><b>{formatMoney(sVal)}</b></div>
+                                                    <div className="text-right text-orange-600"><span className="block text-[8px] uppercase opacity-50">KPPN</span><b>{formatMoney(kVal)}</b></div>
+                                                    <div className="w-16 text-right font-black text-indigo-600 border-l pl-3">{dev.toFixed(1)}%</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                  </div>
                               </div>
                            );
                         })}
                     </div>
                   </div>
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative">
+
+                  {/* MONITORING REALISASI */}
+                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-blue-100 text-blue-600 rounded-3xl"><Activity size={28}/></div>
-                        <div className="text-right">
-                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status Global Realisasi</span>
-                           {Math.abs(globalStats.real - sumMapValues(kppnMetrics.real)) < 1000 ? (
-                              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Match</span>
-                           ) : (
-                              <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center justify-end gap-1"><AlertTriangle size={12}/> Unmatch</span>
-                           )}
-                        </div>
+                        <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter">Monitoring Realisasi Per Triwulan</h4>
                     </div>
-                    <h4 className="text-lg font-black italic text-slate-800 mb-6 uppercase tracking-tighter">Monitoring Realisasi Per Triwulan</h4>
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {['TW1', 'TW2', 'TW3', 'TW4'].map((tw, idx) => {
-                           const internalReal = globalStats.tw[idx].real;
-                           const targetKPPN = Number(kppnMetrics.real?.[tw]) || 0;
-                           const deviasi = internalReal - targetKPPN;
-                           const devPct = targetKPPN !== 0 ? (deviasi / targetKPPN) * 100 : 0;
+                           const stats = globalStats.tw[idx];
+                           const kppn = kppnMetrics.real?.[tw] || {};
+                           
+                           const getDev = (satker: number, kppnVal: any) => {
+                             const targetVal = Number(kppnVal) || 0;
+                             return targetVal === 0 ? 0 : (satker / targetVal) * 100;
+                           };
+
+                           const totalDev = getDev(stats.real, Object.values(kppn).reduce((a:any,b:any)=>a+(Number(b)||0), 0));
+
                            return (
-                              <div key={tw} className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col gap-3">
-                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{tw}</span>
-                                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${Math.abs(devPct) < 0.1 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                                       Deviasi: {devPct > 0 ? '+' : ''}{devPct.toFixed(2)}%
+                              <div key={tw} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4">
+                                 <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                                    <span className="text-xs font-black text-slate-800 uppercase tracking-[0.2em]">{tw} TOTAL</span>
+                                    <span className={`text-[11px] font-black px-4 py-1 rounded-full ${Math.abs(totalDev - 100) < 0.1 ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
+                                        Deviasi: {totalDev.toFixed(2)}%
                                     </span>
                                  </div>
-                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                       <span className="text-[9px] font-black text-slate-400 uppercase block">Internal Satker</span>
-                                       <span className="text-xs font-bold text-slate-700">Rp {formatMoney(internalReal)}</span>
-                                    </div>
-                                    <div className="space-y-1">
-                                       <span className="text-[9px] font-black text-slate-400 uppercase block text-right">Angka KPPN</span>
-                                       <span className="text-xs font-bold text-blue-600 block text-right">Rp {formatMoney(targetKPPN)}</span>
-                                    </div>
+                                 <div className="grid grid-cols-1 gap-3">
+                                    {[51, 52, 53].map(type => {
+                                        const sVal = (stats as any)[`b${type}`].real;
+                                        const kVal = kppn[`b${type}`] || 0;
+                                        const dev = getDev(sVal, kVal);
+                                        return (
+                                            <div key={type} className="flex items-center justify-between text-[10px] bg-white p-3 rounded-xl border border-slate-100">
+                                                <div className="font-black text-slate-400">AKUN {type}</div>
+                                                <div className="flex gap-6 items-center">
+                                                    <div className="text-right"><span className="block text-[8px] uppercase opacity-50">Satker</span><b>{formatMoney(sVal)}</b></div>
+                                                    <div className="text-right text-blue-600"><span className="block text-[8px] uppercase opacity-50">KPPN</span><b>{formatMoney(kVal)}</b></div>
+                                                    <div className="w-16 text-right font-black text-indigo-600 border-l pl-3">{dev.toFixed(1)}%</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                  </div>
                               </div>
                            );
@@ -920,32 +881,32 @@ export default function App() {
                   </div>
                </div>
 
-               {/* FILTER TABEL */}
-               <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-200 flex items-center gap-8">
-                  <div className="p-5 bg-blue-100 text-blue-600 rounded-2xl"><Filter size={28}/></div>
-                  <div className="flex-1">
-                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Kedalaman Struktur</label>
+               {/* PERBAIKAN FILTER KEDALAMAN (DESAIN RAMPING) */}
+               <div className="bg-white p-4 px-8 rounded-[2rem] shadow-xl border border-slate-200 flex flex-wrap items-center gap-6">
+                  <div className="flex items-center gap-3">
+                     <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><Filter size={18}/></div>
+                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Filter Kedalaman</label>
+                  </div>
+                  <div className="flex-1 min-w-[200px]">
                     <select 
                       value={rapatDepth} 
                       onChange={(e) => setRapatDepth(Number(e.target.value))} 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-6 text-[13px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2 px-4 text-[12px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20"
                     >
-                        <option value={1}>DIPA Induk</option>
-                        <option value={2}>Output RO</option>
-                        <option value={5}>Komponen/Subkomponen</option>
-                        <option value={7}>Akun 6 Digit</option>
-                        <option value={8}>Seluruh Rincian</option>
+                        <option value={1}>1 - DIPA Induk</option>
+                        <option value={2}>2 - Output RO</option>
+                        <option value={5}>5 - Komponen/Subkomponen</option>
+                        <option value={7}>7 - Akun 6 Digit</option>
+                        <option value={8}>8 - Seluruh Rincian</option>
                     </select>
                   </div>
-                  <div className="flex-[2] bg-slate-50 p-4 rounded-2xl">
-                     <p className="text-[10px] font-bold text-slate-400 italic">Gunakan bar pencarian di bagian atas untuk menyaring uraian kegiatan secara spesifik di semua halaman.</p>
-                  </div>
+                  <div className="text-[10px] font-bold text-slate-400 italic">Breakdown tetap dipertahankan otomatis berdasarkan kedalaman pilihan.</div>
                </div>
 
                <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
                   <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
                     <table className="w-full border-collapse text-[10px]">
-                      <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase text-center shadow-lg">
+                      <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase text-center">
                         <tr>
                           <th className="px-3 py-4 text-left w-20">Kode</th>
                           <th className="px-4 py-4 text-left min-w-[350px]">Uraian</th>
@@ -953,22 +914,25 @@ export default function App() {
                           {['I','II','III','IV'].map((tw, idx) => (
                             <th key={idx} className="px-2 py-4 text-right w-32 bg-emerald-900/40 font-black tracking-tighter border-r border-white/5">TW {tw}</th>
                           ))}
-                          <th className="px-2 py-4 text-right bg-orange-900 w-28 tracking-tighter">TOTAL RPD</th>
-                          <th className="px-2 py-4 text-right bg-rose-900 w-20 tracking-tighter italic font-black uppercase">% Dev RPD</th>
-                          <th className="px-2 py-4 text-right bg-blue-900 w-28 tracking-tighter">TOTAL REAL</th>
-                          <th className="px-3 py-4 text-right bg-slate-900 w-28 tracking-tighter">SISA PAGU</th>
+                          <th className="px-2 py-4 text-right bg-orange-900 w-28">TOTAL RPD</th>
+                          {/* PERBAIKAN JUDUL DAN RUMUS %DEV */}
+                          <th className="px-2 py-4 text-right bg-rose-900 w-20 tracking-tighter italic font-black uppercase">% DEV</th>
+                          <th className="px-2 py-4 text-right bg-blue-900 w-28">TOTAL REAL</th>
+                          <th className="px-3 py-4 text-right bg-slate-900 w-28">SISA PAGU</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {finalDisplay.map((item: any) => {
                           const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
                           const sisaPagu = (Number(item.pagu) || 0) - (item.totalReal || 0);
-                          const internalDevPct = item.pagu > 0 ? (item.totalRPD / item.pagu) * 100 : 0;
+                          
+                          // Rumus Baru: Total Real / Total RPD * 100
+                          const devPctTable = item.totalRPD > 0 ? (item.totalReal / item.totalRPD) * 100 : 0;
                           
                           let rowBg = "hover:bg-blue-50/30 transition-all";
                           if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
                           if (item.level === 2) rowBg = "bg-blue-100/40 font-black";
-                          if (item.level === 7) rowBg = "bg-slate-100 font-black"; // Akun 6 digit
+                          if (item.level === 7) rowBg = "bg-slate-100 font-black";
                           if (item.isOrphan) rowBg = "bg-rose-50 italic";
                           
                           return (
@@ -987,7 +951,7 @@ export default function App() {
                                 </td>
                               ))}
                               <td className="px-2 py-1.5 text-right font-black text-orange-800 border-r border-slate-100 bg-orange-50/30">{!isNonFinancial ? formatMoney(item.totalRPD) : ""}</td>
-                              <td className="px-2 py-1.5 text-right font-black text-rose-700 bg-rose-50 border-r border-slate-100">{!isNonFinancial ? `${internalDevPct.toFixed(1)}%` : ""}</td>
+                              <td className="px-2 py-1.5 text-right font-black text-rose-700 bg-rose-50 border-r border-slate-100">{!isNonFinancial ? `${devPctTable.toFixed(1)}%` : ""}</td>
                               <td className="px-2 py-1.5 text-right font-black text-blue-800 bg-blue-50/30">{!isNonFinancial ? formatMoney(item.totalReal) : ""}</td>
                               <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-800'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
                             </tr>
@@ -1006,18 +970,18 @@ export default function App() {
                   <h3 className="text-2xl font-black uppercase italic mb-10 flex items-center gap-4 text-white">
                      <UserPlus className="text-blue-500" /> Registrasi Pegawai Baru
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-white">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Username</label>
-                       <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Username..." />
+                       <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Username" />
                      </div>
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Password</label>
-                       <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Password..." />
+                       <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Password" />
                      </div>
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Nama Lengkap</label>
-                       <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap..." />
+                       <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap" />
                      </div>
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Peran Sistem</label>
@@ -1031,24 +995,19 @@ export default function App() {
                         <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Penugasan Tim</label>
                         <div className="flex flex-wrap gap-2">
                            {ALL_TEAMS.map(t => (
-                              <button key={t} onClick={() => setNewUserTeam(t)} className={`px-5 py-3 rounded-xl text-[10px] font-black border transition-all ${newUserTeam === t ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>
+                             <button key={t} onClick={() => setNewUserTeam(t)} className={`px-5 py-3 rounded-xl text-[10px] font-black border transition-all ${newUserTeam === t ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>
                                  {t}
-                              </button>
+                             </button>
                            ))}
                         </div>
                      </div>
                   </div>
-                  <button onClick={handleAddUser} className="mt-12 px-14 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-all">Simpan Akun</button>
+                  <button onClick={handleAddUser} className="mt-12 px-14 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Simpan Akun</button>
                </div>
                <div className="bg-white rounded-[3rem] border border-slate-200 overflow-hidden shadow-sm">
                   <table className="w-full text-left text-xs">
                      <thead className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black text-slate-400">
-                        <tr>
-                           <th className="px-8 py-4">Nama</th>
-                           <th className="px-4 py-4">Username</th>
-                           <th className="px-4 py-4">Password</th>
-                           <th className="px-4 py-4 text-center">Hapus</th>
-                        </tr>
+                       <tr><th className="px-8 py-4">Nama</th><th className="px-4 py-4">Username</th><th className="px-4 py-4">Password</th><th className="px-4 py-4 text-center">Hapus</th></tr>
                      </thead>
                      <tbody className="divide-y divide-slate-50">
                         {allUsers.map((u) => (
@@ -1059,13 +1018,8 @@ export default function App() {
                               </td>
                               <td className="px-4 py-5 font-mono text-slate-500 italic">@{u.username}</td>
                               <td className="px-4 py-5 font-mono">
-                                 <div className="flex items-center gap-2 group">
-                                    <input 
-                                       type={showPasswordMap[u.id] ? "text" : "password"} 
-                                       defaultValue={u.password}
-                                       onBlur={(e) => handleChangeUserPassword(u.id, e.target.value)}
-                                       className="bg-slate-100 border-none rounded-lg px-2 py-1 w-24 text-[11px] focus:ring-1 focus:ring-blue-500 transition-all" 
-                                    />
+                                 <div className="flex items-center gap-2">
+                                    <input type={showPasswordMap[u.id] ? "text" : "password"} defaultValue={u.password} onBlur={(e) => handleChangeUserPassword(u.id, e.target.value)} className="bg-slate-100 border-none rounded-lg px-2 py-1 w-24 text-[11px] focus:ring-1 focus:ring-blue-500" />
                                     <button onClick={() => setShowPasswordMap(prev => ({ ...prev, [u.id]: !prev[u.id] }))} className="text-slate-400 hover:text-blue-500">
                                        {showPasswordMap[u.id] ? <EyeOff size={14}/> : <Eye size={14}/>}
                                     </button>
@@ -1111,7 +1065,6 @@ export default function App() {
           {(activeTab === 'rpd' || activeTab === 'realisasi') && (
             <div className="space-y-6 animate-in fade-in duration-700">
               <div className="flex items-center justify-between mb-4">
-                 {/* HANYA ADMIN YANG BISA KUNCI & RESET */}
                  {currentUser?.role === 'admin' ? (
                     <div className="flex gap-4">
                        <button onClick={handleToggleLock} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase shadow-md transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
@@ -1126,8 +1079,6 @@ export default function App() {
                     </div>
                  )}
               </div>
-
-              {/* FILTER WILAYAH / TIM (Hanya Admin yang Bisa Ganti) */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                  <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
@@ -1153,11 +1104,10 @@ export default function App() {
                     </div>
                  </div>
               </div>
-
               <div className="bg-white shadow-2xl border border-slate-200 overflow-hidden rounded-[3.5rem]">
                 <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
                   <table className="w-full border-collapse text-[10px]">
-                    <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase text-center shadow-lg">
+                    <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase text-center">
                       <tr>
                         <th className="px-3 py-4 text-left w-20">Kode</th>
                         <th className="px-4 py-4 text-left min-w-[350px]">Uraian</th>
@@ -1172,14 +1122,8 @@ export default function App() {
                       {finalDisplay.map((item: any) => {
                         const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
                         const sisaPagu = activeTab === 'rpd' ? (Number(item.pagu) || 0) - (item.totalRPD || 0) : (Number(item.pagu) || 0) - (item.totalReal || 0);
-                        
-                        // LOGIKA EDITING:
-                        // 1. Admin bisa edit semuanya (kecuali status locked, opsional tetap bisa edit untuk perbaikan).
-                        // 2. Ketua Tim bisa edit RPD timnya saja JIKA sistem tidak terkunci.
-                        // 3. Pimpinan tidak bisa edit apapun.
                         const canEditThisTab = (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || 
                                               (activeTab === 'realisasi' && currentUser?.role === 'admin');
-                        
                         return (
                           <tr key={item.id} className="hover:bg-blue-50/30 transition-all">
                             <td className="px-3 py-1.5 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
@@ -1199,12 +1143,12 @@ export default function App() {
                                           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id), { [f]: { ...ex, [m]: e.target.value } }); 
                                         }
                                       }} 
-                                      className={`no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold text-[10px] ${!canEditThisTab ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-teal-400 text-slate-900 focus:bg-white transition-all'}`} 
+                                      className={`no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold text-[10px] ${!canEditThisTab ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-teal-400 text-slate-900 focus:bg-white'}`} 
                                       placeholder="0" 
                                     />
                                   ) : !isInduk ? (<div className="text-right px-2 py-2 text-slate-950 font-black italic">{formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}</div>) : null}
                                 </td>
-                              ))}
+                            ))}
                               <td className="px-3 py-1.5 text-right font-black bg-slate-100/50 text-slate-950">{!isInduk ? formatMoney(activeTab === 'rpd' ? item.totalRPD : item.totalReal) : ""}</td>
                             <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-950'}`}>{!isInduk ? formatMoney(sisaPagu) : ""}</td>
                             <td className="px-2 py-2 text-center">
@@ -1228,7 +1172,6 @@ export default function App() {
         </footer>
       </main>
 
-      {/* MODAL RESET DATA */}
       {showClearDataModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-sm p-10 text-center border border-slate-200 animate-in zoom-in duration-200">
@@ -1243,11 +1186,9 @@ export default function App() {
                    let batch = writeBatch(db); 
                    const fieldToClear = activeTab === 'rpd' ? 'rpd' : 'realisasi';
                    snap.docs.forEach(d => batch.update(d.ref, { [fieldToClear]: {} }));
-                   await batch.commit(); 
-                   setIsProcessing(false); 
-                   setShowClearDataModal(false); 
+                   await batch.commit(); setIsProcessing(false); setShowClearDataModal(false); 
                  }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-rose-700 transition-all">Ya, Hapus Semua</button>
-                 <button onClick={() => setShowClearDataModal(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase hover:bg-slate-200 transition-all">Batal</button>
+                 <button onClick={() => setShowClearDataModal(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase hover:bg-slate-200">Batal</button>
               </div>
            </div>
         </div>
