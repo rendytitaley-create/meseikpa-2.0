@@ -35,7 +35,6 @@ import {
   Unlock,
   PieChart, 
   ShieldCheck,
-  TrendingUp,
   Target,
   Users,
   UserPlus,
@@ -827,15 +826,12 @@ export default function App() {
                       <div className="h-[300px] flex items-end justify-between gap-2 px-2 overflow-x-auto custom-scrollbar">
                         {(chartMode === 'TW' ? [1,2,3,4] : allMonths).map((key, i) => {
                            const periodKey = chartMode === 'TW' ? `TW${key}` : key;
-                           const labels = chartMode === 'TW' ? ['TW1', 'TW2', 'TW3', 'TW4'] : allMonths;
                            
                            // Data Satker dari globalStats
-                           const satkerRPD = chartMode === 'TW' ? globalStats.tw[i].rpd : globalStats.months[key as string].rpd;
                            const satkerReal = chartMode === 'TW' ? globalStats.tw[i].real : globalStats.months[key as string].real;
 
                            // Data KPPN dari kppnMetrics
                            const kppnRPD = Number(kppnMetrics.rpd?.[periodKey]) || 0;
-                           const kppnReal = Number(kppnMetrics.real?.[periodKey]) || 0;
 
                            const maxVal = globalStats.pagu / (chartMode === 'TW' ? 2 : 6) || 1;
 
