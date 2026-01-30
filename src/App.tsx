@@ -164,9 +164,12 @@ export default function App() {
   // --- STATE DATA ---
   const [dataTampil, setDataTampil] = useState<any[]>([]);
   const [kppnMetrics, setKppnMetrics] = useState<any>({
-    targetKppn51: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
-    targetKppn52: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
-    targetKppn53: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
+    rpd51: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    real51: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    rpd52: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    real52: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    rpd53: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
+    real53: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
     isLocked: false
   });
   const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -180,15 +183,12 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [, setLogs] = useState<string[]>([]); 
   const [libReady, setLibReady] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]); 
   const [migrationStats, setMigrationStats] = useState({ match: 0, new: 0, orphaned: 0 });
   const [isLocked, setIsLocked] = useState(false);
   const [showClearDataModal, setShowClearDataModal] = useState(false);
-  
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
-  const [expandedMonthlyReal, setExpandedMonthlyReal] = useState<Record<string, boolean>>({});
   const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
   const [chartMode, setChartMode] = useState<'TW' | 'Bulan'>('TW');
 
@@ -205,8 +205,6 @@ export default function App() {
     3: ['Jul', 'Ags', 'Sep'], 4: ['Okt', 'Nov', 'Des']
   };
 
-  const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
-
   useEffect(() => {
     if (currentUser && currentUser.role !== 'admin') {
       setActiveTim(currentUser.team);
@@ -219,7 +217,7 @@ export default function App() {
     if ((window as any).XLSX) { setLibReady(true); return; }
     const script = document.createElement('script');
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-    script.onload = () => { setLibReady(true); addLog("Sistem Excel Aktif."); };
+    script.onload = () => { setLibReady(true); };
     document.head.appendChild(script);
   }, []);
 
@@ -231,9 +229,7 @@ export default function App() {
         } else {
           await signInAnonymously(auth);
         }
-      } catch (err) {
-        console.error("Autentikasi gagal:", err);
-      }
+      } catch (err) { console.error("Auth error", err); }
     };
     initAuth();
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -247,7 +243,7 @@ export default function App() {
               uid: adminId, username: "admin", password: "123", name: "Administrator Utama", role: "admin", team: "Umum", createdAt: new Date()
             });
           }
-        } catch (e) { console.error("Bootstrap admin error", e); }
+        } catch (e) { console.error("Admin setup fail", e); }
       }
       const savedUser = localStorage.getItem(`meseikpa_session_${appId}`);
       if (savedUser) setCurrentUser(JSON.parse(savedUser));
@@ -283,9 +279,8 @@ export default function App() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError("");
-    setIsProcessing(true);
-    if (!fbUser) { setLoginError("Koneksi ke server belum siap..."); setIsProcessing(false); return; }
+    setLoginError(""); setIsProcessing(true);
+    if (!fbUser) { setLoginError("Koneksi belum siap."); setIsProcessing(false); return; }
     try {
       const qUser = query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION), where("username", "==", loginUsername.trim().toLowerCase()), limit(1));
       const snap = await getDocs(qUser);
@@ -297,7 +292,7 @@ export default function App() {
           localStorage.setItem(`meseikpa_session_${appId}`, JSON.stringify(userData));
         } else setLoginError("Password salah.");
       }
-    } catch (err) { setLoginError("Kesalahan sistem login."); }
+    } catch (err) { setLoginError("Sistem login bermasalah."); }
     finally { setIsProcessing(false); }
   };
 
@@ -357,7 +352,7 @@ export default function App() {
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
       await setDoc(docRef, kppnMetrics, { merge: true });
-    } catch (e) { console.error("Gagal simpan KPPN."); }
+    } catch (e) { console.error("KPPN save error"); }
   };
 
   const handleToggleLock = async () => {
@@ -376,7 +371,7 @@ export default function App() {
         uid: userId, username: newUsername.trim().toLowerCase(), password: newPassword, name: newFullName, role: newUserRole, team: newUserTeam, createdAt: new Date()
       });
       setNewUsername(""); setNewPassword(""); setNewFullName("");
-    } catch (e) { console.error("Gagal user."); }
+    } catch (e) { console.error("User add error"); }
     finally { setIsProcessing(false); }
   };
 
@@ -448,7 +443,7 @@ export default function App() {
         }
         if (op > 0) await batch.commit();
         setPreviewData([]); setActiveTab('dashboard');
-    } catch (e) { console.error(e); } finally { setIsProcessing(false); }
+    } catch (e) { console.error("Migration error"); } finally { setIsProcessing(false); }
   };
 
   const processedData = useMemo(() => {
@@ -501,7 +496,7 @@ export default function App() {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-sans">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <span className="font-black uppercase tracking-widest text-sm italic">Menghubungkan ke Cloud SBB...</span>
+        <span className="font-black uppercase tracking-widest text-sm italic">Connecting to Cloud...</span>
       </div>
     );
   }
@@ -528,17 +523,17 @@ export default function App() {
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Username</label>
                     <div className="relative">
                        <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                       <input type="text" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" placeholder="Masukkan username..." required />
+                       <input type="text" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all" placeholder="Username" required />
                     </div>
                  </div>
                  <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Password</label>
                     <div className="relative">
                        <KeyRound className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                       <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" placeholder="••••••••" required />
+                       <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all" placeholder="••••••••" required />
                     </div>
                  </div>
-                 <button type="submit" disabled={isProcessing} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/30 hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+                 <button type="submit" disabled={isProcessing} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/30 hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
                     {isProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><LogIn size={18}/> Masuk Sistem</>}
                  </button>
               </form>
@@ -582,7 +577,7 @@ export default function App() {
               </button>
               <button onClick={() => setActiveTab('users')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'users' ? 'bg-rose-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
                   <Users size={20} className={sidebarOpen ? 'mr-3' : ''} />
-                  {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Manajemen User</span>}
+                  {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">User Management</span>}
               </button>
             </>
           )}
@@ -590,7 +585,7 @@ export default function App() {
         <div className="p-4 border-t border-white/5">
            <button onClick={handleLogout} className="w-full flex items-center px-3 py-3 rounded-xl hover:bg-rose-600/20 text-rose-400 transition-all">
               <LogOut size={20} className={sidebarOpen ? 'mr-3' : ''} />
-              {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Logout Sistem</span>}
+              {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Logout</span>}
            </button>
         </div>
       </aside>
@@ -606,7 +601,7 @@ export default function App() {
           <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
             <div className="relative w-full">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input type="text" placeholder="Cari Uraian atau Kode..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-12 pr-4 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 transition-all outline-none" />
+              <input type="text" placeholder="Cari Uraian atau Kode..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-12 pr-4 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 outline-none" />
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -646,7 +641,7 @@ export default function App() {
                       <div className="flex items-center justify-between mb-10">
                         <div className="flex flex-col gap-1">
                           <h3 className="text-lg font-black text-slate-800 uppercase italic tracking-tighter leading-none">Grafik Performa Akun Belanja</h3>
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">Rencana (RPD) vs Eksekusi (Realisasi)</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">Rencana (Target RPD) vs Eksekusi (Realisasi)</span>
                         </div>
                         <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
                            <button onClick={() => setChartMode('TW')} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${chartMode === 'TW' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}>TW</button>
@@ -673,17 +668,13 @@ export default function App() {
                                    </div>
                                 </div>
                                 <div className="mt-4 text-[9px] font-black text-slate-800 tracking-tighter uppercase">{chartMode === 'TW' ? `TW ${key}` : key}</div>
-                                <div className="absolute bottom-full mb-2 bg-slate-900 text-white p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-all z-50 pointer-events-none text-[8px] font-bold w-32 border border-white/10 shadow-2xl">
-                                   <div className="text-orange-400 mb-1">TARGET: {formatMoney(sRPD)}</div>
-                                   <div className="text-blue-400">REAL: {formatMoney(sReal)}</div>
-                                </div>
                              </div>
                            );
                         })}
                       </div>
                       <div className="mt-10 flex justify-center gap-8 border-t border-slate-100 pt-6">
-                         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-orange-500 rounded-full"></div><span className="text-[9px] font-black uppercase text-slate-500">Target RPD</span></div>
-                         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-blue-600 rounded-full shadow-sm"></div><span className="text-[9px] font-black uppercase text-slate-500">Realisasi Akun</span></div>
+                         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-orange-500 rounded-full"></div><span className="text-[9px] font-black uppercase text-slate-500">Target RPD Satker</span></div>
+                         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div><span className="text-[9px] font-black uppercase text-slate-500">Realisasi Satker</span></div>
                       </div>
                   </div>
                </div>
@@ -693,7 +684,7 @@ export default function App() {
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                  {/* MONITORING DAYA SERAP KPPN (TRIWULANAN) */}
+                  {/* ANALISIS DAYA SERAP KPPN (TRIWULANAN) */}
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative group">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-emerald-100 text-emerald-600 rounded-3xl"><Activity size={28}/></div>
@@ -703,15 +694,15 @@ export default function App() {
                         </div>
                     </div>
                     <div className="flex items-center justify-between mb-6">
-                       <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter">Analisis Daya Serap Akun 51, 52, 53</h4>
+                       <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter leading-none">Analisis Penyerapan per Jenis Belanja</h4>
                     </div>
-                    <div className="p-6 bg-emerald-50/40 rounded-[2.5rem] border border-emerald-100 flex flex-col gap-5">
+                    <div className="p-6 bg-emerald-50/40 rounded-[2.5rem] border border-emerald-100 space-y-5">
                         <div className="flex justify-between items-center border-b border-emerald-200/50 pb-3">
-                           <span className="text-xs font-black text-slate-800 uppercase tracking-widest bg-emerald-100 px-4 py-1.5 rounded-xl">Triwulan {twActive}</span>
+                           <span className="text-xs font-black text-slate-800 uppercase tracking-widest bg-emerald-100 px-4 py-1.5 rounded-xl">TW {twActive}</span>
                         </div>
                         <div className="grid grid-cols-1 gap-4">
                            {['51', '52', '53'].map(code => {
-                              const sCat = `targetKppn${code}`;
+                              const sCat = `real${code}`;
                               const realSub = globalStats.tw[twActive - 1][`real${code}` as keyof typeof globalStats.tw[number]];
                               const paguSub = globalStats[`pagu${code}` as keyof typeof globalStats] as number;
                               const targetNominal = Number(kppnMetrics[sCat]?.[`TW${twActive}`]) || 0;
@@ -725,11 +716,11 @@ export default function App() {
                                     </div>
                                     <div className="col-span-4 text-center border-x border-slate-100">
                                        <span className="text-[8px] font-black text-slate-300 block mb-1 uppercase">Realisasi TW</span>
-                                       <span className="text-[11px] font-black text-slate-800">Rp {formatMoney(realSub)}</span>
+                                       <span className="text-[11px] font-black text-slate-800 italic">Rp {formatMoney(realSub)}</span>
                                     </div>
                                     <div className="col-span-5">
                                        <span className="text-[8px] font-black text-slate-300 block mb-1 text-right uppercase">Nominal Target KPPN</span>
-                                       <input type="text" value={formatInputMasking(kppnMetrics[sCat]?.[`TW${twActive}`])} readOnly={currentUser.role !== 'admin'} onChange={(e) => handleUpdateKPPN(sCat, `TW${twActive}`, e.target.value)} onBlur={saveKppnGlobal} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[11px] font-black text-right outline-none focus:ring-2 focus:ring-emerald-100 transition-all" placeholder="0" />
+                                       <input type="text" value={formatInputMasking(kppnMetrics[sCat]?.[`TW${twActive}`])} readOnly={currentUser.role !== 'admin'} onChange={(e) => handleUpdateKPPN(sCat, `TW${twActive}`, e.target.value)} onBlur={saveKppnGlobal} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[11px] font-black text-right outline-none focus:ring-2 focus:ring-emerald-200" placeholder="0" />
                                     </div>
                                 </div>
                               );
@@ -738,7 +729,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* MONITORING DEVIASI HAL III DIPA (BULANAN) */}
+                  {/* ANALISIS DEVIASI HAL III DIPA (BULANAN) */}
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative group">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-orange-100 text-orange-600 rounded-3xl"><Target size={28}/></div>
@@ -748,7 +739,7 @@ export default function App() {
                         </div>
                     </div>
                     <div className="flex items-center justify-between mb-6">
-                       <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter">Ketepatan RPD Akun 51, 52, 53</h4>
+                       <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter">Ketepatan RPD Akun Bulanan</h4>
                        <button onClick={() => setExpandedMonthlyRPD(prev => ({ ...prev, [twActive]: !prev[twActive] }))} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-2xl border border-slate-200">
                           <CalendarDays size={16} /> <span className="text-[10px] font-black uppercase">{expandedMonthlyRPD[twActive] ? 'Tutup Rincian' : 'Buka Rincian'}</span>
                        </button>
@@ -758,9 +749,9 @@ export default function App() {
                        {twMonths[twActive].map(m => {
                           const mData = globalStats.months[m];
                           return (
-                             <div key={m} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-200 space-y-4">
+                             <div key={m} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-200 space-y-4 transition-all">
                                 <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                                   <span className="text-xs font-black text-slate-800 uppercase">{m}</span>
+                                   <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{m}</span>
                                    <div className="flex gap-2">
                                       {['51', '52', '53'].map(code => {
                                          const t = mData[`rpd${code}` as keyof typeof mData];
@@ -771,9 +762,9 @@ export default function App() {
                                    </div>
                                 </div>
                                 {expandedMonthlyRPD[twActive] && (
-                                   <div className="space-y-2 animate-in slide-in-from-top">
+                                   <div className="space-y-2 animate-in slide-in-from-top text-[10px] font-bold text-slate-500 italic">
                                       {['51', '52', '53'].map(code => (
-                                         <div key={code} className="grid grid-cols-12 text-[10px] font-bold text-slate-500 italic">
+                                         <div key={code} className="grid grid-cols-12 border-b border-slate-100/50 pb-1">
                                             <div className="col-span-3">Akun {code}</div>
                                             <div className="col-span-4">Target: {formatMoney(mData[`rpd${code}` as keyof typeof mData])}</div>
                                             <div className="col-span-5 text-right">Real: {formatMoney(mData[`real${code}` as keyof typeof mData])}</div>
@@ -791,13 +782,13 @@ export default function App() {
                <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-200 flex items-center gap-8">
                   <div className="p-5 bg-blue-100 text-blue-600 rounded-2xl"><Filter size={28}/></div>
                   <div className="flex-1">
-                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Kedalaman Struktur Rekapitulasi Anggaran</label>
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Kedalaman Struktur Data Tabel</label>
                     <select value={rapatDepth} onChange={(e) => setRapatDepth(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-6 text-[13px] font-black text-slate-800 outline-none">
-                        <option value={1}>Level 1: DIPA Induk Satker</option>
-                        <option value={2}>Level 2: Output Rincian Output (RO)</option>
-                        <option value={5}>Level 5: Komponen & Sub Komponen</option>
+                        <option value={1}>Level 1: DIPA Induk</option>
+                        <option value={2}>Level 2: Rincian Output (RO)</option>
+                        <option value={5}>Level 5: Komponen / Sub Komponen</option>
                         <option value={7}>Level 7: Kode Akun (6 Digit)</option>
-                        <option value={8}>Level 8: Seluruh Detail Rincian</option>
+                        <option value={8}>Level 8: Seluruh Detail</option>
                     </select>
                   </div>
                </div>
@@ -810,7 +801,7 @@ export default function App() {
                           <th className="px-3 py-4 text-left w-20">Kode</th>
                           <th className="px-4 py-4 text-left min-w-[350px]">Uraian</th>
                           <th className="px-3 py-4 text-right w-28">Pagu DIPA</th>
-                          {['I','II','III','IV'].map((tw, idx) => (<th key={idx} className="px-2 py-4 text-right w-32 bg-emerald-900/40 font-black border-r border-white/5">TW {tw}</th>))}
+                          {['I','II','III','IV'].map((tw, idx) => (<th key={idx} className="px-2 py-4 text-right w-32 bg-emerald-900/40 border-r border-white/5">TW {tw}</th>))}
                           <th className="px-2 py-4 text-right bg-orange-900 w-28">TOTAL RPD</th>
                           <th className="px-2 py-4 text-right bg-rose-900 w-20 italic">% DEV</th>
                           <th className="px-2 py-4 text-right bg-blue-900 w-28">TOTAL REAL</th>
@@ -858,34 +849,34 @@ export default function App() {
           {activeTab === 'users' && currentUser?.role === 'admin' && (
             <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
                <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
-                  <h3 className="text-2xl font-black uppercase italic mb-10 flex items-center gap-4 text-white"><UserPlus className="text-blue-500" /> Registrasi Pegawai Baru</h3>
+                  <h3 className="text-2xl font-black uppercase italic mb-10 flex items-center gap-4 text-white"><UserPlus className="text-blue-500" /> Registrasi User</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-white">
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Username</label>
-                       <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Username..." />
+                       <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Username" />
                      </div>
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Password</label>
-                       <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Password..." />
+                       <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Password" />
                      </div>
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Nama Lengkap</label>
-                       <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap..." />
+                       <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap" />
                      </div>
                   </div>
-                  <button onClick={handleAddUser} className="mt-12 px-14 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-all">Simpan Akun</button>
+                  <button onClick={handleAddUser} className="mt-12 px-14 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-all">Simpan User</button>
                </div>
                <div className="bg-white rounded-[3rem] border border-slate-200 overflow-hidden shadow-sm">
                   <table className="w-full text-left text-xs">
                      <thead className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black text-slate-400">
-                        <tr><th className="px-8 py-4">Nama</th><th className="px-4 py-4">Username</th><th className="px-4 py-4">Password</th><th className="px-4 py-4 text-center">Hapus</th></tr>
+                        <tr><th className="px-8 py-4">Nama</th><th className="px-4 py-4">Username</th><th className="px-4 py-4">Password</th><th className="px-4 py-4 text-center">Aksi</th></tr>
                      </thead>
                      <tbody className="divide-y divide-slate-50">
                         {allUsers.map((u) => (
                            <tr key={u.id}>
                               <td className="px-8 py-5 font-bold text-slate-800"><div>{u.name}</div><div className="text-[9px] text-blue-500 uppercase tracking-widest">{u.role} • {u.team}</div></td>
                               <td className="px-4 py-5 font-mono text-slate-500 italic">@{u.username}</td>
-                              <td className="px-4 py-5 font-mono">
+                              <td className="px-4 py-5">
                                  <div className="flex items-center gap-2">
                                     <input type={showPasswordMap[u.id] ? "text" : "password"} defaultValue={u.password} onBlur={(e) => handleChangeUserPassword(u.id, e.target.value)} className="bg-slate-100 border-none rounded-lg px-2 py-1 w-24 text-[11px]" />
                                     <button onClick={() => setShowPasswordMap(prev => ({ ...prev, [u.id]: !prev[u.id] }))} className="text-slate-400 hover:text-blue-500">{showPasswordMap[u.id] ? <EyeOff size={14}/> : <Eye size={14}/>}</button>
@@ -903,19 +894,19 @@ export default function App() {
           {activeTab === 'migrasi' && currentUser?.role === 'admin' && (
             <div className="max-w-4xl mx-auto py-4 animate-in slide-in-from-bottom duration-700">
                <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-                  <div className="bg-slate-900 p-8 text-white relative"><h3 className="text-xl font-black uppercase tracking-widest italic text-white">Konsol Migrasi Cloud</h3></div>
+                  <div className="bg-slate-900 p-8 text-white relative"><h3 className="text-xl font-black uppercase tracking-widest italic text-white">Migrasi Database Cloud</h3></div>
                   <div className="p-10 space-y-8">
                     <div className="border-2 border-dashed border-slate-200 rounded-[2.5rem] p-16 text-center hover:border-blue-400 hover:bg-blue-50/20 cursor-pointer transition-all" onClick={() => fileInputRef.current?.click()}>
                       <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileAnalyze} disabled={isProcessing} className="hidden" />
                       <FileUp size={48} className="mx-auto mb-4 text-slate-300" />
-                      <span className="text-xs font-black uppercase text-slate-400 italic">Pilih File SAKTI (.xlsx)</span>
+                      <span className="text-xs font-black uppercase text-slate-400 italic">Upload File SAKTI (.xlsx)</span>
                     </div>
                     {previewData.length > 0 && (
                       <div className="grid grid-cols-3 gap-4">
-                        <div className="p-4 bg-slate-50 rounded-xl"><span className="text-[9px] uppercase font-black">Struktur</span><span className="text-xl font-black block">{previewData.length}</span></div>
-                        <div className="p-4 bg-emerald-50 rounded-xl"><span className="text-[9px] uppercase font-black">Match</span><span className="text-xl font-black block">{migrationStats.match}</span></div>
+                        <div className="p-4 bg-slate-50 rounded-xl"><span className="text-[9px] uppercase font-black">Row Data</span><span className="text-xl font-black block">{previewData.length}</span></div>
+                        <div className="p-4 bg-emerald-50 rounded-xl"><span className="text-[9px] uppercase font-black">Sync Match</span><span className="text-xl font-black block">{migrationStats.match}</span></div>
                         <div className="p-4 bg-rose-50 rounded-xl"><span className="text-[9px] uppercase font-black">Orphan</span><span className="text-xl font-black block">{migrationStats.orphaned}</span></div>
-                        <button onClick={executeMigration} disabled={isProcessing} className="col-span-3 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Jalankan Pembaruan</button>
+                        <button onClick={executeMigration} disabled={isProcessing} className="col-span-3 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Jalankan Sinkronisasi</button>
                       </div>
                     )}
                   </div>
@@ -929,26 +920,26 @@ export default function App() {
                   {currentUser?.role === 'admin' ? (
                     <div className="flex gap-4">
                        <button onClick={handleToggleLock} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase shadow-md transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
-                          {isLocked ? <Lock size={14} /> : <Unlock size={14} />} {isLocked ? 'Sistem Terkunci' : 'Kunci Sistem Global'}
+                          {isLocked ? <Lock size={14} /> : <Unlock size={14} />} {isLocked ? 'Sistem Terkunci' : 'Kunci Sistem'}
                        </button>
-                       <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase bg-white text-slate-600 border border-slate-200"><Eraser size={14} /> Reset Nilai</button>
+                       <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase bg-white text-slate-600 border border-slate-200"><Eraser size={14} /> Reset Data</button>
                     </div>
                   ) : (
                     <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border italic text-[11px] font-bold ${isLocked ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                       {isLocked ? <Lock size={16} /> : <ShieldHalf size={16} />} {isLocked ? 'Sistem Terkunci - Mode Lihat Saja' : `Mode Pengisian Tim ${currentUser?.team}`}
+                       {isLocked ? <Lock size={16} /> : <ShieldHalf size={16} />} {isLocked ? 'Sistem Terkunci - Mode Read-Only' : `Akses Tim: ${currentUser?.team}`}
                     </div>
                   )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                  <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Pilih Wilayah</span>
                     <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
                       <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>GG</button>
                       <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>WA</button>
                     </div>
                  </div>
                  <div className="lg:col-span-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tim Pelaksana</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tim Penanggung Jawab</span>
                     <div className="flex flex-wrap gap-1 p-1 bg-slate-50 rounded-lg">
                       {ALL_TEAMS.filter(t => activeWilayah === "GG" ? t !== "Umum" : t === "Umum").map(tim => (
                         <button key={tim} disabled={currentUser?.role !== 'admin'} onClick={() => setActiveTim(tim)} className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 opacity-50'}`}>{tim}</button>
@@ -956,7 +947,7 @@ export default function App() {
                     </div>
                  </div>
                  <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Triwulan</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Triwulan Berjalan</span>
                     <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
                       {[1,2,3,4].map(tw => (<button key={tw} onClick={() => setTwActive(tw)} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>TW {tw}</button>))}
                     </div>
@@ -971,9 +962,8 @@ export default function App() {
                         <th className="px-4 py-4 text-left min-w-[350px]">Uraian</th>
                         <th className="px-3 py-4 text-right w-28">Pagu DIPA</th>
                         {twMonths[twActive].map(m => (<th key={m} className={`px-2 py-4 text-right w-24 ${activeTab === 'rpd' ? 'bg-orange-900' : 'bg-blue-900'}`}>{m}</th>))}
-                        <th className="px-3 py-4 text-right bg-slate-800 w-28 uppercase">Total {activeTab}</th>
-                        <th className="px-3 py-4 text-right bg-slate-900 w-28 tracking-tighter">SISA PAGU</th>
-                        <th className="px-2 py-4 text-center">Opsi</th>
+                        <th className="px-3 py-4 text-right bg-slate-800 w-28">TOTAL</th>
+                        <th className="px-3 py-4 text-right bg-slate-900 w-28">SISA</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -985,9 +975,9 @@ export default function App() {
                           <tr key={item.id} className="hover:bg-blue-50/30 transition-all">
                             <td className="px-3 py-1.5 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
                             <td className="px-4 py-1.5 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
-                            <td className="px-3 py-1.5 text-right font-black text-slate-950 border-r border-slate-100">{!isInduk ? formatMoney(item.pagu) : ""}</td>
+                            <td className="px-3 py-1.5 text-right font-black border-r border-slate-100">{!isInduk ? formatMoney(item.pagu) : ""}</td>
                             {twMonths[twActive].map((m: string) => (
-                                <td key={m} className="px-0 py-0 h-full border-r border-slate-100 bg-blue-50/50 group">
+                                <td key={m} className="px-0 py-0 h-full border-r border-slate-100 bg-blue-50/50">
                                   {!isInduk && item.isDetail ? (
                                     <input type="text" value={formatInputMasking(activeTab === 'rpd' ? item.rpd?.[m] : item.realisasi?.[m])} readOnly={!canEditThisTab} onChange={async (e) => { 
                                         if(fbUser && canEditThisTab) { 
@@ -996,13 +986,12 @@ export default function App() {
                                           const rawNumber = e.target.value.replace(/\D/g, "");
                                           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id), { [f]: { ...ex, [m]: rawNumber } }); 
                                         }
-                                      }} className={`no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold text-[10px] ${!canEditThisTab ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-teal-400/20 text-slate-900 focus:bg-white transition-all'}`} placeholder="0" />
-                                  ) : !isInduk ? (<div className="text-right px-2 py-2 text-slate-950 font-black italic">{formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}</div>) : null}
+                                      }} className={`no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold text-[10px] ${!canEditThisTab ? 'bg-slate-100 text-slate-400' : 'bg-teal-400/20 text-slate-900 focus:bg-white'}`} placeholder="0" />
+                                  ) : !isInduk ? (<div className="text-right px-2 py-2 font-black italic">{formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}</div>) : null}
                                 </td>
                             ))}
                             <td className="px-3 py-1.5 text-right font-black bg-slate-100/50 text-slate-950">{!isInduk ? formatMoney(activeTab === 'rpd' ? item.totalRPD : item.totalReal) : ""}</td>
                             <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-950'}`}>{!isInduk ? formatMoney(sisaPagu) : ""}</td>
-                            <td className="px-2 py-2 text-center">{(item.isOrphan && currentUser?.role === 'admin') && (<button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id))} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>)}</td>
                           </tr>
                         );
                       })}
@@ -1024,7 +1013,7 @@ export default function App() {
            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-sm p-10 text-center border border-slate-200 animate-in zoom-in duration-200">
               <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-6"><AlertTriangle size={32} /></div>
               <h3 className="text-xl font-black text-slate-800 mb-2 italic">Konfirmasi Reset</h3>
-              <p className="text-[11px] text-slate-500 mb-10 leading-relaxed italic">Hapus semua data? Tindakan ini tidak dapat dibatalkan.</p>
+              <p className="text-[11px] text-slate-500 mb-10 leading-relaxed italic">Hapus semua entri pada tab ini? Tindakan ini tidak dapat dibatalkan.</p>
               <div className="flex flex-col gap-3">
                  <button onClick={async () => { 
                    if (!fbUser || currentUser?.role !== 'admin') return;
@@ -1035,8 +1024,8 @@ export default function App() {
                    snap.docs.forEach(d => batch.update(d.ref, { [fieldToClear]: {} }));
                    await batch.commit(); 
                    setIsProcessing(false); setShowClearDataModal(false); 
-                 }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl">Ya, Hapus Semua</button>
-                 <button onClick={() => setShowClearDataModal(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase hover:bg-slate-200 transition-all">Batal</button>
+                 }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-rose-700">Ya, Reset Data</button>
+                 <button onClick={() => setShowClearDataModal(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase hover:bg-slate-200">Batal</button>
               </div>
            </div>
         </div>
