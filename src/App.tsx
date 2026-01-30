@@ -108,14 +108,12 @@ const formatMoney = (val: any) => {
   return num ? num.toLocaleString('id-ID') : '0';
 };
 
-// UTILITY UNTUK MASKING INPUT (TITIK PEMISAH RIBUAN)
 const formatInputMasking = (val: any) => {
   if (val === undefined || val === null || val === "") return "";
   const clean = String(val).replace(/\D/g, "");
   return clean ? Number(clean).toLocaleString('id-ID') : "";
 };
 
-// UTILITY WARNA DEVIASI (KUNING 5%, MERAH 20%)
 const getDevColorClass = (val: number) => {
   const abs = Math.abs(val);
   if (abs >= 20) return 'text-rose-600 bg-rose-50 border-rose-200 font-black';
@@ -166,14 +164,9 @@ export default function App() {
   // --- STATE DATA ---
   const [dataTampil, setDataTampil] = useState<any[]>([]);
   const [kppnMetrics, setKppnMetrics] = useState<any>({
-    rpd: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
-    real: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
-    rpd51: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
-    real51: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
-    rpd52: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
-    real52: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
-    rpd53: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
-    real53: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
+    targetKppn51: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
+    targetKppn52: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
+    targetKppn53: { TW1: 0, TW2: 0, TW3: 0, TW4: 0, Jan: 0, Feb: 0, Mar: 0, Apr: 0, Mei: 0, Jun: 0, Jul: 0, Ags: 0, Sep: 0, Okt: 0, Nov: 0, Des: 0 },
     isLocked: false
   });
   const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -194,14 +187,9 @@ export default function App() {
   const [isLocked, setIsLocked] = useState(false);
   const [showClearDataModal, setShowClearDataModal] = useState(false);
   
-  // Fitur Rekap Bulanan State
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
   const [expandedMonthlyReal, setExpandedMonthlyReal] = useState<Record<string, boolean>>({});
-
-  // State Password Visibility
   const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
-
-  // State Periode Grafik Dashboard
   const [chartMode, setChartMode] = useState<'TW' | 'Bulan'>('TW');
 
   const [newUsername, setNewUsername] = useState("");
@@ -219,17 +207,14 @@ export default function App() {
 
   const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
 
-  // Efek Otomatis Set Tim Berdasarkan Profil User (Jika Bukan Admin)
   useEffect(() => {
     if (currentUser && currentUser.role !== 'admin') {
       setActiveTim(currentUser.team);
-      // Pimpinan GG, Umum WA
       if (currentUser.team === "Umum") setActiveWilayah("WA");
       else setActiveWilayah("GG");
     }
   }, [currentUser]);
 
-  // Excel Loader
   useEffect(() => {
     if ((window as any).XLSX) { setLibReady(true); return; }
     const script = document.createElement('script');
@@ -238,7 +223,6 @@ export default function App() {
     document.head.appendChild(script);
   }, []);
 
-  // Firebase Init & Auth Bootstrap
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -254,63 +238,35 @@ export default function App() {
     initAuth();
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setFbUser(u);
-      
-      // Bootstrap Admin: Cek apakah user collection kosong
       if (u) {
         try {
           const userSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION));
           if (userSnap.empty) {
-            console.log("Membuat akun admin default...");
             const adminId = crypto.randomUUID();
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, adminId), {
-              uid: adminId,
-              username: "admin",
-              password: "123",
-              name: "Administrator Utama",
-              role: "admin",
-              team: "Umum",
-              createdAt: new Date()
+              uid: adminId, username: "admin", password: "123", name: "Administrator Utama", role: "admin", team: "Umum", createdAt: new Date()
             });
           }
         } catch (e) { console.error("Bootstrap admin error", e); }
       }
-
-      // Check Session di LocalStorage
       const savedUser = localStorage.getItem(`meseikpa_session_${appId}`);
-      if (savedUser) {
-        setCurrentUser(JSON.parse(savedUser));
-      }
-      
+      if (savedUser) setCurrentUser(JSON.parse(savedUser));
       setIsAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // Firestore Sync
   useEffect(() => {
     if (!fbUser || !currentUser) return;
-
-    const unsubUsers = onSnapshot(
-      query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION)),
-      (snap) => setAllUsers(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
-      (err) => console.error("Sinkronisasi user gagal:", err)
-    );
-
-    const unsubKppn = onSnapshot(
-      doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global'),
-      (snap) => {
+    const unsubUsers = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION)), (snap) => setAllUsers(snap.docs.map(d => ({ ...d.data(), id: d.id }))));
+    const unsubKppn = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global'), (snap) => {
         if (snap.exists()) {
           const d = snap.data();
           setKppnMetrics(d);
-          setIsLocked(!!d.isLocked); // Sync Lock State Global
+          setIsLocked(!!d.isLocked);
         }
-      },
-      (err) => console.error("Sinkronisasi KPPN gagal:", err)
-    );
-
-    const unsubData = onSnapshot(
-      query(collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION)),
-      (snap) => {
+    });
+    const unsubData = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION)), (snap) => {
         let items = snap.docs.map(d => ({ ...d.data(), id: d.id } as any));
         items.sort((a: any, b: any) => (a.noUrut || 0) - (b.noUrut || 0));
         let curWil = "GG";
@@ -321,146 +277,79 @@ export default function App() {
           return { ...item, wilayah: curWil, tempPathKey: generateRowKey(item, pathArr) };
         });
         setDataTampil(proc);
-      },
-      (err) => console.error("Sinkronisasi data gagal:", err)
-    );
-
-    return () => {
-      unsubUsers();
-      unsubKppn();
-      unsubData();
-    };
+    });
+    return () => { unsubUsers(); unsubKppn(); unsubData(); };
   }, [fbUser, currentUser]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
     setIsProcessing(true);
-
-    if (!fbUser) {
-        setLoginError("Koneksi ke server belum siap. Tunggu sebentar...");
-        setIsProcessing(false);
-        return;
-    }
-
+    if (!fbUser) { setLoginError("Koneksi ke server belum siap..."); setIsProcessing(false); return; }
     try {
-      const qUser = query(
-        collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION),
-        where("username", "==", loginUsername.trim().toLowerCase()),
-        limit(1)
-      );
-      
+      const qUser = query(collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION), where("username", "==", loginUsername.trim().toLowerCase()), limit(1));
       const snap = await getDocs(qUser);
-      if (snap.empty) {
-        setLoginError("Username tidak terdaftar.");
-      } else {
+      if (snap.empty) setLoginError("Username tidak terdaftar.");
+      else {
         const userData = snap.docs[0].data();
         if (userData.password === loginPassword) {
           setCurrentUser(userData);
           localStorage.setItem(`meseikpa_session_${appId}`, JSON.stringify(userData));
-        } else {
-          setLoginError("Password salah.");
-        }
+        } else setLoginError("Password salah.");
       }
-    } catch (err: any) {
-      setLoginError("Terjadi kesalahan sistem login.");
-      console.error(err);
-    } finally {
-      setIsProcessing(false);
-    }
+    } catch (err) { setLoginError("Kesalahan sistem login."); }
+    finally { setIsProcessing(false); }
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem(`meseikpa_session_${appId}`);
-    // Clear login inputs for security
-    setLoginUsername("");
-    setLoginPassword("");
-    setLoginError("");
-    setActiveTab('dashboard');
+    setLoginUsername(""); setLoginPassword(""); setLoginError(""); setActiveTab('dashboard');
   };
 
   const globalStats = useMemo(() => {
     const stats = { 
         pagu: 0, rpd: 0, real: 0, 
-        tw: [{ rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 }, { rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 }, { rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 }, { rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 }],
+        pagu51: 0, pagu52: 0, pagu53: 0,
+        tw: Array(4).fill(0).map(() => ({ rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 })),
         months: {} as Record<string, { rpd: number, real: number, rpd51:number, real51:number, rpd52:number, real52:number, rpd53:number, real53:number }>,
         belanja: { pegawai: 0, barang: 0, modal: 0 } 
     };
-    
     allMonths.forEach(m => stats.months[m] = { rpd: 0, real: 0, rpd51: 0, real51: 0, rpd52: 0, real52: 0, rpd53: 0, real53: 0 });
-
     const details = dataTampil.filter(d => !d.isOrphan && getLevel(d.kode) === 8 && (Number(d.pagu) || 0) > 0);
     details.forEach(d => {
       const itemReal = sumMapValues(d.realisasi);
-      stats.pagu += (Number(d.pagu) || 0);
+      const itemPagu = (Number(d.pagu) || 0);
+      stats.pagu += itemPagu;
       stats.real += itemReal;
-      
       const keys = (d.tempPathKey || "").split("|");
       const accountCode = keys[6] || ""; 
-      
       const is51 = accountCode.startsWith("51");
       const is52 = accountCode.startsWith("52");
       const is53 = accountCode.startsWith("53");
-
-      if (is51) stats.belanja.pegawai += itemReal;
-      else if (is52) stats.belanja.barang += itemReal;
-      else if (is53) stats.belanja.modal += itemReal;
-
+      if (is51) { stats.belanja.pegawai += itemReal; stats.pagu51 += itemPagu; }
+      else if (is52) { stats.belanja.barang += itemReal; stats.pagu52 += itemPagu; }
+      else if (is53) { stats.belanja.modal += itemReal; stats.pagu53 += itemPagu; }
       allMonths.forEach((m, idx) => {
         const valRPD = (Number(d.rpd?.[m]) || 0);
         const valReal = (Number(d.realisasi?.[m]) || 0);
         stats.rpd += valRPD;
-        
         stats.months[m].rpd += valRPD;
         stats.months[m].real += valReal;
-
         const twIdx = Math.floor(idx / 3);
         stats.tw[twIdx].rpd += valRPD;
         stats.tw[twIdx].real += valReal;
-
-        if(is51) { 
-          stats.tw[twIdx].rpd51 += valRPD; stats.tw[twIdx].real51 += valReal; 
-          stats.months[m].rpd51 += valRPD; stats.months[m].real51 += valReal;
-        }
-        if(is52) { 
-          stats.tw[twIdx].rpd52 += valRPD; stats.tw[twIdx].real52 += valReal; 
-          stats.months[m].rpd52 += valRPD; stats.months[m].real52 += valReal;
-        }
-        if(is53) { 
-          stats.tw[twIdx].rpd53 += valRPD; stats.tw[twIdx].real53 += valReal; 
-          stats.months[m].rpd53 += valRPD; stats.months[m].real53 += valReal;
-        }
+        if(is51) { stats.tw[twIdx].rpd51 += valRPD; stats.tw[twIdx].real51 += valReal; stats.months[m].rpd51 += valRPD; stats.months[m].real51 += valReal; }
+        if(is52) { stats.tw[twIdx].rpd52 += valRPD; stats.tw[twIdx].real52 += valReal; stats.months[m].rpd52 += valRPD; stats.months[m].real52 += valReal; }
+        if(is53) { stats.tw[twIdx].rpd53 += valRPD; stats.tw[twIdx].real53 += valReal; stats.months[m].rpd53 += valRPD; stats.months[m].real53 += valReal; }
       });
     });
     return stats;
   }, [dataTampil, allMonths]);
 
-  const roDataList = useMemo(() => {
-    const list: any[] = [];
-    const ros = dataTampil.filter(d => getLevel(d.kode) === 2);
-    ros.forEach((ro) => {
-      let pagu = 0, real = 0;
-      const startIndex = dataTampil.indexOf(ro);
-      for (let i = startIndex + 1; i < dataTampil.length; i++) {
-        const next = dataTampil[i];
-        if (next.kode !== "" && getLevel(next.kode) <= 2) break;
-        if (getLevel(next.kode) === 8 && (Number(next.pagu) || 0) > 0) {
-          pagu += (Number(next.pagu) || 0);
-          real += sumMapValues(next.realisasi);
-        }
-      }
-      list.push({ ...ro, pagu, real });
-    });
-    return list;
-  }, [dataTampil]);
-
   const handleUpdateKPPN = (category: string, period: string, value: string) => {
-    const cleanValue = value.replace(/\D/g, ""); // Pastikan hanya angka murni yang masuk ke state
-    setKppnMetrics((prev: any) => ({
-      ...prev,
-      [category]: { ...prev[category], [period]: cleanValue }
-    }));
+    const cleanValue = value.replace(/\D/g, "");
+    setKppnMetrics((prev: any) => ({ ...prev, [category]: { ...prev[category], [period]: cleanValue } }));
   };
 
   const saveKppnGlobal = async () => {
@@ -468,9 +357,7 @@ export default function App() {
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global');
       await setDoc(docRef, kppnMetrics, { merge: true });
-    } catch (e:any) {
-      console.error("Gagal menyimpan data KPPN.");
-    }
+    } catch (e) { console.error("Gagal simpan KPPN."); }
   };
 
   const handleToggleLock = async () => {
@@ -486,24 +373,16 @@ export default function App() {
     try {
       const userId = crypto.randomUUID();
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, userId), {
-        uid: userId,
-        username: newUsername.trim().toLowerCase(),
-        password: newPassword,
-        name: newFullName,
-        role: newUserRole,
-        team: newUserTeam,
-        createdAt: new Date()
+        uid: userId, username: newUsername.trim().toLowerCase(), password: newPassword, name: newFullName, role: newUserRole, team: newUserTeam, createdAt: new Date()
       });
       setNewUsername(""); setNewPassword(""); setNewFullName("");
-    } catch (e: any) { console.error("Gagal: " + e.message); }
+    } catch (e) { console.error("Gagal user."); }
     finally { setIsProcessing(false); }
   };
 
   const handleChangeUserPassword = async (id: string, newPass: string) => {
     if (!id || !newPass || !fbUser || currentUser?.role !== 'admin') return;
-    try {
-       await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, id), { password: newPass });
-    } catch (e: any) { console.error(e); }
+    try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, id), { password: newPass }); } catch (e) { console.error(e); }
   };
 
   const handleFileAnalyze = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -541,7 +420,7 @@ export default function App() {
         setIsProcessing(false);
       };
       reader.readAsArrayBuffer(file);
-    } catch (e: any) { setIsProcessing(false); }
+    } catch (e) { setIsProcessing(false); }
   };
 
   const executeMigration = async () => {
@@ -555,12 +434,8 @@ export default function App() {
         const orphans: any[] = [];
         const newKeys = new Set(previewData.map(p => p.pathKey));
         dataTampil.forEach(d => { if (sumMapValues(d.rpd) > 0 && !newKeys.has(d.tempPathKey)) orphans.push({ ...d, kode: `(HILANG) ${d.kode}`, isOrphan: true }); });
-        
         let batch = writeBatch(db), op = 0;
-        for (const docSnap of snap.docs) {
-            batch.delete(docSnap.ref);
-            if (++op >= 450) { await batch.commit(); batch = writeBatch(db); op = 0; }
-        }
+        for (const docSnap of snap.docs) { batch.delete(docSnap.ref); if (++op >= 450) { await batch.commit(); batch = writeBatch(db); op = 0; } }
         for (const item of previewData) {
             const b = backup.get(item.pathKey) || { rpd: {}, realisasi: {} };
             batch.set(doc(colRef), { ...item, ...b, timestamp: new Date() });
@@ -573,14 +448,13 @@ export default function App() {
         }
         if (op > 0) await batch.commit();
         setPreviewData([]); setActiveTab('dashboard');
-    } catch (e: any) { console.error(e); } finally { setIsProcessing(false); }
+    } catch (e) { console.error(e); } finally { setIsProcessing(false); }
   };
 
   const processedData = useMemo(() => {
     const normal = dataTampil.filter(d => !d.isOrphan);
     const orphan = dataTampil.filter(d => d.isOrphan);
     const base = (activeTab === 'rapat') ? normal : normal.filter(d => d.wilayah === activeWilayah);
-    
     const calculatedNormal = base.map((item, index) => {
       const level = getLevel(item.kode);
       const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
@@ -588,11 +462,8 @@ export default function App() {
       let totalRPD = 0, totalReal = 0;
       let mRPD: Record<string, number> = {};
       let mReal: Record<string, number> = {};
-
-      if (isDetail) {
-        totalRPD = sumMapValues(item.rpd);
-        totalReal = sumMapValues(item.realisasi);
-      } else if (!isInduk) {
+      if (isDetail) { totalRPD = sumMapValues(item.rpd); totalReal = sumMapValues(item.realisasi); } 
+      else if (!isInduk) {
         for (let i = index + 1; i < base.length; i++) {
             const next = base[i];
             const nLevel = getLevel(next.kode);
@@ -609,13 +480,10 @@ export default function App() {
       }
       return { ...item, totalRPD, totalReal, monthRPD: mRPD, monthReal: mReal, level, isDetail };
     });
-
     const calculatedOrphan = orphan.map(item => ({
         ...item, totalRPD: sumMapValues(item.rpd), totalReal: sumMapValues(item.realisasi),
-        monthRPD: item.rpd || {}, monthReal: item.realisasi || {},
-        level: 8, isDetail: true
+        monthRPD: item.rpd || {}, monthReal: item.realisasi || {}, level: 8, isDetail: true
     }));
-
     const merged = [...calculatedNormal, ...calculatedOrphan];
     if (activeTab === 'rapat') return merged.filter(item => item.level <= rapatDepth);
     const allowed = TIM_MAPPING[activeTim] || [];
@@ -627,10 +495,7 @@ export default function App() {
     });
   }, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth, allMonths]);
 
-  const finalDisplay = processedData.filter((d) => 
-    (d.uraian && d.uraian.toLowerCase().includes(searchTerm.toLowerCase())) || 
-    (d.kode && d.kode.includes(searchTerm))
-  );
+  const finalDisplay = processedData.filter((d) => (d.uraian && d.uraian.toLowerCase().includes(searchTerm.toLowerCase())) || (d.kode && d.kode.includes(searchTerm)));
 
   if (isAuthLoading) {
     return (
@@ -641,7 +506,6 @@ export default function App() {
     );
   }
 
-  // --- RENDER LOGIN VIEW ---
   if (!currentUser) {
     return (
       <div className="h-screen flex items-center justify-center bg-[#F8FAFC] font-sans p-6">
@@ -664,40 +528,18 @@ export default function App() {
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Username</label>
                     <div className="relative">
                        <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                       <input 
-                         type="text" 
-                         value={loginUsername}
-                         onChange={(e) => setLoginUsername(e.target.value)}
-                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" 
-                         placeholder="Masukkan username..."
-                         required
-                       />
+                       <input type="text" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" placeholder="Masukkan username..." required />
                     </div>
                  </div>
                  <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Password</label>
                     <div className="relative">
                        <KeyRound className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                       <input 
-                         type="password" 
-                         value={loginPassword}
-                         onChange={(e) => setLoginPassword(e.target.value)}
-                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" 
-                         placeholder="••••••••"
-                         required
-                       />
+                       <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" placeholder="••••••••" required />
                     </div>
                  </div>
-                 <button 
-                   type="submit" 
-                   disabled={isProcessing}
-                   className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/30 hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-                 >
-                    {isProcessing ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                      <><LogIn size={18}/> Masuk Sistem</>
-                    )}
+                 <button type="submit" disabled={isProcessing} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/30 hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+                    {isProcessing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><LogIn size={18}/> Masuk Sistem</>}
                  </button>
               </form>
            </div>
@@ -706,7 +548,6 @@ export default function App() {
     );
   }
 
-  // --- RENDER MAIN APP VIEW ---
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-slate-900 font-sans overflow-hidden">
       <aside className={`bg-[#0F172A] text-slate-300 transition-all duration-300 flex flex-col z-40 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
@@ -733,7 +574,6 @@ export default function App() {
             <PieChart size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Rekapitulasi</span>}
           </button>
-          
           {currentUser.role === 'admin' && (
             <>
               <button onClick={() => setActiveTab('migrasi')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'migrasi' ? 'bg-slate-700 text-white' : 'hover:bg-white/5'}`}>
@@ -760,25 +600,15 @@ export default function App() {
           <div className="flex items-center gap-3">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"><Menu size={20} /></button>
             <h2 className="font-black text-slate-800 text-[13px] uppercase tracking-widest italic flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-              BPS Kab. Seram Bagian Barat
+              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span> BPS Kab. Seram Bagian Barat
             </h2>
           </div>
-          
-          {/* SEARCH BAR GLOBAL */}
           <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
             <div className="relative w-full">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Cari Uraian atau Kode..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-12 pr-4 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 transition-all outline-none"
-              />
+              <input type="text" placeholder="Cari Uraian atau Kode..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-12 pr-4 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 transition-all outline-none" />
             </div>
           </div>
-
           <div className="flex items-center gap-4">
              <div className="flex flex-col items-end leading-none">
                 <span className="text-[11px] font-black italic text-slate-800">{currentUser.name}</span>
@@ -811,12 +641,12 @@ export default function App() {
                   })}
                </div>
 
-               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                  <div className="lg:col-span-7 bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm">
+               <div className="grid grid-cols-1 gap-8">
+                  <div className="bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm">
                       <div className="flex items-center justify-between mb-10">
                         <div className="flex flex-col gap-1">
                           <h3 className="text-lg font-black text-slate-800 uppercase italic tracking-tighter leading-none">Grafik Performa Akun Belanja</h3>
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">Monitoring Gabungan Satker SBB</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">Rencana (RPD) vs Eksekusi (Realisasi)</span>
                         </div>
                         <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
                            <button onClick={() => setChartMode('TW')} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${chartMode === 'TW' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400'}`}>TW</button>
@@ -825,68 +655,35 @@ export default function App() {
                       </div>
                       <div className="h-[300px] flex items-end justify-between gap-2 px-2 overflow-x-auto custom-scrollbar">
                         {(chartMode === 'TW' ? [1,2,3,4] : allMonths).map((key, i) => {
-                           const periodKey = chartMode === 'TW' ? `TW${key}` : key;
-                           
-                           // Data Satker dari globalStats
-                           const satkerReal = chartMode === 'TW' ? globalStats.tw[i].real : globalStats.months[key as string].real;
-
-                           // Data KPPN dari kppnMetrics
-                           const kppnRPD = Number(kppnMetrics.rpd?.[periodKey]) || 0;
-
+                           const sReal = chartMode === 'TW' ? globalStats.tw[i].real : globalStats.months[key as string].real;
+                           const sRPD = chartMode === 'TW' ? globalStats.tw[i].rpd : globalStats.months[key as string].rpd;
                            const maxVal = globalStats.pagu / (chartMode === 'TW' ? 2 : 6) || 1;
-
                            return (
-                             <div key={periodKey} className="flex-1 flex flex-col items-center min-w-[50px] group relative">
+                             <div key={key} className="flex-1 flex flex-col items-center min-w-[50px] group relative">
                                 <div className="flex gap-1.5 items-end h-full w-full justify-center">
-                                   {/* RPD BARS (PER AKUN STACKED) */}
-                                   <div className="w-3 bg-orange-100 rounded-t-lg relative flex flex-col justify-end overflow-hidden" style={{ height: `${Math.min(100, (kppnRPD / maxVal) * 100)}%` }}>
-                                      <div className="w-full bg-orange-400 opacity-80" style={{ height: `${( (chartMode === 'TW' ? globalStats.tw[i].rpd51 : globalStats.months[key as string].rpd51) / (kppnRPD||1) ) * 100}%` }}></div>
-                                      <div className="w-full bg-orange-500 opacity-80" style={{ height: `${( (chartMode === 'TW' ? globalStats.tw[i].rpd52 : globalStats.months[key as string].rpd52) / (kppnRPD||1) ) * 100}%` }}></div>
-                                      <div className="w-full bg-orange-600 opacity-80" style={{ height: `${( (chartMode === 'TW' ? globalStats.tw[i].rpd53 : globalStats.months[key as string].rpd53) / (kppnRPD||1) ) * 100}%` }}></div>
+                                   <div className="w-3 bg-orange-100 rounded-t-lg relative flex flex-col justify-end overflow-hidden" style={{ height: `${Math.min(100, (sRPD / maxVal) * 100)}%` }}>
+                                      <div className="w-full bg-orange-400 opacity-80" style={{ height: `${((chartMode === 'TW' ? globalStats.tw[i].rpd51 : globalStats.months[key as string].rpd51) / (sRPD||1)) * 100}%` }}></div>
+                                      <div className="w-full bg-orange-500 opacity-80" style={{ height: `${((chartMode === 'TW' ? globalStats.tw[i].rpd52 : globalStats.months[key as string].rpd52) / (sRPD||1)) * 100}%` }}></div>
+                                      <div className="w-full bg-orange-600 opacity-80" style={{ height: `${((chartMode === 'TW' ? globalStats.tw[i].rpd53 : globalStats.months[key as string].rpd53) / (sRPD||1)) * 100}%` }}></div>
                                    </div>
-                                   {/* REALISASI BARS (PER AKUN STACKED) */}
-                                   <div className="w-3 bg-blue-100 rounded-t-lg relative flex flex-col justify-end overflow-hidden shadow-lg shadow-blue-500/10" style={{ height: `${Math.min(100, (satkerReal / maxVal) * 100)}%` }}>
-                                      <div className="w-full bg-blue-400" style={{ height: `${( (chartMode === 'TW' ? globalStats.tw[i].real51 : globalStats.months[key as string].real51) / (satkerReal||1) ) * 100}%` }}></div>
-                                      <div className="w-full bg-blue-600" style={{ height: `${( (chartMode === 'TW' ? globalStats.tw[i].real52 : globalStats.months[key as string].real52) / (satkerReal||1) ) * 100}%` }}></div>
-                                      <div className="w-full bg-blue-800" style={{ height: `${( (chartMode === 'TW' ? globalStats.tw[i].real53 : globalStats.months[key as string].real53) / (satkerReal||1) ) * 100}%` }}></div>
+                                   <div className="w-3 bg-blue-100 rounded-t-lg relative flex flex-col justify-end overflow-hidden shadow-lg shadow-blue-500/10" style={{ height: `${Math.min(100, (sReal / maxVal) * 100)}%` }}>
+                                      <div className="w-full bg-blue-400" style={{ height: `${((chartMode === 'TW' ? globalStats.tw[i].real51 : globalStats.months[key as string].real51) / (sReal||1)) * 100}%` }}></div>
+                                      <div className="w-full bg-blue-600" style={{ height: `${((chartMode === 'TW' ? globalStats.tw[i].real52 : globalStats.months[key as string].real52) / (sReal||1)) * 100}%` }}></div>
+                                      <div className="w-full bg-blue-800" style={{ height: `${((chartMode === 'TW' ? globalStats.tw[i].real53 : globalStats.months[key as string].real53) / (sReal||1)) * 100}%` }}></div>
                                    </div>
                                 </div>
                                 <div className="mt-4 text-[9px] font-black text-slate-800 tracking-tighter uppercase">{chartMode === 'TW' ? `TW ${key}` : key}</div>
-                                
-                                {/* TOOLTIP */}
                                 <div className="absolute bottom-full mb-2 bg-slate-900 text-white p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-all z-50 pointer-events-none text-[8px] font-bold w-32 border border-white/10 shadow-2xl">
-                                   <div className="text-orange-400 mb-1">KPPN: {formatMoney(kppnRPD)}</div>
-                                   <div className="text-blue-400">SATKER: {formatMoney(satkerReal)}</div>
+                                   <div className="text-orange-400 mb-1">TARGET: {formatMoney(sRPD)}</div>
+                                   <div className="text-blue-400">REAL: {formatMoney(sReal)}</div>
                                 </div>
                              </div>
                            );
                         })}
                       </div>
                       <div className="mt-10 flex justify-center gap-8 border-t border-slate-100 pt-6">
-                         <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 bg-orange-500 rounded-full"></div>
-                            <span className="text-[9px] font-black uppercase text-slate-500">Target RPD</span>
-                         </div>
-                         <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 bg-blue-600 rounded-full shadow-sm shadow-blue-500/50"></div>
-                            <span className="text-[9px] font-black uppercase text-slate-500">Realisasi Akun</span>
-                         </div>
-                      </div>
-                  </div>
-                  <div className="lg:col-span-5 bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm flex flex-col">
-                      <h3 className="text-lg font-black text-slate-800 uppercase italic mb-8">Realisasi RO Tertinggi</h3>
-                      <div className="space-y-4 overflow-y-auto max-h-[350px] custom-scrollbar pr-2">
-                        {roDataList.sort((a,b) => b.real - a.real).slice(0, 10).map((ro, i) => (
-                           <div key={i} className="space-y-2">
-                              <div className="flex justify-between text-[10px] font-bold">
-                                 <span className="truncate w-48">{ro.kode} - {ro.uraian}</span>
-                                 <span>Rp {formatMoney(ro.real)}</span>
-                              </div>
-                              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                 <div className="h-full bg-blue-500" style={{ width: `${(ro.real / (ro.pagu || 1)) * 100}%` }}></div>
-                              </div>
-                           </div>
-                        ))}
+                         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-orange-500 rounded-full"></div><span className="text-[9px] font-black uppercase text-slate-500">Target RPD</span></div>
+                         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-blue-600 rounded-full shadow-sm"></div><span className="text-[9px] font-black uppercase text-slate-500">Realisasi Akun</span></div>
                       </div>
                   </div>
                </div>
@@ -895,224 +692,113 @@ export default function App() {
 
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-               {/* MODUL MONITORING TRIWULAN & BULANAN */}
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                  {/* MONITORING RPD CARD */}
+                  {/* MONITORING DAYA SERAP KPPN (TRIWULANAN) */}
+                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative group">
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="p-4 bg-emerald-100 text-emerald-600 rounded-3xl"><Activity size={28}/></div>
+                        <div className="text-right">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Daya Serap KPPN</span>
+                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Monitoring Triwulan</span>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between mb-6">
+                       <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter">Analisis Daya Serap Akun 51, 52, 53</h4>
+                    </div>
+                    <div className="p-6 bg-emerald-50/40 rounded-[2.5rem] border border-emerald-100 flex flex-col gap-5">
+                        <div className="flex justify-between items-center border-b border-emerald-200/50 pb-3">
+                           <span className="text-xs font-black text-slate-800 uppercase tracking-widest bg-emerald-100 px-4 py-1.5 rounded-xl">Triwulan {twActive}</span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4">
+                           {['51', '52', '53'].map(code => {
+                              const sCat = `targetKppn${code}`;
+                              const realSub = globalStats.tw[twActive - 1][`real${code}` as keyof typeof globalStats.tw[number]];
+                              const paguSub = globalStats[`pagu${code}` as keyof typeof globalStats] as number;
+                              const targetNominal = Number(kppnMetrics[sCat]?.[`TW${twActive}`]) || 0;
+                              const pctReal = paguSub > 0 ? (realSub / paguSub) * 100 : 0;
+                              const pctTarget = paguSub > 0 ? (targetNominal / paguSub) * 100 : 0;
+                              return (
+                                <div key={code} className="grid grid-cols-12 items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                                    <div className="col-span-3">
+                                       <span className="text-[10px] font-black text-slate-500 uppercase block">Belanja {code}</span>
+                                       <span className={`text-[9px] font-black px-2 py-0.5 rounded-md border ${getDevColorClass(pctReal - pctTarget)}`}>{pctReal.toFixed(1)}% / {pctTarget.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="col-span-4 text-center border-x border-slate-100">
+                                       <span className="text-[8px] font-black text-slate-300 block mb-1 uppercase">Realisasi TW</span>
+                                       <span className="text-[11px] font-black text-slate-800">Rp {formatMoney(realSub)}</span>
+                                    </div>
+                                    <div className="col-span-5">
+                                       <span className="text-[8px] font-black text-slate-300 block mb-1 text-right uppercase">Nominal Target KPPN</span>
+                                       <input type="text" value={formatInputMasking(kppnMetrics[sCat]?.[`TW${twActive}`])} readOnly={currentUser.role !== 'admin'} onChange={(e) => handleUpdateKPPN(sCat, `TW${twActive}`, e.target.value)} onBlur={saveKppnGlobal} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[11px] font-black text-right outline-none focus:ring-2 focus:ring-emerald-100 transition-all" placeholder="0" />
+                                    </div>
+                                </div>
+                              );
+                           })}
+                        </div>
+                    </div>
+                  </div>
+
+                  {/* MONITORING DEVIASI HAL III DIPA (BULANAN) */}
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative group">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-orange-100 text-orange-600 rounded-3xl"><Target size={28}/></div>
                         <div className="text-right">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Analisis RPD</span>
-                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Monitoring Aktif</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Deviasi Hal III DIPA</span>
+                            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Monitoring Bulanan</span>
                         </div>
                     </div>
                     <div className="flex items-center justify-between mb-6">
-                       <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter">Monitoring RPD Akun 51, 52, 53</h4>
-                       <button 
-                         onClick={() => setExpandedMonthlyRPD(prev => ({ ...prev, [twActive]: !prev[twActive] }))}
-                         className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-orange-50 text-slate-600 hover:text-orange-600 rounded-2xl transition-all border border-slate-200"
-                       >
-                          <CalendarDays size={16} />
-                          <span className="text-[10px] font-black uppercase tracking-widest">
-                             {expandedMonthlyRPD[twActive] ? 'Tutup Detail Bulan' : 'Buka Detail Bulan'}
-                          </span>
-                          {expandedMonthlyRPD[twActive] ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+                       <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter">Ketepatan RPD Akun 51, 52, 53</h4>
+                       <button onClick={() => setExpandedMonthlyRPD(prev => ({ ...prev, [twActive]: !prev[twActive] }))} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-2xl border border-slate-200">
+                          <CalendarDays size={16} /> <span className="text-[10px] font-black uppercase">{expandedMonthlyRPD[twActive] ? 'Tutup Rincian' : 'Buka Rincian'}</span>
                        </button>
                     </div>
 
-                    <div className="space-y-5">
-                        {/* VIEW TRIWULANAN (ALWAYS VISIBLE) */}
-                        <div className="p-6 bg-orange-50/40 rounded-[2.5rem] border border-orange-100 flex flex-col gap-5">
-                            <div className="flex justify-between items-center border-b border-orange-200/50 pb-3">
-                               <span className="text-xs font-black text-slate-800 uppercase tracking-widest bg-orange-100 px-4 py-1.5 rounded-xl">Triwulan {twActive}</span>
-                               <div className="flex gap-2">
-                                 {['51', '52', '53'].map(code => {
-                                    const internalVal = globalStats.tw[twActive - 1][`rpd${code}` as keyof typeof globalStats.tw[number]];
-                                    const targetKppn = Number(kppnMetrics[`rpd${code}`]?.[`TW${twActive}`]) || 0;
-                                    const devVal = targetKppn !== 0 ? ((Number(internalVal) - targetKppn) / targetKppn) * 100 : 0;
-                                    return <span key={code} className={`text-[12px] font-black px-3 py-1.5 rounded-xl border shadow-sm tracking-tighter ${getDevColorClass(devVal)}`}>{code}: {devVal.toFixed(1)}%</span>;
-                                 })}
-                               </div>
-                            </div>
-                            <div className="grid grid-cols-1 gap-4">
-                               {['51', '52', '53'].map(code => {
-                                  const subCat = `rpd${code}`;
-                                  const internalSub = globalStats.tw[twActive - 1][subCat as keyof typeof globalStats.tw[number]];
-                                  const targetSub = Number(kppnMetrics[subCat]?.[`TW${twActive}`]) || 0;
-                                  const subDev = targetSub !== 0 ? ((Number(internalSub) - targetSub) / targetSub) * 100 : 0;
-                                  return (
-                                    <div key={code} className="grid grid-cols-12 items-center gap-4 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
-                                        <div className="col-span-3 text-[10px] font-black text-slate-500 uppercase">Belanja {code}</div>
-                                        <div className="col-span-4 text-center border-x border-slate-100"><span className="text-[8px] font-black text-slate-300 block mb-1 uppercase">Satker (Rekap)</span><span className="text-[11px] font-black text-slate-800 italic">Rp {formatMoney(internalSub)}</span></div>
-                                        <div className="col-span-5"><span className="text-[8px] font-black text-slate-300 block mb-1 text-right uppercase">KPPN (Input)</span><input type="text" value={formatInputMasking(kppnMetrics[subCat]?.[`TW${twActive}`])} readOnly={currentUser.role !== 'admin'} onChange={(e) => handleUpdateKPPN(subCat, `TW${twActive}`, e.target.value)} onBlur={saveKppnGlobal} className={`w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[11px] font-black text-right outline-none focus:ring-2 focus:ring-orange-100 transition-all ${getDevColorClass(subDev)}`} placeholder="0" /></div>
-                                    </div>
-                                  );
-                               })}
-                            </div>
-                        </div>
-
-                        {/* VIEW BULANAN (EXPANDABLE) */}
-                        {expandedMonthlyRPD[twActive] && (
-                           <div className="animate-in slide-in-from-top duration-300 space-y-4 pt-2">
-                              <h5 className="text-[10px] font-black uppercase tracking-widest text-orange-600 ml-4 flex items-center gap-2">
-                                 <div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></div>
-                                 Rincian RPD Per Akun Bulanan
-                              </h5>
-                              {twMonths[twActive].map(m => (
-                                 <div key={m} className="p-6 bg-slate-50/80 rounded-[2.5rem] border border-slate-200 flex flex-col gap-4">
-                                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                                       <span className="text-[11px] font-black text-slate-800 bg-white px-4 py-1 rounded-full shadow-sm">{m}</span>
-                                       <div className="flex gap-2">
-                                         {['51', '52', '53'].map(code => {
-                                            const intV = globalStats.months[m][`rpd${code}` as keyof typeof globalStats.months[string]];
-                                            const tarV = Number(kppnMetrics[`rpd${code}`]?.[m]) || 0;
-                                            const devV = tarV !== 0 ? ((Number(intV) - tarV) / tarV) * 100 : 0;
-                                            return <span key={code} className={`text-[9px] font-black px-2 py-0.5 rounded-lg border ${getDevColorClass(devV)}`}>{code}: {devV.toFixed(1)}%</span>
-                                         })}
-                                       </div>
-                                    </div>
-                                    <div className="space-y-3">
-                                       {['51', '52', '53'].map(code => {
-                                          const subCat = `rpd${code}`;
-                                          const internalM = globalStats.months[m][subCat as keyof typeof globalStats.months[string]];
-                                          const targetM = Number(kppnMetrics[subCat]?.[m]) || 0;
-                                          const devM = targetM !== 0 ? ((Number(internalM) - targetM) / targetM) * 100 : 0;
-                                          return (
-                                             <div key={code} className="grid grid-cols-12 items-center gap-4">
-                                                <div className="col-span-2 text-[9px] font-black text-slate-400">AKUN {code}</div>
-                                                <div className="col-span-5 text-[10px] font-black text-slate-600">Satker: {formatMoney(internalM)}</div>
-                                                <div className="col-span-5">
-                                                   <input type="text" value={formatInputMasking(kppnMetrics[subCat]?.[m])} readOnly={currentUser.role !== 'admin'} onChange={(e) => handleUpdateKPPN(subCat, m, e.target.value)} onBlur={saveKppnGlobal} className={`w-full bg-white border border-slate-200 rounded-xl px-3 py-1 text-[10px] font-black text-right outline-none focus:ring-2 focus:ring-orange-100 shadow-sm ${getDevColorClass(devM)}`} placeholder="Input KPPN..." />
-                                                </div>
-                                             </div>
-                                          );
-                                       })}
-                                    </div>
-                                 </div>
-                              ))}
-                           </div>
-                        )}
-                    </div>
-                  </div>
-
-                  {/* MONITORING REALISASI CARD */}
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative group">
-                    <div className="flex justify-between items-start mb-6">
-                        <div className="p-4 bg-blue-100 text-blue-600 rounded-3xl"><Activity size={28}/></div>
-                        <div className="text-right">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Analisis Realisasi</span>
-                            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Monitoring Aktif</span>
-                        </div>
-                    </div>
-                    <div className="flex items-center justify-between mb-6">
-                       <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter">Monitoring Real Akun 51, 52, 53</h4>
-                       <button 
-                         onClick={() => setExpandedMonthlyReal(prev => ({ ...prev, [twActive]: !prev[twActive] }))}
-                         className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-2xl transition-all border border-slate-200"
-                       >
-                          <CalendarDays size={16} />
-                          <span className="text-[10px] font-black uppercase tracking-widest">
-                             {expandedMonthlyReal[twActive] ? 'Tutup Detail Bulan' : 'Buka Detail Bulan'}
-                          </span>
-                          {expandedMonthlyReal[twActive] ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
-                       </button>
-                    </div>
-
-                    <div className="space-y-5">
-                        {/* VIEW TRIWULANAN */}
-                        <div className="p-6 bg-blue-50/40 rounded-[2.5rem] border border-blue-100 flex flex-col gap-5">
-                            <div className="flex justify-between items-center border-b border-blue-200/50 pb-3">
-                               <span className="text-xs font-black text-slate-800 uppercase tracking-widest bg-blue-100 px-4 py-1.5 rounded-xl">Triwulan {twActive}</span>
-                               <div className="flex gap-2">
-                                 {['51', '52', '53'].map(code => {
-                                    const internalVal = globalStats.tw[twActive - 1][`real${code}` as keyof typeof globalStats.tw[number]];
-                                    const targetKppn = Number(kppnMetrics[`real${code}`]?.[`TW${twActive}`]) || 0;
-                                    const devVal = targetKppn !== 0 ? ((Number(internalVal) - targetKppn) / targetKppn) * 100 : 0;
-                                    return <span key={code} className={`text-[12px] font-black px-3 py-1.5 rounded-xl border shadow-sm tracking-tighter ${getDevColorClass(devVal)}`}>{code}: {devVal.toFixed(1)}%</span>;
-                                 })}
-                               </div>
-                            </div>
-                            <div className="grid grid-cols-1 gap-4">
-                               {['51', '52', '53'].map(code => {
-                                  const subCat = `real${code}`;
-                                  const internalSub = globalStats.tw[twActive - 1][subCat as keyof typeof globalStats.tw[number]];
-                                  const targetSub = Number(kppnMetrics[subCat]?.[`TW${twActive}`]) || 0;
-                                  const subDev = targetSub !== 0 ? ((Number(internalSub) - targetSub) / targetSub) * 100 : 0;
-                                  return (
-                                    <div key={code} className="grid grid-cols-12 items-center gap-4 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
-                                        <div className="col-span-3 text-[10px] font-black text-slate-500 uppercase">Belanja {code}</div>
-                                        <div className="col-span-4 text-center border-x border-slate-100"><span className="text-[8px] font-black text-slate-300 block mb-1 uppercase">Satker (Rekap)</span><span className="text-[11px] font-black text-slate-800 italic">Rp {formatMoney(internalSub)}</span></div>
-                                        <div className="col-span-5"><span className="text-[8px] font-black text-slate-300 block mb-1 text-right uppercase">KPPN (Input)</span><input type="text" value={formatInputMasking(kppnMetrics[subCat]?.[`TW${twActive}`])} readOnly={currentUser.role !== 'admin'} onChange={(e) => handleUpdateKPPN(subCat, `TW${twActive}`, e.target.value)} onBlur={saveKppnGlobal} className={`w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[11px] font-black text-right outline-none focus:ring-2 focus:ring-blue-100 transition-all ${getDevColorClass(subDev)}`} placeholder="0" /></div>
-                                    </div>
-                                  );
-                               })}
-                            </div>
-                        </div>
-
-                        {/* VIEW BULANAN */}
-                        {expandedMonthlyReal[twActive] && (
-                           <div className="animate-in slide-in-from-top duration-300 space-y-4 pt-2">
-                              <h5 className="text-[10px] font-black uppercase tracking-widest text-blue-600 ml-4 flex items-center gap-2">
-                                 <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
-                                 Rincian Realisasi Per Akun Bulanan
-                              </h5>
-                              {twMonths[twActive].map(m => (
-                                 <div key={m} className="p-6 bg-slate-50/80 rounded-[2.5rem] border border-slate-200 flex flex-col gap-4">
-                                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                                       <span className="text-[11px] font-black text-slate-800 bg-white px-4 py-1 rounded-full shadow-sm">{m}</span>
-                                       <div className="flex gap-2">
-                                         {['51', '52', '53'].map(code => {
-                                            const intV = globalStats.months[m][`real${code}` as keyof typeof globalStats.months[string]];
-                                            const tarV = Number(kppnMetrics[`real${code}`]?.[m]) || 0;
-                                            const devV = tarV !== 0 ? ((Number(intV) - tarV) / tarV) * 100 : 0;
-                                            return <span key={code} className={`text-[9px] font-black px-2 py-0.5 rounded-lg border ${getDevColorClass(devV)}`}>{code}: {devV.toFixed(1)}%</span>
-                                         })}
-                                       </div>
-                                    </div>
-                                    <div className="space-y-3">
-                                       {['51', '52', '53'].map(code => {
-                                          const subCat = `real${code}`;
-                                          const internalM = globalStats.months[m][subCat as keyof typeof globalStats.months[string]];
-                                          const targetM = Number(kppnMetrics[subCat]?.[m]) || 0;
-                                          const devM = targetM !== 0 ? ((Number(internalM) - targetM) / targetM) * 100 : 0;
-                                          return (
-                                             <div key={code} className="grid grid-cols-12 items-center gap-4">
-                                                <div className="col-span-2 text-[9px] font-black text-slate-400">AKUN {code}</div>
-                                                <div className="col-span-5 text-[10px] font-black text-slate-600">Satker: {formatMoney(internalM)}</div>
-                                                <div className="col-span-5">
-                                                   <input type="text" value={formatInputMasking(kppnMetrics[subCat]?.[m])} readOnly={currentUser.role !== 'admin'} onChange={(e) => handleUpdateKPPN(subCat, m, e.target.value)} onBlur={saveKppnGlobal} className={`w-full bg-white border border-slate-200 rounded-xl px-3 py-1 text-[10px] font-black text-right outline-none focus:ring-2 focus:ring-blue-100 shadow-sm ${getDevColorClass(devM)}`} placeholder="Input KPPN..." />
-                                                </div>
-                                             </div>
-                                          );
-                                       })}
-                                    </div>
-                                 </div>
-                              ))}
-                           </div>
-                        )}
+                    <div className="space-y-4">
+                       {twMonths[twActive].map(m => {
+                          const mData = globalStats.months[m];
+                          return (
+                             <div key={m} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-200 space-y-4">
+                                <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                                   <span className="text-xs font-black text-slate-800 uppercase">{m}</span>
+                                   <div className="flex gap-2">
+                                      {['51', '52', '53'].map(code => {
+                                         const t = mData[`rpd${code}` as keyof typeof mData];
+                                         const r = mData[`real${code}` as keyof typeof mData];
+                                         const dev = t > 0 ? ((r - t) / t) * 100 : 0;
+                                         return <span key={code} className={`text-[9px] font-black px-2 py-0.5 rounded-lg border ${getDevColorClass(dev)}`}>{code}: {dev.toFixed(1)}%</span>
+                                      })}
+                                   </div>
+                                </div>
+                                {expandedMonthlyRPD[twActive] && (
+                                   <div className="space-y-2 animate-in slide-in-from-top">
+                                      {['51', '52', '53'].map(code => (
+                                         <div key={code} className="grid grid-cols-12 text-[10px] font-bold text-slate-500 italic">
+                                            <div className="col-span-3">Akun {code}</div>
+                                            <div className="col-span-4">Target: {formatMoney(mData[`rpd${code}` as keyof typeof mData])}</div>
+                                            <div className="col-span-5 text-right">Real: {formatMoney(mData[`real${code}` as keyof typeof mData])}</div>
+                                         </div>
+                                      ))}
+                                   </div>
+                                )}
+                             </div>
+                          );
+                       })}
                     </div>
                   </div>
                </div>
 
-               {/* FILTER TABEL */}
                <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-200 flex items-center gap-8">
                   <div className="p-5 bg-blue-100 text-blue-600 rounded-2xl"><Filter size={28}/></div>
                   <div className="flex-1">
-                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Kedalaman Struktur Rekapitulasi</label>
-                    <select 
-                      value={rapatDepth} 
-                      onChange={(e) => setRapatDepth(Number(e.target.value))} 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-6 text-[13px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    >
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Kedalaman Struktur Rekapitulasi Anggaran</label>
+                    <select value={rapatDepth} onChange={(e) => setRapatDepth(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-6 text-[13px] font-black text-slate-800 outline-none">
                         <option value={1}>Level 1: DIPA Induk Satker</option>
                         <option value={2}>Level 2: Output Rincian Output (RO)</option>
                         <option value={5}>Level 5: Komponen & Sub Komponen</option>
                         <option value={7}>Level 7: Kode Akun (6 Digit)</option>
                         <option value={8}>Level 8: Seluruh Detail Rincian</option>
                     </select>
-                  </div>
-                  <div className="flex-[2] bg-slate-50 p-4 rounded-2xl">
-                     <p className="text-[10px] font-bold text-slate-400 italic leading-relaxed">Filter di atas mengatur kedalaman hierarki anggaran yang tampil pada tabel di bawah. Gunakan fitur pencarian global di header untuk menyaring kata kunci spesifik secara real-time.</p>
                   </div>
                </div>
 
@@ -1124,13 +810,11 @@ export default function App() {
                           <th className="px-3 py-4 text-left w-20">Kode</th>
                           <th className="px-4 py-4 text-left min-w-[350px]">Uraian</th>
                           <th className="px-3 py-4 text-right w-28">Pagu DIPA</th>
-                          {['I','II','III','IV'].map((tw, idx) => (
-                            <th key={idx} className="px-2 py-4 text-right w-32 bg-emerald-900/40 font-black tracking-tighter border-r border-white/5">TW {tw}</th>
-                          ))}
-                          <th className="px-2 py-4 text-right bg-orange-900 w-28 tracking-tighter">TOTAL RPD</th>
-                          <th className="px-2 py-4 text-right bg-rose-900 w-20 tracking-tighter italic font-black uppercase">% DEV RPD</th>
-                          <th className="px-2 py-4 text-right bg-blue-900 w-28 tracking-tighter">TOTAL REAL</th>
-                          <th className="px-3 py-4 text-right bg-slate-900 w-28 tracking-tighter">SISA PAGU</th>
+                          {['I','II','III','IV'].map((tw, idx) => (<th key={idx} className="px-2 py-4 text-right w-32 bg-emerald-900/40 font-black border-r border-white/5">TW {tw}</th>))}
+                          <th className="px-2 py-4 text-right bg-orange-900 w-28">TOTAL RPD</th>
+                          <th className="px-2 py-4 text-right bg-rose-900 w-20 italic">% DEV</th>
+                          <th className="px-2 py-4 text-right bg-blue-900 w-28">TOTAL REAL</th>
+                          <th className="px-3 py-4 text-right bg-slate-900 w-28">SISA PAGU</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
@@ -1138,13 +822,10 @@ export default function App() {
                           const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
                           const sisaPagu = (Number(item.pagu) || 0) - (item.totalReal || 0);
                           const devPctFinal = item.totalRPD > 0 ? ((item.totalReal - item.totalRPD) / item.totalRPD) * 100 : 0;
-                          
                           let rowBg = "hover:bg-blue-50/30 transition-all";
                           if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
                           if (item.level === 2) rowBg = "bg-blue-100/40 font-black";
-                          if (item.level === 7) rowBg = "bg-slate-100 font-black"; // Akun 6 digit
-                          if (item.isOrphan) rowBg = "bg-rose-50 italic";
-                          
+                          if (item.level === 7) rowBg = "bg-slate-100 font-black";
                           return (
                             <tr key={item.id} className={rowBg}>
                               <td className="px-3 py-1.5 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
@@ -1161,9 +842,7 @@ export default function App() {
                                 </td>
                               ))}
                               <td className="px-2 py-1.5 text-right font-black text-orange-800 border-r border-slate-100 bg-orange-50/30">{!isNonFinancial ? formatMoney(item.totalRPD) : ""}</td>
-                              <td className={`px-2 py-1.5 text-right font-black border-r border-slate-100 ${getDevColorClass(devPctFinal)}`}>
-                                  {(!isNonFinancial && item.totalRPD > 0) ? `${devPctFinal.toFixed(1)}%` : "0%"}
-                              </td>
+                              <td className={`px-2 py-1.5 text-right font-black border-r border-slate-100 ${getDevColorClass(devPctFinal)}`}>{(!isNonFinancial && item.totalRPD > 0) ? `${devPctFinal.toFixed(1)}%` : "0%"}</td>
                               <td className="px-2 py-1.5 text-right font-black text-blue-800 bg-blue-50/30">{!isNonFinancial ? formatMoney(item.totalReal) : ""}</td>
                               <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-800'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
                             </tr>
@@ -1179,9 +858,7 @@ export default function App() {
           {activeTab === 'users' && currentUser?.role === 'admin' && (
             <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
                <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
-                  <h3 className="text-2xl font-black uppercase italic mb-10 flex items-center gap-4 text-white">
-                     <UserPlus className="text-blue-500" /> Registrasi Pegawai Baru
-                  </h3>
+                  <h3 className="text-2xl font-black uppercase italic mb-10 flex items-center gap-4 text-white"><UserPlus className="text-blue-500" /> Registrasi Pegawai Baru</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-white">
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Username</label>
@@ -1195,61 +872,26 @@ export default function App() {
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Nama Lengkap</label>
                        <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap..." />
                      </div>
-                     <div className="flex flex-col gap-2">
-                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Peran Sistem</label>
-                       <select value={newUserRole} onChange={(e:any) => setNewUserRole(e.target.value)} className="w-full bg-white/10 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none">
-                          <option value="ketua_tim" className="text-black">Ketua Tim</option>
-                          <option value="pimpinan" className="text-black">Pimpinan</option>
-                          <option value="admin" className="text-black">Administrator Utama</option>
-                       </select>
-                     </div>
-                     <div className="lg:col-span-2 flex flex-col gap-2">
-                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Penugasan Tim</label>
-                        <div className="flex flex-wrap gap-2">
-                           {ALL_TEAMS.map(t => (
-                              <button key={t} onClick={() => setNewUserTeam(t)} className={`px-5 py-3 rounded-xl text-[10px] font-black border transition-all ${newUserTeam === t ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>
-                                 {t}
-                              </button>
-                           ))}
-                        </div>
-                     </div>
                   </div>
                   <button onClick={handleAddUser} className="mt-12 px-14 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-all">Simpan Akun</button>
                </div>
                <div className="bg-white rounded-[3rem] border border-slate-200 overflow-hidden shadow-sm">
                   <table className="w-full text-left text-xs">
                      <thead className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black text-slate-400">
-                        <tr>
-                           <th className="px-8 py-4">Nama</th>
-                           <th className="px-4 py-4">Username</th>
-                           <th className="px-4 py-4">Password</th>
-                           <th className="px-4 py-4 text-center">Hapus</th>
-                        </tr>
+                        <tr><th className="px-8 py-4">Nama</th><th className="px-4 py-4">Username</th><th className="px-4 py-4">Password</th><th className="px-4 py-4 text-center">Hapus</th></tr>
                      </thead>
                      <tbody className="divide-y divide-slate-50">
                         {allUsers.map((u) => (
                            <tr key={u.id}>
-                              <td className="px-8 py-5 font-bold text-slate-800">
-                                 <div>{u.name}</div>
-                                 <div className="text-[9px] text-blue-500 uppercase tracking-widest">{u.role} • {u.team}</div>
-                              </td>
+                              <td className="px-8 py-5 font-bold text-slate-800"><div>{u.name}</div><div className="text-[9px] text-blue-500 uppercase tracking-widest">{u.role} • {u.team}</div></td>
                               <td className="px-4 py-5 font-mono text-slate-500 italic">@{u.username}</td>
                               <td className="px-4 py-5 font-mono">
-                                 <div className="flex items-center gap-2 group">
-                                    <input 
-                                       type={showPasswordMap[u.id] ? "text" : "password"} 
-                                       defaultValue={u.password}
-                                       onBlur={(e) => handleChangeUserPassword(u.id, e.target.value)}
-                                       className="bg-slate-100 border-none rounded-lg px-2 py-1 w-24 text-[11px] focus:ring-1 focus:ring-blue-500 transition-all" 
-                                    />
-                                    <button onClick={() => setShowPasswordMap(prev => ({ ...prev, [u.id]: !prev[u.id] }))} className="text-slate-400 hover:text-blue-500">
-                                       {showPasswordMap[u.id] ? <EyeOff size={14}/> : <Eye size={14}/>}
-                                    </button>
+                                 <div className="flex items-center gap-2">
+                                    <input type={showPasswordMap[u.id] ? "text" : "password"} defaultValue={u.password} onBlur={(e) => handleChangeUserPassword(u.id, e.target.value)} className="bg-slate-100 border-none rounded-lg px-2 py-1 w-24 text-[11px]" />
+                                    <button onClick={() => setShowPasswordMap(prev => ({ ...prev, [u.id]: !prev[u.id] }))} className="text-slate-400 hover:text-blue-500">{showPasswordMap[u.id] ? <EyeOff size={14}/> : <Eye size={14}/>}</button>
                                  </div>
                               </td>
-                              <td className="px-4 py-5 text-center">
-                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, u.id))} className="p-2 text-rose-400 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
-                              </td>
+                              <td className="px-4 py-5 text-center"><button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, u.id))} className="p-2 text-rose-400 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button></td>
                            </tr>
                         ))}
                      </tbody>
@@ -1261,10 +903,7 @@ export default function App() {
           {activeTab === 'migrasi' && currentUser?.role === 'admin' && (
             <div className="max-w-4xl mx-auto py-4 animate-in slide-in-from-bottom duration-700">
                <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-                  <div className="bg-slate-900 p-8 text-white relative">
-                    <h3 className="text-xl font-black uppercase tracking-widest italic text-white">Konsol Migrasi Cloud</h3>
-                    <p className="text-slate-400 mt-1 text-[11px]">Sinkronisasi struktur anggaran BPS SBB.</p>
-                  </div>
+                  <div className="bg-slate-900 p-8 text-white relative"><h3 className="text-xl font-black uppercase tracking-widest italic text-white">Konsol Migrasi Cloud</h3></div>
                   <div className="p-10 space-y-8">
                     <div className="border-2 border-dashed border-slate-200 rounded-[2.5rem] p-16 text-center hover:border-blue-400 hover:bg-blue-50/20 cursor-pointer transition-all" onClick={() => fileInputRef.current?.click()}>
                       <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileAnalyze} disabled={isProcessing} className="hidden" />
@@ -1287,7 +926,6 @@ export default function App() {
           {(activeTab === 'rpd' || activeTab === 'realisasi') && (
             <div className="space-y-6 animate-in fade-in duration-700">
               <div className="flex items-center justify-between mb-4">
-                  {/* HANYA ADMIN YANG BISA KUNCI & RESET */}
                   {currentUser?.role === 'admin' ? (
                     <div className="flex gap-4">
                        <button onClick={handleToggleLock} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase shadow-md transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
@@ -1297,13 +935,10 @@ export default function App() {
                     </div>
                   ) : (
                     <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border italic text-[11px] font-bold ${isLocked ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                       {isLocked ? <Lock size={16} /> : <ShieldHalf size={16} />} 
-                       {isLocked ? 'Sistem Terkunci oleh Admin - Mode Lihat Saja' : `Mode Pengisian Tim ${currentUser?.team}`}
+                       {isLocked ? <Lock size={16} /> : <ShieldHalf size={16} />} {isLocked ? 'Sistem Terkunci - Mode Lihat Saja' : `Mode Pengisian Tim ${currentUser?.team}`}
                     </div>
                   )}
               </div>
-
-              {/* FILTER WILAYAH / TIM (Hanya Admin yang Bisa Ganti) */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                  <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
@@ -1323,13 +958,10 @@ export default function App() {
                  <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Triwulan</span>
                     <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
-                      {[1,2,3,4].map(tw => (
-                         <button key={tw} onClick={() => setTwActive(tw)} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>TW {tw}</button>
-                      ))}
+                      {[1,2,3,4].map(tw => (<button key={tw} onClick={() => setTwActive(tw)} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>TW {tw}</button>))}
                     </div>
                  </div>
               </div>
-
               <div className="bg-white shadow-2xl border border-slate-200 overflow-hidden rounded-[3.5rem]">
                 <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
                   <table className="w-full border-collapse text-[10px]">
@@ -1348,11 +980,7 @@ export default function App() {
                       {finalDisplay.map((item: any) => {
                         const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
                         const sisaPagu = activeTab === 'rpd' ? (Number(item.pagu) || 0) - (item.totalRPD || 0) : (Number(item.pagu) || 0) - (item.totalReal || 0);
-                        
-                        // LOGIKA EDITING:
-                        const canEditThisTab = (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || 
-                                              (activeTab === 'realisasi' && currentUser?.role === 'admin');
-                        
+                        const canEditThisTab = (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || (activeTab === 'realisasi' && currentUser?.role === 'admin');
                         return (
                           <tr key={item.id} className="hover:bg-blue-50/30 transition-all">
                             <td className="px-3 py-1.5 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
@@ -1361,31 +989,20 @@ export default function App() {
                             {twMonths[twActive].map((m: string) => (
                                 <td key={m} className="px-0 py-0 h-full border-r border-slate-100 bg-blue-50/50 group">
                                   {!isInduk && item.isDetail ? (
-                                    <input 
-                                      type="text" 
-                                      value={formatInputMasking(activeTab === 'rpd' ? item.rpd?.[m] : item.realisasi?.[m])} 
-                                      readOnly={!canEditThisTab}
-                                      onChange={async (e) => { 
+                                    <input type="text" value={formatInputMasking(activeTab === 'rpd' ? item.rpd?.[m] : item.realisasi?.[m])} readOnly={!canEditThisTab} onChange={async (e) => { 
                                         if(fbUser && canEditThisTab) { 
                                           const f = activeTab === 'rpd' ? 'rpd' : 'realisasi'; 
                                           const ex = activeTab === 'rpd' ? (item.rpd || {}) : (item.realisasi || {});
                                           const rawNumber = e.target.value.replace(/\D/g, "");
                                           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id), { [f]: { ...ex, [m]: rawNumber } }); 
                                         }
-                                      }} 
-                                      className={`no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold text-[10px] ${!canEditThisTab ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-teal-400/20 text-slate-900 focus:bg-white transition-all'}`} 
-                                      placeholder="0" 
-                                    />
+                                      }} className={`no-spinner w-full h-full text-right px-2 py-1.5 outline-none font-bold text-[10px] ${!canEditThisTab ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-teal-400/20 text-slate-900 focus:bg-white transition-all'}`} placeholder="0" />
                                   ) : !isInduk ? (<div className="text-right px-2 py-2 text-slate-950 font-black italic">{formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}</div>) : null}
                                 </td>
                             ))}
-                              <td className="px-3 py-1.5 text-right font-black bg-slate-100/50 text-slate-950">{!isInduk ? formatMoney(activeTab === 'rpd' ? item.totalRPD : item.totalReal) : ""}</td>
+                            <td className="px-3 py-1.5 text-right font-black bg-slate-100/50 text-slate-950">{!isInduk ? formatMoney(activeTab === 'rpd' ? item.totalRPD : item.totalReal) : ""}</td>
                             <td className={`px-3 py-1.5 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-950'}`}>{!isInduk ? formatMoney(sisaPagu) : ""}</td>
-                            <td className="px-2 py-2 text-center">
-                               {(item.isOrphan && currentUser?.role === 'admin') && (
-                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id))} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
-                               )}
-                            </td>
+                            <td className="px-2 py-2 text-center">{(item.isOrphan && currentUser?.role === 'admin') && (<button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id))} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>)}</td>
                           </tr>
                         );
                       })}
@@ -1402,7 +1019,6 @@ export default function App() {
         </footer>
       </main>
 
-      {/* MODAL RESET DATA */}
       {showClearDataModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-sm p-10 text-center border border-slate-200 animate-in zoom-in duration-200">
@@ -1418,21 +1034,15 @@ export default function App() {
                    const fieldToClear = activeTab === 'rpd' ? 'rpd' : 'realisasi';
                    snap.docs.forEach(d => batch.update(d.ref, { [fieldToClear]: {} }));
                    await batch.commit(); 
-                   setIsProcessing(false); 
-                   setShowClearDataModal(false); 
-                 }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-rose-700 transition-all">Ya, Hapus Semua</button>
+                   setIsProcessing(false); setShowClearDataModal(false); 
+                 }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl">Ya, Hapus Semua</button>
                  <button onClick={() => setShowClearDataModal(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase hover:bg-slate-200 transition-all">Batal</button>
               </div>
            </div>
         </div>
       )}
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .no-spinner::-webkit-outer-spin-button, .no-spinner::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        .no-spinner { -moz-appearance: textfield; }
-      `}} />
+      <style dangerouslySetInnerHTML={{ __html: `.custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; } .no-spinner::-webkit-outer-spin-button, .no-spinner::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } .no-spinner { -moz-appearance: textfield; }`}} />
     </div>
   );
 }
