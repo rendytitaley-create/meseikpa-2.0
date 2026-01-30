@@ -49,8 +49,6 @@ import {
   Filter,
   Eye,
   EyeOff,
-  ChevronDown,
-  ChevronUp,
   CalendarDays
 } from 'lucide-react';
 
@@ -164,11 +162,8 @@ export default function App() {
   // --- STATE DATA ---
   const [dataTampil, setDataTampil] = useState<any[]>([]);
   const [kppnMetrics, setKppnMetrics] = useState<any>({
-    rpd51: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
     real51: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
-    rpd52: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
     real52: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
-    rpd53: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
     real53: { TW1: 0, TW2: 0, TW3: 0, TW4: 0 },
     isLocked: false
   });
@@ -577,7 +572,7 @@ export default function App() {
               </button>
               <button onClick={() => setActiveTab('users')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'users' ? 'bg-rose-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
                   <Users size={20} className={sidebarOpen ? 'mr-3' : ''} />
-                  {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">User Management</span>}
+                  {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">User Control</span>}
               </button>
             </>
           )}
@@ -595,19 +590,19 @@ export default function App() {
           <div className="flex items-center gap-3">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"><Menu size={20} /></button>
             <h2 className="font-black text-slate-800 text-[13px] uppercase tracking-widest italic flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span> BPS Kab. Seram Bagian Barat
+              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span> BPS SBB
             </h2>
           </div>
           <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
             <div className="relative w-full">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input type="text" placeholder="Cari Uraian atau Kode..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-12 pr-4 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 outline-none" />
+              <input type="text" placeholder="Cari data..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-100 border-none rounded-2xl py-2.5 pl-12 pr-4 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" />
             </div>
           </div>
           <div className="flex items-center gap-4">
              <div className="flex flex-col items-end leading-none">
                 <span className="text-[11px] font-black italic text-slate-800">{currentUser.name}</span>
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{currentUser.role} • {currentUser.team}</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{currentUser.role}</span>
              </div>
             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg bg-blue-600`}><User size={20} /></div>
           </div>
@@ -652,7 +647,7 @@ export default function App() {
                         {(chartMode === 'TW' ? [1,2,3,4] : allMonths).map((key, i) => {
                            const sReal = chartMode === 'TW' ? globalStats.tw[i].real : globalStats.months[key as string].real;
                            const sRPD = chartMode === 'TW' ? globalStats.tw[i].rpd : globalStats.months[key as string].rpd;
-                           const maxVal = globalStats.pagu / (chartMode === 'TW' ? 2 : 6) || 1;
+                           const maxVal = (globalStats.pagu / (chartMode === 'TW' ? 2 : 6)) || 1;
                            return (
                              <div key={key} className="flex-1 flex flex-col items-center min-w-[50px] group relative">
                                 <div className="flex gap-1.5 items-end h-full w-full justify-center">
@@ -674,7 +669,7 @@ export default function App() {
                       </div>
                       <div className="mt-10 flex justify-center gap-8 border-t border-slate-100 pt-6">
                          <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-orange-500 rounded-full"></div><span className="text-[9px] font-black uppercase text-slate-500">Target RPD Satker</span></div>
-                         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div><span className="text-[9px] font-black uppercase text-slate-500">Realisasi Satker</span></div>
+                         <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-blue-600 rounded-full shadow-sm"></div><span className="text-[9px] font-black uppercase text-slate-500">Realisasi Satker</span></div>
                       </div>
                   </div>
                </div>
@@ -684,17 +679,14 @@ export default function App() {
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                  {/* ANALISIS DAYA SERAP KPPN (TRIWULANAN) */}
+                  {/* ANALISIS DAYA SERAP KPPN */}
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative group">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-emerald-100 text-emerald-600 rounded-3xl"><Activity size={28}/></div>
                         <div className="text-right">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Daya Serap KPPN</span>
-                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Monitoring Triwulan</span>
+                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Monitoring TW</span>
                         </div>
-                    </div>
-                    <div className="flex items-center justify-between mb-6">
-                       <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter leading-none">Analisis Penyerapan per Jenis Belanja</h4>
                     </div>
                     <div className="p-6 bg-emerald-50/40 rounded-[2.5rem] border border-emerald-100 space-y-5">
                         <div className="flex justify-between items-center border-b border-emerald-200/50 pb-3">
@@ -715,11 +707,11 @@ export default function App() {
                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-md border ${getDevColorClass(pctReal - pctTarget)}`}>{pctReal.toFixed(1)}% / {pctTarget.toFixed(1)}%</span>
                                     </div>
                                     <div className="col-span-4 text-center border-x border-slate-100">
-                                       <span className="text-[8px] font-black text-slate-300 block mb-1 uppercase">Realisasi TW</span>
-                                       <span className="text-[11px] font-black text-slate-800 italic">Rp {formatMoney(realSub)}</span>
+                                       <span className="text-[8px] font-black text-slate-300 block mb-1 uppercase">Real Satker</span>
+                                       <span className="text-[11px] font-black italic">Rp {formatMoney(realSub)}</span>
                                     </div>
                                     <div className="col-span-5">
-                                       <span className="text-[8px] font-black text-slate-300 block mb-1 text-right uppercase">Nominal Target KPPN</span>
+                                       <span className="text-[8px] font-black text-slate-300 block mb-1 text-right uppercase">Input Target Nominal KPPN</span>
                                        <input type="text" value={formatInputMasking(kppnMetrics[sCat]?.[`TW${twActive}`])} readOnly={currentUser.role !== 'admin'} onChange={(e) => handleUpdateKPPN(sCat, `TW${twActive}`, e.target.value)} onBlur={saveKppnGlobal} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1 text-[11px] font-black text-right outline-none focus:ring-2 focus:ring-emerald-200" placeholder="0" />
                                     </div>
                                 </div>
@@ -729,19 +721,19 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* ANALISIS DEVIASI HAL III DIPA (BULANAN) */}
+                  {/* DEVIASI HAL III DIPA */}
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden relative group">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-4 bg-orange-100 text-orange-600 rounded-3xl"><Target size={28}/></div>
                         <div className="text-right">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Deviasi Hal III DIPA</span>
-                            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Monitoring Bulanan</span>
+                            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={12}/> Monitoring Bulan</span>
                         </div>
                     </div>
                     <div className="flex items-center justify-between mb-6">
-                       <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter">Ketepatan RPD Akun Bulanan</h4>
-                       <button onClick={() => setExpandedMonthlyRPD(prev => ({ ...prev, [twActive]: !prev[twActive] }))} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-2xl border border-slate-200">
-                          <CalendarDays size={16} /> <span className="text-[10px] font-black uppercase">{expandedMonthlyRPD[twActive] ? 'Tutup Rincian' : 'Buka Rincian'}</span>
+                       <h4 className="text-lg font-black italic text-slate-800 uppercase tracking-tighter">Monitoring Ketepatan RPD</h4>
+                       <button onClick={() => setExpandedMonthlyRPD(prev => ({ ...prev, [twActive]: !prev[twActive] }))} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-2xl border border-slate-200 transition-all hover:bg-slate-200">
+                          <CalendarDays size={16} /> <span className="text-[10px] font-black uppercase">{expandedMonthlyRPD[twActive] ? 'Tutup Detail' : 'Buka Detail'}</span>
                        </button>
                     </div>
 
@@ -749,9 +741,9 @@ export default function App() {
                        {twMonths[twActive].map(m => {
                           const mData = globalStats.months[m];
                           return (
-                             <div key={m} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-200 space-y-4 transition-all">
+                             <div key={m} className="p-5 bg-slate-50 rounded-[2rem] border border-slate-200 space-y-4">
                                 <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                                   <span className="text-xs font-black text-slate-800 uppercase tracking-widest">{m}</span>
+                                   <span className="text-xs font-black text-slate-800 uppercase">{m}</span>
                                    <div className="flex gap-2">
                                       {['51', '52', '53'].map(code => {
                                          const t = mData[`rpd${code}` as keyof typeof mData];
@@ -766,7 +758,7 @@ export default function App() {
                                       {['51', '52', '53'].map(code => (
                                          <div key={code} className="grid grid-cols-12 border-b border-slate-100/50 pb-1">
                                             <div className="col-span-3">Akun {code}</div>
-                                            <div className="col-span-4">Target: {formatMoney(mData[`rpd${code}` as keyof typeof mData])}</div>
+                                            <div className="col-span-4">RPD: {formatMoney(mData[`rpd${code}` as keyof typeof mData])}</div>
                                             <div className="col-span-5 text-right">Real: {formatMoney(mData[`real${code}` as keyof typeof mData])}</div>
                                          </div>
                                       ))}
@@ -782,8 +774,8 @@ export default function App() {
                <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-200 flex items-center gap-8">
                   <div className="p-5 bg-blue-100 text-blue-600 rounded-2xl"><Filter size={28}/></div>
                   <div className="flex-1">
-                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Kedalaman Struktur Data Tabel</label>
-                    <select value={rapatDepth} onChange={(e) => setRapatDepth(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-6 text-[13px] font-black text-slate-800 outline-none">
+                    <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Kedalaman Struktur Rekap</label>
+                    <select value={rapatDepth} onChange={(e) => setRapatDepth(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-6 text-[13px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20">
                         <option value={1}>Level 1: DIPA Induk</option>
                         <option value={2}>Level 2: Rincian Output (RO)</option>
                         <option value={5}>Level 5: Komponen / Sub Komponen</option>
@@ -853,15 +845,33 @@ export default function App() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-white">
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Username</label>
-                       <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Username" />
+                       <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:ring-1 focus:ring-blue-500 transition-all" placeholder="Username" />
                      </div>
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Password</label>
-                       <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Password" />
+                       <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:ring-1 focus:ring-blue-500 transition-all" placeholder="Password" />
                      </div>
                      <div className="flex flex-col gap-2">
                        <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Nama Lengkap</label>
-                       <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none" placeholder="Nama Lengkap" />
+                       <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none focus:ring-1 focus:ring-blue-500 transition-all" placeholder="Nama Lengkap" />
+                     </div>
+                     <div className="flex flex-col gap-2">
+                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Role</label>
+                       <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value as any)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none appearance-none">
+                          <option value="admin" className="text-black">Admin</option>
+                          <option value="pimpinan" className="text-black">Pimpinan</option>
+                          <option value="ketua_tim" className="text-black">Ketua Tim</option>
+                       </select>
+                     </div>
+                     <div className="lg:col-span-2 flex flex-col gap-2">
+                       <label className="text-[10px] font-black uppercase text-slate-500 ml-4">Tim</label>
+                       <div className="flex flex-wrap gap-2">
+                          {ALL_TEAMS.map(tim => (
+                             <button key={tim} onClick={() => setNewUserTeam(tim)} className={`px-4 py-2 rounded-xl text-[10px] font-black border transition-all ${newUserTeam === tim ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white/5 border-white/10 text-slate-400'}`}>
+                                {tim}
+                             </button>
+                          ))}
+                       </div>
                      </div>
                   </div>
                   <button onClick={handleAddUser} className="mt-12 px-14 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 transition-all">Simpan User</button>
@@ -869,7 +879,7 @@ export default function App() {
                <div className="bg-white rounded-[3rem] border border-slate-200 overflow-hidden shadow-sm">
                   <table className="w-full text-left text-xs">
                      <thead className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black text-slate-400">
-                        <tr><th className="px-8 py-4">Nama</th><th className="px-4 py-4">Username</th><th className="px-4 py-4">Password</th><th className="px-4 py-4 text-center">Aksi</th></tr>
+                        <tr><th className="px-8 py-4">Nama</th><th className="px-4 py-4">Username</th><th className="px-4 py-4">Password</th><th className="px-4 py-4 text-center">Hapus</th></tr>
                      </thead>
                      <tbody className="divide-y divide-slate-50">
                         {allUsers.map((u) => (
@@ -894,7 +904,7 @@ export default function App() {
           {activeTab === 'migrasi' && currentUser?.role === 'admin' && (
             <div className="max-w-4xl mx-auto py-4 animate-in slide-in-from-bottom duration-700">
                <div className="bg-white rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden">
-                  <div className="bg-slate-900 p-8 text-white relative"><h3 className="text-xl font-black uppercase tracking-widest italic text-white">Migrasi Database Cloud</h3></div>
+                  <div className="bg-slate-900 p-8 text-white relative"><h3 className="text-xl font-black uppercase tracking-widest italic text-white">Migrasi Database</h3></div>
                   <div className="p-10 space-y-8">
                     <div className="border-2 border-dashed border-slate-200 rounded-[2.5rem] p-16 text-center hover:border-blue-400 hover:bg-blue-50/20 cursor-pointer transition-all" onClick={() => fileInputRef.current?.click()}>
                       <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileAnalyze} disabled={isProcessing} className="hidden" />
@@ -903,8 +913,8 @@ export default function App() {
                     </div>
                     {previewData.length > 0 && (
                       <div className="grid grid-cols-3 gap-4">
-                        <div className="p-4 bg-slate-50 rounded-xl"><span className="text-[9px] uppercase font-black">Row Data</span><span className="text-xl font-black block">{previewData.length}</span></div>
-                        <div className="p-4 bg-emerald-50 rounded-xl"><span className="text-[9px] uppercase font-black">Sync Match</span><span className="text-xl font-black block">{migrationStats.match}</span></div>
+                        <div className="p-4 bg-slate-50 rounded-xl"><span className="text-[9px] uppercase font-black">Row</span><span className="text-xl font-black block">{previewData.length}</span></div>
+                        <div className="p-4 bg-emerald-50 rounded-xl"><span className="text-[9px] uppercase font-black">Match</span><span className="text-xl font-black block">{migrationStats.match}</span></div>
                         <div className="p-4 bg-rose-50 rounded-xl"><span className="text-[9px] uppercase font-black">Orphan</span><span className="text-xl font-black block">{migrationStats.orphaned}</span></div>
                         <button onClick={executeMigration} disabled={isProcessing} className="col-span-3 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">Jalankan Sinkronisasi</button>
                       </div>
@@ -920,19 +930,19 @@ export default function App() {
                   {currentUser?.role === 'admin' ? (
                     <div className="flex gap-4">
                        <button onClick={handleToggleLock} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase shadow-md transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
-                          {isLocked ? <Lock size={14} /> : <Unlock size={14} />} {isLocked ? 'Sistem Terkunci' : 'Kunci Sistem'}
+                          {isLocked ? <Lock size={14} /> : <Unlock size={14} />} {isLocked ? 'Buka Kunci' : 'Kunci Sistem'}
                        </button>
                        <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase bg-white text-slate-600 border border-slate-200"><Eraser size={14} /> Reset Data</button>
                     </div>
                   ) : (
                     <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border italic text-[11px] font-bold ${isLocked ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                       {isLocked ? <Lock size={16} /> : <ShieldHalf size={16} />} {isLocked ? 'Sistem Terkunci - Mode Read-Only' : `Akses Tim: ${currentUser?.team}`}
+                       {isLocked ? <Lock size={16} /> : <ShieldHalf size={16} />} {isLocked ? 'Terkunci' : `Aktif: Tim ${currentUser?.team}`}
                     </div>
                   )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                  <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Pilih Wilayah</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
                     <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
                       <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>GG</button>
                       <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>WA</button>
@@ -947,7 +957,7 @@ export default function App() {
                     </div>
                  </div>
                  <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Triwulan Berjalan</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Triwulan</span>
                     <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
                       {[1,2,3,4].map(tw => (<button key={tw} onClick={() => setTwActive(tw)} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>TW {tw}</button>))}
                     </div>
@@ -1004,7 +1014,7 @@ export default function App() {
         </div>
         <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0">
             <ShieldHalf size={14} className="text-slate-300" />
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">© 2026 BPS Kab. Seram Bagian Barat - Internal Cloud Access</p>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">© 2026 BPS Kab. Seram Bagian Barat - Cloud Access</p>
         </footer>
       </main>
 
@@ -1024,7 +1034,7 @@ export default function App() {
                    snap.docs.forEach(d => batch.update(d.ref, { [fieldToClear]: {} }));
                    await batch.commit(); 
                    setIsProcessing(false); setShowClearDataModal(false); 
-                 }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-rose-700">Ya, Reset Data</button>
+                 }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-rose-700">Ya, Reset</button>
                  <button onClick={() => setShowClearDataModal(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase hover:bg-slate-200">Batal</button>
               </div>
            </div>
