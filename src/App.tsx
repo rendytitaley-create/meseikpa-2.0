@@ -49,8 +49,6 @@ import {
   Filter,
   Eye,
   EyeOff,
-  ChevronDown,
-  ChevronUp,
   CalendarDays
 } from 'lucide-react';
 
