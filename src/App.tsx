@@ -1289,7 +1289,7 @@ export default function App() {
           )}
         </div>
         {/* PANEL PENGATURAN LINK - KHUSUS ADMIN */}
-          {userRole === 'admin' && (
+          {Role === 'admin' && (
             <div className="px-4 sm:px-6 lg:px-8 pb-10 flex justify-center">
               <div className="max-w-4xl w-full bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
