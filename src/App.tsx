@@ -51,7 +51,7 @@ import {
   EyeOff,
   CalendarDays
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
 declare global {
   const __firebase_config: string;
