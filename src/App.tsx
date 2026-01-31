@@ -1288,8 +1288,8 @@ export default function App() {
             </div>
           )}
         </div>
-        {/* PANEL PENGATURAN LINK - KHUSUS ADMIN */}
-          {Role === 'admin' && (
+        {/* PANEL PENGATURAN LINK - VERSI AMAN */}
+          {userData?.role === 'admin' && (
             <div className="px-4 sm:px-6 lg:px-8 pb-10 flex justify-center">
               <div className="max-w-4xl w-full bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
@@ -1298,7 +1298,7 @@ export default function App() {
                   </div>
                   <div>
                     <h3 className="text-gray-900 font-bold text-sm">Konfigurasi Kertas Kerja</h3>
-                    <p className="text-gray-500 text-[10px]">Hanya Anda (Admin) yang bisa melihat kotak ini.</p>
+                    <p className="text-gray-500 text-[10px]">Hanya Admin yang bisa melihat ini.</p>
                   </div>
                 </div>
                 
@@ -1314,7 +1314,7 @@ export default function App() {
                       const val = (document.getElementById('linkInput') as any).value;
                       if(val) {
                         localStorage.setItem('urlKertasKerja', val);
-                        alert('Link diperbarui! Klik tombol Kertas Kerja di sidebar untuk mencoba.');
+                        alert('Link diperbarui! Silakan refresh halaman.');
                       }
                     }}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap"
