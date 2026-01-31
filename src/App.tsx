@@ -820,7 +820,7 @@ export default function App() {
                             total: globalStats.months[m].rpd + globalStats.months[m].real
                           })).filter(item => item.total > 0)
                       }
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                       barGap={8}
                     >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -849,10 +849,23 @@ export default function App() {
                           return [`Rp ${formatMoney(value)} (Dev: ${hitungDev}%)`, namaBatang];
                         }}
                       />
-                      <Legend iconType="circle" wrapperStyle={{ paddingTop: '40px', textTransform: 'uppercase', fontSize: '10px', fontWeight: 900, letterSpacing: '0.1em' }} />
-                      <Legend iconType="circle" wrapperStyle={{ paddingTop: '40px', textTransform: 'uppercase', fontSize: '10px', fontWeight: 900, letterSpacing: '0.1em' }} />
-                      
-                     <Legend iconType="circle" wrapperStyle={{ paddingTop: '40px', fontSize: '10px', fontWeight: 900 }} />
+                      <Legend 
+                        verticalAlign="bottom" 
+                        align="center"
+                        iconType="circle"
+                        layout="horizontal"
+                        wrapperStyle={{ 
+                          paddingTop: '50px', 
+                          fontSize: '10px', 
+                          fontWeight: 900, 
+                          textTransform: 'uppercase',
+                          width: '100%',
+                          display: 'flex',
+                          justifyContent: 'center',
+                          flexWrap: 'wrap', // Agar teks otomatis turun ke baris baru jika tidak muat
+                          gap: '15px' // Memberi jarak antar label agar tidak nempel
+                        }} 
+                      />
                       
                       {/* GRUP BELANJA 51 */}
                       <Bar dataKey="RPD 51" fill="#fbbf24" radius={[4, 4, 0, 0]} barSize={20} />
