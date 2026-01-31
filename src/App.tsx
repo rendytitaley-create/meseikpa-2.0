@@ -717,6 +717,23 @@ export default function App() {
           )}
         </nav>
         <div className="p-4 border-t border-white/5"> 
+          
+          {/* --- TOMBOL KERTAS KERJA DI SIDEBAR --- */}
+                  <div className="px-4 mb-2">
+                    <button
+                      onClick={() => {
+                        // Mengambil link yang sudah disimpan Admin, jika belum ada pakai link standar
+                        const linkTersimpan = localStorage.getItem('urlKertasKerja') || 'https://docs.google.com/spreadsheets/';
+                        window.open(linkTersimpan, '_blank');
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition-all rounded-xl group"
+                    >
+                      <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14.5 2 14.5 7.5 20 7.5"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>
+                      </div>
+                      <span className="font-medium text-sm">Kertas Kerja</span>
+                    </button>
+                  </div>
           <button onClick={handleLogout} className="w-full flex items-center px-3 py-3 rounded-xl hover:bg-rose-600/20 text-rose-400 transition-all">
               <LogOut size={20} className={sidebarOpen ? 'mr-3' : ''} />
               {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Logout Sistem</span>}
@@ -1271,41 +1288,43 @@ export default function App() {
             </div>
           )}
         </div>
-        {/* PANEL PENGATURAN LINK - POSISI RAPI */}
-          <div className="px-4 sm:px-6 lg:px-8 pb-10">
-            <div className="max-w-4xl bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        {/* PANEL PENGATURAN LINK - KHUSUS ADMIN */}
+          {userRole === 'admin' && (
+            <div className="px-4 sm:px-6 lg:px-8 pb-10 flex justify-center">
+              <div className="max-w-4xl w-full bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                  </div>
+                  <div>
+                    <h3 className="text-gray-900 font-bold text-sm">Konfigurasi Kertas Kerja</h3>
+                    <p className="text-gray-500 text-[10px]">Hanya Anda (Admin) yang bisa melihat kotak ini.</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-gray-900 font-bold text-sm">Konfigurasi Kertas Kerja</h3>
-                  <p className="text-gray-500 text-[10px]">Admin: Perbarui link Google Sheets di sini untuk semua tim.</p>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input 
+                    type="text" 
+                    id="linkInput"
+                    placeholder="Tempel link Google Sheets di sini..."
+                    className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-700"
+                  />
+                  <button 
+                    onClick={() => {
+                      const val = (document.getElementById('linkInput') as any).value;
+                      if(val) {
+                        localStorage.setItem('urlKertasKerja', val);
+                        alert('Link diperbarui! Klik tombol Kertas Kerja di sidebar untuk mencoba.');
+                      }
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap"
+                  >
+                    Simpan Link
+                  </button>
                 </div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input 
-                  type="text" 
-                  id="linkInput"
-                  placeholder="Tempel link Google Sheets..."
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-700"
-                />
-                <button 
-                  onClick={() => {
-                    const val = (document.getElementById('linkInput') as any).value;
-                    if(val) {
-                      localStorage.setItem('urlKertasKerja', val);
-                      alert('Link diperbarui! Klik tombol Kertas Kerja di sidebar untuk mencoba.');
-                    }
-                  }}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap"
-                >
-                  Simpan Link
-                </button>
               </div>
             </div>
-          </div>
+          )}
         <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0">
             <ShieldHalf size={14} className="text-slate-300" />
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">© 2026 BPS Kab. Seram Bagian Barat - Internal Cloud Access</p>
