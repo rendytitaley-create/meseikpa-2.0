@@ -356,7 +356,21 @@ export default function App() {
       setIsProcessing(false);
     }
   };
-
+{/* --- AWAL TOMBOL KERTAS KERJA --- */}
+<button
+  onClick={() => {
+    // Ambil link yang tersimpan, jika kosong pakai link default ini
+    const savedLink = localStorage.getItem('urlKertasKerja') || 'https://docs.google.com/spreadsheets/';
+    window.open(savedLink, '_blank');
+  }}
+  className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition-all rounded-xl group mb-2"
+>
+  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14.5 2 14.5 7.5 20 7.5"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>
+  </div>
+  <span className="font-medium text-sm">Kertas Kerja</span>
+</button>
+{/* --- AKHIR TOMBOL KERTAS KERJA --- */}
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem(`meseikpa_session_${appId}`);
@@ -716,8 +730,8 @@ export default function App() {
             </>
           )}
         </nav>
-        <div className="p-4 border-t border-white/5">
-           <button onClick={handleLogout} className="w-full flex items-center px-3 py-3 rounded-xl hover:bg-rose-600/20 text-rose-400 transition-all">
+        <div className="p-4 border-t border-white/5"> 
+          <button onClick={handleLogout} className="w-full flex items-center px-3 py-3 rounded-xl hover:bg-rose-600/20 text-rose-400 transition-all">
               <LogOut size={20} className={sidebarOpen ? 'mr-3' : ''} />
               {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Logout Sistem</span>}
            </button>
@@ -1276,6 +1290,38 @@ export default function App() {
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">© 2026 BPS Kab. Seram Bagian Barat - Internal Cloud Access</p>
         </footer>
       </main>
+
+      {/* PANEL PENGATURAN LINK OLEH ADMIN */}
+          {isAdmin && (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 mt-10">
+              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                <h3 className="text-gray-900 font-bold mb-1">Konfigurasi Kertas Kerja</h3>
+                <p className="text-gray-500 text-xs mb-4">Admin: Tempel link Google Sheets di sini agar semua Ketua Tim bisa mengaksesnya.</p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input 
+                    type="text" 
+                    id="linkInput"
+                    placeholder="Tempel link Google Sheets di sini..."
+                    className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-700"
+                  />
+                  <button 
+                    onClick={() => {
+                      const val = (document.getElementById('linkInput') as HTMLInputElement).value;
+                      if(val) {
+                        localStorage.setItem('urlKertasKerja', val);
+                        alert('Link berhasil diperbarui! Silakan refresh halaman.');
+                      } else {
+                        alert('Mohon isi link terlebih dahulu.');
+                      }
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm"
+                  >
+                    Simpan Link
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
       {showClearDataModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
