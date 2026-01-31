@@ -817,7 +817,7 @@ export default function App() {
                       <Tooltip 
                         cursor={{ fill: '#f8fafc' }}
                         contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '20px' }}
-                        formatter={(value: number) => [`Rp ${formatMoney(value)}`, '']}
+                        formatter={(value: any) => [`Rp ${formatMoney(value)}`, '']}
                       />
                       <Legend iconType="circle" wrapperStyle={{ paddingTop: '40px', textTransform: 'uppercase', fontSize: '10px', fontWeight: 900, letterSpacing: '0.1em' }} />
                       <Bar dataKey="RPD" fill="#fbbf24" radius={[10, 10, 0, 0]} barSize={35} />
