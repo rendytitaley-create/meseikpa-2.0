@@ -805,8 +805,20 @@ export default function App() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={chartMode === 'TW' 
-                        ? [1, 2, 3, 4].map((tw, i) => ({ name: `TW ${tw}`, RPD: globalStats.tw[i].rpd, Realisasi: globalStats.tw[i].real }))
-                        : allMonths.map(m => ({ name: m, RPD: globalStats.months[m].rpd, Realisasi: globalStats.months[m].real }))
+                        ? [1, 2, 3, 4]
+                            .map((tw, i) => ({ 
+                              name: `TW ${tw}`, 
+                              RPD: globalStats.tw[i].rpd, 
+                              Realisasi: globalStats.tw[i].real 
+                            }))
+                            .filter(item => item.RPD > 0 || item.Realisasi > 0) // LOGIKA: Sembunyikan jika nol
+                        : allMonths
+                            .map(m => ({ 
+                              name: m, 
+                              RPD: globalStats.months[m].rpd, 
+                              Realisasi: globalStats.months[m].real 
+                            }))
+                            .filter(item => item.RPD > 0 || item.Realisasi > 0) // LOGIKA: Sembunyikan jika nol
                       }
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                       barGap={8}
