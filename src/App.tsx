@@ -807,14 +807,16 @@ export default function App() {
                       data={chartMode === 'TW' 
                         ? [1, 2, 3, 4].map((tw, i) => ({ 
                             name: `TW ${tw}`, 
-                            rpd51: globalStats.tw[i].rpd51, rpd52: globalStats.tw[i].rpd52, rpd53: globalStats.tw[i].rpd53,
-                            real51: globalStats.tw[i].real51, real52: globalStats.tw[i].real52, real53: globalStats.tw[i].real53,
+                            'RPD 51': globalStats.tw[i].rpd51, 'REAL 51': globalStats.tw[i].real51,
+                            'RPD 52': globalStats.tw[i].rpd52, 'REAL 52': globalStats.tw[i].real52,
+                            'RPD 53': globalStats.tw[i].rpd53, 'REAL 53': globalStats.tw[i].real53,
                             total: globalStats.tw[i].rpd + globalStats.tw[i].real
                           })).filter(item => item.total > 0)
                         : allMonths.map(m => ({ 
                             name: m, 
-                            rpd51: globalStats.months[m].rpd51, rpd52: globalStats.months[m].rpd52, rpd53: globalStats.months[m].rpd53,
-                            real51: globalStats.months[m].real51, real52: globalStats.months[m].real52, real53: globalStats.months[m].real53,
+                            'RPD 51': globalStats.months[m].rpd51, 'REAL 51': globalStats.months[m].real51,
+                            'RPD 52': globalStats.months[m].rpd52, 'REAL 52': globalStats.months[m].real52,
+                            'RPD 53': globalStats.months[m].rpd53, 'REAL 53': globalStats.months[m].real53,
                             total: globalStats.months[m].rpd + globalStats.months[m].real
                           })).filter(item => item.total > 0)
                       }
@@ -827,22 +829,33 @@ export default function App() {
                       <Tooltip 
                         cursor={{ fill: '#f8fafc' }}
                         contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '20px' }}
-                        formatter={(value: any) => [`Rp ${formatMoney(value)}`, '']}
+                        formatter={(value: any, name: string, props: any) => {
+                          // Logika hitung deviasi otomatis untuk Tooltip
+                          const currentData = props.payload;
+                          const code = name.split(' ')[1]; // Ambil angka 51, 52, atau 53
+                          const rpdVal = currentData[`RPD ${code}`] || 0;
+                          const realVal = currentData[`REAL ${code}`] || 0;
+                          const dev = rpdVal > 0 ? ((realVal - rpdVal) / rpdVal * 100).toFixed(1) : "0";
+                          
+                          return [`Rp ${formatMoney(value)} (Dev: ${dev}%)`, name];
+                        }}
                       />
                       <Legend iconType="circle" wrapperStyle={{ paddingTop: '40px', textTransform: 'uppercase', fontSize: '10px', fontWeight: 900, letterSpacing: '0.1em' }} />
                       <Legend iconType="circle" wrapperStyle={{ paddingTop: '40px', textTransform: 'uppercase', fontSize: '10px', fontWeight: 900, letterSpacing: '0.1em' }} />
                       
-                      {/* --- MULAI TEMPEL DI SINI --- */}
-                      {/* Komponen RPD (Warna Kuning/Oranye) */}
-                      <Bar dataKey="rpd51" name="RPD 51" stackId="rpd" fill="#fbbf24" barSize={40} />
-                      <Bar dataKey="rpd52" name="RPD 52" stackId="rpd" fill="#f59e0b" barSize={40} />
-                      <Bar dataKey="rpd53" name="RPD 53" stackId="rpd" fill="#b45309" radius={[10, 10, 0, 0]} barSize={40} />
+                     <Legend iconType="circle" wrapperStyle={{ paddingTop: '40px', fontSize: '10px', fontWeight: 900 }} />
+                      
+                      {/* GRUP BELANJA 51 */}
+                      <Bar dataKey="RPD 51" fill="#fbbf24" radius={[4, 4, 0, 0]} barSize={20} />
+                      <Bar dataKey="REAL 51" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
 
-                      {/* Komponen Realisasi (Warna Biru) */}
-                      <Bar dataKey="real51" name="REAL 51" stackId="real" fill="#60a5fa" barSize={40} />
-                      <Bar dataKey="real52" name="REAL 52" stackId="real" fill="#3b82f6" barSize={40} />
-                      <Bar dataKey="real53" name="REAL 53" stackId="real" fill="#1d4ed8" radius={[10, 10, 0, 0]} barSize={40} />
-                      {/* --- SELESAI TEMPEL --- */}
+                      {/* GRUP BELANJA 52 */}
+                      <Bar dataKey="RPD 52" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={20} />
+                      <Bar dataKey="REAL 52" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={20} />
+
+                      {/* GRUP BELANJA 53 */}
+                      <Bar dataKey="RPD 53" fill="#b45309" radius={[4, 4, 0, 0]} barSize={20} />
+                      <Bar dataKey="REAL 53" fill="#1e40af" radius={[4, 4, 0, 0]} barSize={20} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
