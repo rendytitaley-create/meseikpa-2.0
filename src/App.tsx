@@ -1288,43 +1288,27 @@ export default function App() {
             </div>
           )}
         </div>
-       {/* PANEL KONFIGURASI - VERSI ANTI-ERROR */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10 flex justify-center">
-            <div className="w-full max-w-2xl bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="h-12 w-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.51a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                </div>
-                <div>
-                  <h3 className="text-gray-900 font-bold">Tautan Kertas Kerja</h3>
-                  <p className="text-gray-500 text-xs">Perbarui link Google Sheets di sini agar tombol sidebar berfungsi.</p>
-                </div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input 
-                  type="text" 
-                  id="linkInputKertasKerja"
-                  placeholder="Tempel link Google Sheets di sini..."
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-gray-700"
-                />
-                <button 
-                  onClick={() => {
-                    const input = document.getElementById('linkInputKertasKerja') as any;
-                    if (input && input.value) {
-                      localStorage.setItem('urlKertasKerja', input.value);
-                      alert('Link berhasil diperbarui!');
-                      window.location.reload();
-                    }
-                  }}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-2xl text-sm font-bold transition-all shadow-lg shadow-emerald-600/20"
-                >
-                  Simpan
-                </button>
+       {/* KONFIGURASI KERTAS KERJA - VERSI AMAN TANPA KURUNG BERLEBIH */}
+          <div className="flex justify-center px-4 mb-10">
+            <div className="w-full max-w-2xl bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+              <h3 className="text-gray-900 font-bold text-sm mb-4">Tautan Kertas Kerja</h3>
+              <div className="flex gap-3">
+                <input id="linkInputBaru" type="text" placeholder="Tempel link di sini..." className="flex-1 bg-gray-50 border rounded-xl px-4 py-2 text-xs" />
+                <button onClick={() => { 
+                  const v = (document.getElementById('linkInputBaru') as any).value; 
+                  if(v) { localStorage.setItem('urlKertasKerja', v); alert('Tersimpan!'); } 
+                }} className="bg-emerald-600 text-white px-6 py-2 rounded-xl text-xs font-bold">Simpan</button>
               </div>
             </div>
           </div>
-          )}
+
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default App;
         <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0">
             <ShieldHalf size={14} className="text-slate-300" />
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">© 2026 BPS Kab. Seram Bagian Barat - Internal Cloud Access</p>
