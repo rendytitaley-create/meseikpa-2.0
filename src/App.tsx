@@ -1288,24 +1288,6 @@ export default function App() {
             </div>
           )}
         </div>
-       {/* KONFIGURASI KERTAS KERJA - VERSI AMAN TANPA KURUNG BERLEBIH */}
-          <div className="flex justify-center px-4 mb-10">
-            <div className="w-full max-w-2xl bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-              <h3 className="text-gray-900 font-bold text-sm mb-4">Tautan Kertas Kerja</h3>
-              <div className="flex gap-3">
-                <input id="linkInputBaru" type="text" placeholder="Tempel link di sini..." className="flex-1 bg-gray-50 border rounded-xl px-4 py-2 text-xs" />
-                <button onClick={() => { 
-                  const v = (document.getElementById('linkInputBaru') as any).value; 
-                  if(v) { localStorage.setItem('urlKertasKerja', v); alert('Tersimpan!'); } 
-                }} className="bg-emerald-600 text-white px-6 py-2 rounded-xl text-xs font-bold">Simpan</button>
-              </div>
-            </div>
-          </div>
-
-        </main>
-      </div>
-    </div>
-  );
 }
 
 export default App;
