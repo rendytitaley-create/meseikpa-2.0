@@ -1312,37 +1312,6 @@ export default function App() {
         </footer>
       </main>
 
-      {/* PANEL PENGATURAN LINK OLEH ADMIN */}
-            {/* PANEL PENGATURAN LINK OLEH ADMIN */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 mt-10">
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-              <h3 className="text-gray-900 font-bold mb-1">Konfigurasi Kertas Kerja</h3>
-              <p className="text-gray-500 text-xs mb-4">Tempel link Google Sheets di sini agar semua Ketua Tim bisa mengaksesnya.</p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input 
-                  type="text" 
-                  id="linkInput"
-                  placeholder="Tempel link Google Sheets di sini..."
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-700"
-                />
-                <button 
-                  onClick={() => {
-                    const val = (document.getElementById('linkInput') as any).value;
-                    if(val) {
-                      localStorage.setItem('urlKertasKerja', val);
-                      alert('Link berhasil diperbarui! Silakan refresh halaman.');
-                    } else {
-                      alert('Mohon isi link terlebih dahulu.');
-                    }
-                  }}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm"
-                >
-                  Simpan Link
-                </button>
-              </div>
-            </div>
-          </div>
-
       {showClearDataModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-sm p-10 text-center border border-slate-200 animate-in zoom-in duration-200">
