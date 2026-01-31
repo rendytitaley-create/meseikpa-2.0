@@ -829,15 +829,24 @@ export default function App() {
                       <Tooltip 
                         cursor={{ fill: '#f8fafc' }}
                         contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '20px' }}
-                        formatter={(value: any, name: string, props: any) => {
-                          // Logika hitung deviasi otomatis untuk Tooltip
-                          const currentData = props.payload;
-                          const code = name.split(' ')[1]; // Ambil angka 51, 52, atau 53
-                          const rpdVal = currentData[`RPD ${code}`] || 0;
-                          const realVal = currentData[`REAL ${code}`] || 0;
-                          const dev = rpdVal > 0 ? ((realVal - rpdVal) / rpdVal * 100).toFixed(1) : "0";
+                        formatter={(value: any, name: any, props: any) => {
+                          // Pengaman: Jika name atau props tidak ada, tampilkan standar
+                          if (!name || !props?.payload) return [`Rp ${formatMoney(value)}`, name || ""];
+
+                          const dataSistem = props.payload;
+                          const namaBatang = String(name); // Memastikan nama adalah string
+                          const kodeBelanja = namaBatang.split(' ')[1]; 
                           
-                          return [`Rp ${formatMoney(value)} (Dev: ${dev}%)`, name];
+                          if (!kodeBelanja) return [`Rp ${formatMoney(value)}`, namaBatang];
+
+                          const rpdTerget = dataSistem[`RPD ${kodeBelanja}`] || 0;
+                          const realEksesusi = dataSistem[`REAL ${kodeBelanja}`] || 0;
+                          
+                          const hitungDev = rpdTerget > 0 
+                            ? ((realEksesusi - rpdTerget) / rpdTerget * 100).toFixed(1) 
+                            : "0";
+                          
+                          return [`Rp ${formatMoney(value)} (Dev: ${hitungDev}%)`, namaBatang];
                         }}
                       />
                       <Legend iconType="circle" wrapperStyle={{ paddingTop: '40px', textTransform: 'uppercase', fontSize: '10px', fontWeight: 900, letterSpacing: '0.1em' }} />
