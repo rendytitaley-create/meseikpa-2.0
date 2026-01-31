@@ -723,7 +723,7 @@ export default function App() {
                     <button
                       onClick={() => {
                         // Mengambil link yang sudah disimpan Admin, jika belum ada pakai link standar
-                        const linkTersimpan = localStorage.getItem('urlKertasKerja') || 'https://docs.google.com/spreadsheets/';
+                        const linkTersimpan = localStorage.getItem('urlKertasKerja') || 'https://docs.google.com/spreadsheets/d/1tx4-XDr0VREI0s1s2iyfJ7MOQ-mu4Esixx9B_FFXEQM/edit?usp=sharing';
                         window.open(linkTersimpan, '_blank');
                       }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition-all rounded-xl group"
