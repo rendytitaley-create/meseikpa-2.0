@@ -805,20 +805,18 @@ export default function App() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={chartMode === 'TW' 
-                        ? [1, 2, 3, 4]
-                            .map((tw, i) => ({ 
-                              name: `TW ${tw}`, 
-                              RPD: globalStats.tw[i].rpd, 
-                              Realisasi: globalStats.tw[i].real 
-                            }))
-                            .filter(item => item.RPD > 0 || item.Realisasi > 0) // LOGIKA: Sembunyikan jika nol
-                        : allMonths
-                            .map(m => ({ 
-                              name: m, 
-                              RPD: globalStats.months[m].rpd, 
-                              Realisasi: globalStats.months[m].real 
-                            }))
-                            .filter(item => item.RPD > 0 || item.Realisasi > 0) // LOGIKA: Sembunyikan jika nol
+                        ? [1, 2, 3, 4].map((tw, i) => ({ 
+                            name: `TW ${tw}`, 
+                            rpd51: globalStats.tw[i].rpd51, rpd52: globalStats.tw[i].rpd52, rpd53: globalStats.tw[i].rpd53,
+                            real51: globalStats.tw[i].real51, real52: globalStats.tw[i].real52, real53: globalStats.tw[i].real53,
+                            total: globalStats.tw[i].rpd + globalStats.tw[i].real
+                          })).filter(item => item.total > 0)
+                        : allMonths.map(m => ({ 
+                            name: m, 
+                            rpd51: globalStats.months[m].rpd51, rpd52: globalStats.months[m].rpd52, rpd53: globalStats.months[m].rpd53,
+                            real51: globalStats.months[m].real51, real52: globalStats.months[m].real52, real53: globalStats.months[m].real53,
+                            total: globalStats.months[m].rpd + globalStats.months[m].real
+                          })).filter(item => item.total > 0)
                       }
                       margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                       barGap={8}
@@ -832,8 +830,19 @@ export default function App() {
                         formatter={(value: any) => [`Rp ${formatMoney(value)}`, '']}
                       />
                       <Legend iconType="circle" wrapperStyle={{ paddingTop: '40px', textTransform: 'uppercase', fontSize: '10px', fontWeight: 900, letterSpacing: '0.1em' }} />
-                      <Bar dataKey="RPD" fill="#fbbf24" radius={[10, 10, 0, 0]} barSize={35} />
-                      <Bar dataKey="Realisasi" fill="#3b82f6" radius={[10, 10, 0, 0]} barSize={35} />
+                      <Legend iconType="circle" wrapperStyle={{ paddingTop: '40px', textTransform: 'uppercase', fontSize: '10px', fontWeight: 900, letterSpacing: '0.1em' }} />
+                      
+                      {/* --- MULAI TEMPEL DI SINI --- */}
+                      {/* Komponen RPD (Warna Kuning/Oranye) */}
+                      <Bar dataKey="rpd51" name="RPD 51" stackId="rpd" fill="#fbbf24" barSize={40} />
+                      <Bar dataKey="rpd52" name="RPD 52" stackId="rpd" fill="#f59e0b" barSize={40} />
+                      <Bar dataKey="rpd53" name="RPD 53" stackId="rpd" fill="#b45309" radius={[10, 10, 0, 0]} barSize={40} />
+
+                      {/* Komponen Realisasi (Warna Biru) */}
+                      <Bar dataKey="real51" name="REAL 51" stackId="real" fill="#60a5fa" barSize={40} />
+                      <Bar dataKey="real52" name="REAL 52" stackId="real" fill="#3b82f6" barSize={40} />
+                      <Bar dataKey="real53" name="REAL 53" stackId="real" fill="#1d4ed8" radius={[10, 10, 0, 0]} barSize={40} />
+                      {/* --- SELESAI TEMPEL --- */}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
