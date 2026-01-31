@@ -1288,8 +1288,6 @@ export default function App() {
             </div>
           )}
         </div>
-}
-
 export default App;
         <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0">
             <ShieldHalf size={14} className="text-slate-300" />
