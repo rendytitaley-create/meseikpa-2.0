@@ -789,12 +789,12 @@ export default function App() {
                       <div className="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full mb-3 inline-block shadow-lg animate-pulse">
                           Kondisi Terakhir: {kppnMetrics.revisiKe || "DIPA AWAL"}
                       </div>
-                      <h1 className="text-4xl font-black text-slate-800 italic tracking-tighter">Executive Dashboard</h1>
-                      <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.3em] mt-1">IKPA Monitoring - BPS SBB</p>
+                      <h1 className="text-4xl font-black text-slate-800 italic tracking-tighter">Monitoring IKPA</h1>
+                      <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.3em] mt-1">BPS Kab. Seram Bagian Barat</p>
                   </div>
 
                   <div className="z-10 text-right">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Total Pagu Keseluruhan</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Total Pagu</span>
                       <div className="text-4xl font-black text-slate-900 tracking-tighter italic">
                           <span className="text-lg text-slate-300 not-italic mr-2">Rp</span>
                           {formatMoney(globalStats.pagu)}
@@ -855,18 +855,18 @@ export default function App() {
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
                       <div className="flex justify-between items-start mb-8">
                           <div className="p-4 bg-violet-50 text-violet-600 rounded-2xl"><ClipboardCheck size={24}/></div>
-                          <div className="text-right leading-none"><span className="text-[10px] font-black text-slate-400 uppercase block">Capaian Output</span><span className="text-xs font-bold text-violet-500 italic">Progres Fisik</span></div>
+                          <div className="text-right leading-none"><span className="text-[10px] font-black text-slate-400 uppercase block">Capaian Output</span><span className="text-xs font-bold text-violet-500 italic">Progress</span></div>
                       </div>
                       <div className="flex flex-col items-center mb-10">
                           <div className="text-6xl font-black text-slate-800 tracking-tighter italic mb-1">
                             {globalStats.outputTarget > 0 ? (globalStats.outputReal / globalStats.outputTarget * 100).toFixed(1) : 0}%
                           </div>
-                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Realisasi Fisik</div>
+                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Realisasi</div>
                       </div>
                       <div className="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
                           <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Jumlah RO</span><span className="text-slate-800">{globalStats.outputCount}</span></div>
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Target Fisik</span><span className="text-slate-800">{globalStats.outputTarget.toFixed(0)}%</span></div>
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Real Fisik</span><span className="text-violet-600">{globalStats.outputReal.toFixed(0)}%</span></div>
+                          <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Target</span><span className="text-slate-800">{globalStats.outputTarget.toFixed(0)}%</span></div>
+                          <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Realisasi</span><span className="text-violet-600">{globalStats.outputReal.toFixed(0)}%</span></div>
                       </div>
                   </div>
               </div>
