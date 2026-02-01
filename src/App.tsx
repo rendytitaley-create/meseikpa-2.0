@@ -1058,7 +1058,6 @@ export default function App() {
             ? Math.abs((globalStats[`real${item.id}`] - globalStats[`rpd${item.id}`]) / globalStats[`rpd${item.id}`] * 100).toFixed(1) 
             : "0.0"}%
     </span>
-</div>
                                       </div>
                                   </div>
                               </div>
