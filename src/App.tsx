@@ -1030,30 +1030,42 @@ export default function App() {
                               <td className="px-4 py-2 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
                               <td className="px-5 py-2 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
                               <td className="px-4 py-2 text-right font-black border-r border-slate-100">{!isNonFinancial ? formatMoney(item.pagu) : ""}</td>
-                              {[1, 2, 3, 4].map((tw) => (
-  <td key={tw} className="px-3 py-3 text-right border-r border-slate-100">
-    {!isNonFinancial && (
-      <div className="flex flex-col text-[11px] font-black leading-tight">
-        <span className="text-orange-600">
-          {formatMoney(
-            twMonths[tw as keyof typeof twMonths].reduce(
-              (a: number, m: string) => a + (Number(item.monthRPD?.[m]) || 0), 
-              0
-            )
-          )}
-        </span>
-        <span className="text-blue-600">
-          {formatMoney(
-            twMonths[tw as keyof typeof twMonths].reduce(
-              (a: number, m: string) => a + (Number(item.monthReal?.[m]) || 0), 
-              0
-            )
-          )}
-        </span>
-      </div>
-    )}
-  </td>
-))}
+                              {/* Kolom TW I */}
+<td className="px-3 py-3 text-right border-r border-slate-100">
+  {!isNonFinancial && (
+    <div className="flex flex-col text-[11px] font-black leading-tight">
+      <span className="text-orange-600">{formatMoney(twMonths[1].reduce((a: any, m: any) => a + (Number(item.monthRPD?.[m]) || 0), 0))}</span>
+      <span className="text-blue-600">{formatMoney(twMonths[1].reduce((a: any, m: any) => a + (Number(item.monthReal?.[m]) || 0), 0))}</span>
+    </div>
+  )}
+</td>
+{/* Kolom TW II */}
+<td className="px-3 py-3 text-right border-r border-slate-100">
+  {!isNonFinancial && (
+    <div className="flex flex-col text-[11px] font-black leading-tight">
+      <span className="text-orange-600">{formatMoney(twMonths[2].reduce((a: any, m: any) => a + (Number(item.monthRPD?.[m]) || 0), 0))}</span>
+      <span className="text-blue-600">{formatMoney(twMonths[2].reduce((a: any, m: any) => a + (Number(item.monthReal?.[m]) || 0), 0))}</span>
+    </div>
+  )}
+</td>
+{/* Kolom TW III */}
+<td className="px-3 py-3 text-right border-r border-slate-100">
+  {!isNonFinancial && (
+    <div className="flex flex-col text-[11px] font-black leading-tight">
+      <span className="text-orange-600">{formatMoney(twMonths[3].reduce((a: any, m: any) => a + (Number(item.monthRPD?.[m]) || 0), 0))}</span>
+      <span className="text-blue-600">{formatMoney(twMonths[3].reduce((a: any, m: any) => a + (Number(item.monthReal?.[m]) || 0), 0))}</span>
+    </div>
+  )}
+</td>
+{/* Kolom TW IV */}
+<td className="px-3 py-3 text-right border-r border-slate-100">
+  {!isNonFinancial && (
+    <div className="flex flex-col text-[11px] font-black leading-tight">
+      <span className="text-orange-600">{formatMoney(twMonths[4].reduce((a: any, m: any) => a + (Number(item.monthRPD?.[m]) || 0), 0))}</span>
+      <span className="text-blue-600">{formatMoney(twMonths[4].reduce((a: any, m: any) => a + (Number(item.monthReal?.[m]) || 0), 0))}</span>
+    </div>
+  )}
+</td>
                               <td className="px-3 py-2 text-right font-black text-orange-800 border-r border-slate-100 bg-orange-50/30">{!isNonFinancial ? formatMoney(item.totalRPD) : ""}</td>
                               <td className={`px-3 py-2 text-right font-black border-r border-slate-100 ${getDevColorClass(devPctFinal)}`}>
                                   {(!isNonFinancial && item.totalRPD > 0) ? `${devPctFinal.toFixed(1)}%` : "0%"}
