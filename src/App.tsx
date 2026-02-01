@@ -601,32 +601,34 @@ export default function App() {
     (d.kode && d.kode.includes(searchTerm))
   );
 
-  // --- LOGIC KHUSUS CAPAIAN OUTPUT (LEVEL RO - LEVEL 2) ---
+  // --- PERBAIKAN LOGIKA CAPAIAN OUTPUT (OUTPUT - LEVEL 4 DENGAN 2 TITIK) ---
   const capaianOutputData = useMemo(() => {
-    // Ambil Level 2 sebagai basis RO
-    const roItems = dataTampil.filter(d => getLevel(d.kode) === 2);
+    // Cari semua item yang merupakan Output (Level 4, kode mengandung 2 titik)
+    const outputItems = dataTampil.filter(d => getLevel(d.kode) === 4);
     
-    return roItems.map((ro) => {
-      let totalPaguRO = 0;
-      let totalRealRO = 0;
+    return outputItems.map((out) => {
+      let totalPaguOut = 0;
+      let totalRealOut = 0;
 
-      // Cari semua detail (level 8) di bawah RO ini
-      const baseIdx = dataTampil.findIndex(d => d.id === ro.id);
+      // Cari semua detail (level 8) yang secara hierarki berada di bawah Output ini
+      const baseIdx = dataTampil.findIndex(d => d.id === out.id);
       for (let i = baseIdx + 1; i < dataTampil.length; i++) {
         const next = dataTampil[i];
-        if (next.kode !== "" && getLevel(next.kode) <= 2) break;
+        // Jika bertemu kode lain di level yang sama atau lebih tinggi (titik < 2), berhenti
+        if (next.kode !== "" && getLevel(next.kode) <= 4) break;
+        // Jika ini adalah detail akun (Level 8), jumlahkan pagu dan realisasinya
         if (getLevel(next.kode) === 8) {
-          totalPaguRO += (Number(next.pagu) || 0);
-          totalRealRO += sumMapValues(next.realisasi);
+          totalPaguOut += (Number(next.pagu) || 0);
+          totalRealOut += sumMapValues(next.realisasi);
         }
       }
 
       return {
-        ...ro,
-        paguRO: totalPaguRO,
-        realAnggaranRO: totalRealRO,
-        targetCapaian: ro.targetCapaian || {}, // { Jan: "0.5", Feb: "0.1", ... }
-        realCapaian: ro.realCapaian || {}      // { Jan: "0.4", Feb: "0.1", ... }
+        ...out,
+        paguOutput: totalPaguOut,
+        realAnggaranOutput: totalRealOut,
+        targetCapaian: out.targetCapaian || {}, 
+        realCapaian: out.realCapaian || {}      
       };
     });
   }, [dataTampil]);
@@ -1096,47 +1098,50 @@ export default function App() {
             </div>
           )}
 
-          {/* --- VIEW CAPAIAN OUTPUT (MENURUT RO) --- */}
+          {/* --- VIEW CAPAIAN OUTPUT (MENURUT OUTPUT - LEVEL 4 DUA TITIK) --- */}
           {activeTab === 'capaian' && (
             <div className="space-y-10 animate-in fade-in duration-700 pb-20">
-               <div className="bg-white p-10 rounded-[4rem] shadow-2xl border border-slate-200">
+               <div className="bg-white p-10 rounded-[4rem] shadow-2xl border border-slate-200 overflow-hidden">
                  <div className="flex items-center gap-5 mb-10">
                     <div className="p-4 bg-violet-100 text-violet-600 rounded-2xl"><TrendingUp size={28}/></div>
                     <div>
-                      <h3 className="text-xl font-black italic uppercase tracking-tighter">Capaian Output Rincian Output (RO)</h3>
+                      <h3 className="text-xl font-black italic uppercase tracking-tighter">Capaian Output (Output)</h3>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Monitoring Progres Fisik vs Keuangan Satker</p>
                     </div>
                  </div>
 
-                 <div className="overflow-x-auto custom-scrollbar rounded-[2rem] border border-slate-100">
-                    <table className="w-full text-[10px] border-collapse">
-                       <thead className="bg-slate-900 text-white text-center font-black uppercase tracking-widest">
-                          <tr>
-                             <th rowSpan={2} className="px-4 py-4 text-left border-r border-white/5">RO & Keterangan</th>
-                             <th rowSpan={2} className="px-4 py-4 border-r border-white/5">Pagu & Real Keu.</th>
+                 {/* Container Tabel dengan Overflow dan Max Height untuk Scroll */}
+                 <div className="overflow-x-auto overflow-y-auto custom-scrollbar rounded-[2rem] border border-slate-100 max-h-[70vh] relative">
+                    <table className="w-full text-[10px] border-separate border-spacing-0">
+                       <thead className="sticky top-0 z-30 bg-slate-900 text-white text-center font-black uppercase tracking-widest">
+                         <tr>
+                             {/* Kode & Output di-freeze ke kiri di Header */}
+                             <th rowSpan={2} className="sticky left-0 z-40 bg-slate-900 px-4 py-4 text-left border-r border-white/5 min-w-[300px]">Kode & Output</th>
+                             <th rowSpan={2} className="sticky left-[300px] z-40 bg-slate-900 px-4 py-4 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Pagu & Real Keu.</th>
                              {allMonths.map(m => (
                                <th key={m} className="px-2 py-2 border-r border-white/5 min-w-[120px]">{m}</th>
                              ))}
-                          </tr>
-                          <tr className="bg-slate-800">
+                         </tr>
+                         <tr className="bg-slate-800">
                              {allMonths.map(m => (<th key={m} className="px-2 py-1 text-[8px] border-r border-white/5 tracking-tighter text-slate-400">Target | Real</th>))}
-                          </tr>
+                         </tr>
                        </thead>
                        <tbody className="divide-y divide-slate-100">
-                          {capaianOutputData.map((ro) => {
-                             const realKeuPct = ro.paguRO > 0 ? (ro.realAnggaranRO / ro.paguRO * 100).toFixed(1) : "0.0";
+                          {capaianOutputData.map((out) => {
+                             const realKeuPct = out.paguOutput > 0 ? (out.realAnggaranOutput / out.paguOutput * 100).toFixed(1) : "0.0";
                              return (
-                                <React.Fragment key={ro.id}>
+                                <React.Fragment key={out.id}>
                                    {/* BARIS PERTAMA: NILAI BULANAN */}
                                    <tr className="bg-white hover:bg-violet-50/30 transition-all">
-                                      <td className="px-5 py-4 border-r border-slate-50 relative">
-                                         <div className="font-black text-slate-800 text-[11px] mb-1">{ro.kode}</div>
-                                         <div className="text-[9px] font-bold text-slate-400 uppercase leading-tight">{ro.uraian}</div>
-                                         <span className="absolute top-4 right-4 text-[8px] font-black text-violet-500 bg-violet-50 px-2 py-1 rounded-md">BULANAN</span>
+                                      {/* Kode & Output di-freeze ke kiri di Body */}
+                                      <td className="sticky left-0 z-10 bg-white px-5 py-4 border-r border-slate-50 relative">
+                                         <div className="font-black text-slate-800 text-[11px] mb-1">{out.kode}</div>
+                                         <div className="text-[9px] font-bold text-slate-400 uppercase leading-tight">{out.uraian}</div>
+                                         <span className="absolute top-4 right-2 text-[7px] font-black text-violet-500 bg-violet-50 px-1 py-0.5 rounded">BULANAN</span>
                                       </td>
-                                      <td className="px-4 py-4 border-r border-slate-50 text-right">
-                                         <div className="text-slate-400 font-bold mb-1">Pagu: {formatMoney(ro.paguRO)}</div>
-                                         <div className="text-slate-800 font-black tracking-tighter italic">Realisasi: {formatMoney(ro.realAnggaranRO)} ({realKeuPct}%)</div>
+                                      <td className="sticky left-[300px] z-10 bg-white px-4 py-4 border-r border-slate-50 text-right shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
+                                         <div className="text-slate-400 font-bold mb-1">Pagu: {formatMoney(out.paguOutput)}</div>
+                                         <div className="text-slate-800 font-black tracking-tighter italic">Real: {formatMoney(out.realAnggaranOutput)} ({realKeuPct}%)</div>
                                       </td>
                                       {allMonths.map(m => (
                                          <td key={m} className="px-3 py-4 border-r border-slate-50">
@@ -1144,13 +1149,13 @@ export default function App() {
                                                {/* Target Fisik Bulanan */}
                                                <input 
                                                   type="text" 
-                                                  placeholder="Target %"
+                                                  placeholder="T %"
                                                   readOnly={currentUser.role !== 'admin'}
-                                                  value={ro.targetCapaian?.[m] || ""}
+                                                  value={out.targetCapaian?.[m] || ""}
                                                   onChange={async (e) => {
                                                     if(currentUser.role === 'admin') {
                                                       const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, ro.id), { targetCapaian: { ...ro.targetCapaian, [m]: val } });
+                                                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, out.id), { targetCapaian: { ...out.targetCapaian, [m]: val } });
                                                     }
                                                   }}
                                                   className="w-full bg-slate-50 border border-slate-100 rounded-lg py-1 px-2 text-center text-[10px] font-black text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20"
@@ -1158,13 +1163,13 @@ export default function App() {
                                                {/* Realisasi Fisik Bulanan */}
                                                <input 
                                                   type="text" 
-                                                  placeholder="Real %"
+                                                  placeholder="R %"
                                                   readOnly={currentUser.role !== 'admin'}
-                                                  value={ro.realCapaian?.[m] || ""}
+                                                  value={out.realCapaian?.[m] || ""}
                                                   onChange={async (e) => {
                                                     if(currentUser.role === 'admin') {
                                                       const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, ro.id), { realCapaian: { ...ro.realCapaian, [m]: val } });
+                                                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, out.id), { realCapaian: { ...out.realCapaian, [m]: val } });
                                                     }
                                                   }}
                                                   className="w-full bg-emerald-50 border border-emerald-100 rounded-lg py-1 px-2 text-center text-[10px] font-black text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500/20"
@@ -1175,23 +1180,21 @@ export default function App() {
                                    </tr>
                                    {/* BARIS KEDUA: NILAI KUMULATIF */}
                                    <tr className="bg-slate-50/50">
-                                      <td colSpan={2} className="px-5 py-2 text-right border-r border-slate-50">
+                                      <td colSpan={2} className="sticky left-0 z-10 bg-slate-50 px-5 py-2 text-right border-r border-slate-50 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
                                          <span className="text-[9px] font-black text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-200">KUMULATIF %</span>
                                       </td>
                                       {allMonths.map((m, idx) => {
-                                         // Hitung Kumulatif s.d. Bulan Terpilih
-                                         let kumTarget = 0;
-                                         let kumReal = 0;
+                                         let kumTarget = 0, kumReal = 0;
                                          for(let i=0; i<=idx; i++){
-                                            kumTarget += Number(ro.targetCapaian?.[allMonths[i]] || 0);
-                                            kumReal += Number(ro.realCapaian?.[allMonths[i]] || 0);
+                                           kumTarget += Number(out.targetCapaian?.[allMonths[i]] || 0);
+                                           kumReal += Number(out.realCapaian?.[allMonths[i]] || 0);
                                          }
                                          const dev = kumReal - kumTarget;
                                          return (
                                             <td key={m} className="px-3 py-2 border-r border-slate-50 text-center">
                                                <div className="flex flex-col text-[10px] font-black tracking-tighter">
                                                   <span className="text-slate-800">{kumTarget.toFixed(2)} | {kumReal.toFixed(2)}</span>
-                                                  <span className={dev >= 0 ? "text-emerald-600" : "text-rose-600"}>Dev: {dev.toFixed(2)}</span>
+                                                  <span className={dev >= 0 ? "text-emerald-600" : "text-rose-600"}>D: {dev.toFixed(2)}</span>
                                                </div>
                                             </td>
                                          );
