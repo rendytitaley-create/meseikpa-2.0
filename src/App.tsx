@@ -28,7 +28,7 @@ import {
   Edit3, LogOut, Eraser, ShieldHalf, CheckCircle2, LogIn, KeyRound, Search,
   Filter, Eye, EyeOff, CalendarDays, TrendingUp, ClipboardCheck
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
 declare global {
@@ -799,24 +799,27 @@ export default function App() {
         <div className="flex-1 overflow-auto p-8 custom-scrollbar">
           {activeTab === 'dashboard' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
-  {/* Header: Revisi DIPA & Total Pagu */}
-  <div className="flex flex-col md:flex-row justify-between items-end gap-6 bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-      <div className="z-10">
-          <div className="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full mb-3 inline-block shadow-lg">
-              Status: Revisi DIPA/POK Ke-{kppnMetrics.revisiKe || "0"}
-          </div>
-          <h1 className="text-4xl font-black text-slate-800 italic tracking-tighter">Executive Dashboard</h1>
-          <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.3em] mt-1">IKPA Monitoring - BPS SBB</p>
-      </div>
-      <div className="z-10 text-right">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Total Pagu Keseluruhan</span>
-          <div className="text-4xl font-black text-slate-900 tracking-tighter italic">
-              <span className="text-lg text-slate-300 not-italic mr-2">Rp</span>
-              {formatMoney(globalStats.pagu)}
-          </div>
-      </div>
-  </div>
+ {currentUser.role === 'admin' && (
+    <div className="flex gap-4">
+        {/* Input untuk Redaksi Status Revisi */}
+        <div className="flex items-center gap-3 bg-white px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
+            <span className="text-[10px] font-black uppercase text-slate-400 italic">Kondisi DIPA:</span>
+            <input 
+                type="text" 
+                value={kppnMetrics.revisiKe || ""} 
+                placeholder="Contoh: Revisi POK II"
+                onChange={(e) => {
+                    setKppnMetrics((prev: any) => ({ ...prev, revisiKe: e.target.value }));
+                }} 
+                onBlur={saveKppnGlobal} 
+                className="w-48 font-black text-xs text-blue-600 outline-none bg-transparent" 
+            />
+        </div>
+        <button onClick={handleToggleLock} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-xl transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
+            {isLocked ? <Lock size={16} /> : <Unlock size={16} />} {isLocked ? 'Buka Kunci' : 'Kunci Pengisian'}
+        </button>
+    </div>
+)}
 
   {/* 3 Kartu IKPA Radar */}
   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -887,32 +890,93 @@ export default function App() {
       </div>
   </div>
 
-  {/* Grafik Modern Area Chart */}
+ {/* Dashboard: 3 Grafik Lingkaran Per Akun Belanja */}
   <div className="bg-white p-12 rounded-[4rem] border border-slate-200 shadow-sm">
-      <h3 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter mb-10 flex items-center gap-4">
+      <h3 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter mb-12 flex items-center gap-4">
           <div className="w-2 h-10 bg-indigo-600 rounded-full"></div>
-          Analisis Performa Anggaran
+          Proporsi Penyerapan Per Jenis Belanja
       </h3>
-      <div className="h-[400px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={globalStats.chartData}>
-                  <defs>
-                      <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
-                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                      </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 900}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 900}} tickFormatter={(v) => `Rp ${v/1000000}jt`} />
-                  <Tooltip contentStyle={{borderRadius: '24px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)'}} />
-                  <Area type="monotone" dataKey="real" stroke="#6366f1" strokeWidth={4} fill="url(#colorReal)" />
-              </AreaChart>
-          </ResponsiveContainer>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          {[
+            { id: '51', label: 'Belanja Pegawai', pagu: globalStats.pagu51, real: globalStats.real51, rpd: globalStats.rpd51, color: '#6366f1' },
+            { id: '52', label: 'Belanja Barang', pagu: globalStats.pagu52, real: globalStats.real52, rpd: globalStats.rpd52, color: '#10b981' },
+            { id: '53', label: 'Belanja Modal', pagu: globalStats.pagu53, real: globalStats.real53, rpd: globalStats.rpd53, color: '#f59e0b' }
+          ].map((item) => {
+              const pctRealisasi = item.pagu > 0 ? (item.real / item.pagu * 100) : 0;
+              const deviasi = item.rpd > 0 ? ((item.real - item.rpd) / item.rpd * 100) : 0;
+              const dataPie = [
+                  { name: 'Realisasi', value: item.real },
+                  { name: 'Sisa Pagu', value: Math.max(0, item.pagu - item.real) }
+              ];
+
+              return (
+                  <div key={item.id} className="flex flex-col items-center bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100">
+                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4">{item.label}</span>
+                      
+                      <div className="h-[220px] w-full relative">
+                          <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                  <Pie
+                                      data={dataPie}
+                                      innerRadius={65}
+                                      outerRadius={85}
+                                      paddingAngle={5}
+                                      dataKey="value"
+                                      startAngle={90}
+                                      endAngle={-270}
+                                  >
+                                      <Cell fill={item.color} stroke="none" />
+                                      <Cell fill="#e2e8f0" stroke="none" />
+                                  </Pie>
+                                  <Tooltip 
+                                    contentStyle={{borderRadius: '15px', border:'none', boxShadow:'0 10px 20px rgba(0,0,0,0.05)'}}
+                                    formatter={(value: number) => `Rp ${formatMoney(value)}`}
+                                  />
+                              </PieChart>
+                          </ResponsiveContainer>
+                          
+                          {/* Persentase di Tengah Lingkaran */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <span className="text-3xl font-black text-slate-800 italic leading-none">{pctRealisasi.toFixed(1)}%</span>
+                              <span className="text-[9px] font-black text-slate-400 uppercase mt-1">Terserap</span>
+                          </div>
+                      </div>
+
+                      <div className="mt-6 w-full space-y-3">
+                          <div className="flex justify-between items-center bg-white px-5 py-3 rounded-2xl shadow-sm">
+                              <span className="text-[10px] font-black text-slate-400 uppercase">Deviasi Hal III</span>
+                              <span className={`text-xs font-black italic ${Math.abs(deviasi) < 5 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                  {deviasi > 0 ? '+' : ''}{deviasi.toFixed(2)}%
+                              </span>
+                          </div>
+                          <div className="px-5 text-center">
+                              <span className="text-[9px] font-bold text-slate-400 italic block">
+                                Pagu: Rp {formatMoney(item.pagu)}
+                              </span>
+                          </div>
+                      </div>
+                  </div>
+              );
+          })}
+      </div>
+
+      {/* Legenda Bawah */}
+      <div className="mt-12 flex justify-center gap-10">
+          <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-indigo-600"></div>
+              <span className="text-[10px] font-black uppercase text-slate-500">Akun 51</span>
+          </div>
+          <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+              <span className="text-[10px] font-black uppercase text-slate-500">Akun 52</span>
+          </div>
+          <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+              <span className="text-[10px] font-black uppercase text-slate-500">Akun 53</span>
+          </div>
       </div>
   </div>
-</div>
-)}
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
