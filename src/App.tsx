@@ -875,7 +875,7 @@ export default function App() {
               <div className="bg-white p-12 rounded-[4rem] border border-slate-200 shadow-sm">
                   <h3 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter mb-12 flex items-center gap-4">
                       <div className="w-2 h-10 bg-indigo-600 rounded-full"></div>
-                      Proporsi Penyerapan Per Jenis Belanja
+                      Realisasi Belanja & Deviasi Hal.III DIPA
                   </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
