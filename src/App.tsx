@@ -340,6 +340,7 @@ export default function App() {
     setActiveTab('dashboard');
   };
 
+  // --- LOGIKA GLOBAL STATS ---
   const globalStats = useMemo(() => {
     const stats: any = {
         pagu: 0, rpd: 0, real: 0,
@@ -347,6 +348,11 @@ export default function App() {
         real51: 0, real52: 0, real53: 0,
         rpd51: 0, rpd52: 0, rpd53: 0,
         outputTarget: 0, outputReal: 0, outputCount: 0,
+        // GAP Monitoring Variables
+        gapCount: 0,
+        avgFisik: 0,
+        avgAnggaran: 0,
+        avgTarget: 0,
         months: allMonths.reduce((acc: any, m) => {
           acc[m] = { name: m, rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 };
           return acc;
@@ -388,14 +394,61 @@ export default function App() {
       });
     });
 
+    // --- LOGIKA BARU: MONITORING GAP BULANAN ---
     const outputs = dataTampil.filter(d => getLevel(d.kode) === 4);
+    
+    // Temukan bulan terakhir yang memiliki data (Bulan Berjalan)
+    let lastMonthIdx = -1;
+    for (let i = 11; i >= 0; i--) {
+      const m = allMonths[i];
+      const hasData = outputs.some(o => (o.realCapaian?.[m] && o.realCapaian?.[m] !== "0") || (o.targetCapaian?.[m] && o.targetCapaian?.[m] !== "0"));
+      if (hasData) { lastMonthIdx = i; break; }
+    }
+    // Jika tidak ada data sama sekali, default ke Jan (idx 0)
+    if (lastMonthIdx === -1) lastMonthIdx = 0;
+    const currentMonth = allMonths[lastMonthIdx];
+
+    let sumFisik = 0, sumAnggaran = 0, sumTarget = 0, roCount = 0;
+
     outputs.forEach(o => {
-      allMonths.forEach(m => {
-        stats.outputTarget += (Number(o.targetCapaian?.[m]) || 0);
-        stats.outputReal += (Number(o.realCapaian?.[m]) || 0);
-      });
-      stats.outputCount++;
+      // 1. Hitung Pagu & Realisasi Anggaran RO (Kumulatif s.d bulan berjalan)
+      let roPagu = 0, roRealKeu = 0;
+      const bIdx = dataTampil.findIndex(d => d.id === o.id);
+      for (let i = bIdx + 1; i < dataTampil.length; i++) {
+        const next = dataTampil[i];
+        if (next.kode !== "" && getLevel(next.kode) <= 4) break;
+        if (getLevel(next.kode) === 8) {
+          roPagu += (Number(next.pagu) || 0);
+          for (let j = 0; j <= lastMonthIdx; j++) {
+            roRealKeu += (Number(next.realisasi?.[allMonths[j]]) || 0);
+          }
+        }
+      }
+
+      // 2. Persentase Indikator RO Bulan Berjalan
+      const pctAnggaran = roPagu > 0 ? (roRealKeu / roPagu * 100) : 0;
+      const pctFisik = Number(o.realCapaian?.[currentMonth]) || 0;
+      const pctTarget = Number(o.targetCapaian?.[currentMonth]) || 0;
+
+      // 3. Deteksi GAP (Absolut 20%)
+      const gapFisikKeu = pctFisik - pctAnggaran;
+      const gapFisikTarget = pctFisik - pctTarget;
+
+      if (Math.abs(gapFisikKeu) >= 20 || Math.abs(gapFisikTarget) >= 20) {
+        stats.gapCount++;
+      }
+
+      sumFisik += pctFisik;
+      sumAnggaran += pctAnggaran;
+      sumTarget += pctTarget;
+      roCount++;
     });
+
+    stats.avgFisik = roCount > 0 ? sumFisik / roCount : 0;
+    stats.avgAnggaran = roCount > 0 ? sumAnggaran / roCount : 0;
+    stats.avgTarget = roCount > 0 ? sumTarget / roCount : 0;
+    stats.outputCount = roCount;
+
     return stats;
   }, [dataTampil, allMonths]);
 
@@ -603,6 +656,58 @@ export default function App() {
     });
   }, [dataTampil]);
 
+  // --- KOMPONEN KARTU MONITORING GAP (REUSABLE) ---
+  const GapMonitoringCard = () => {
+    const isGapAlert = globalStats.gapCount > 0;
+    return (
+      <div className={`bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all relative overflow-hidden`}>
+          {isGapAlert && <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>}
+          <div className="flex justify-between items-start mb-8">
+              <div className={`p-4 ${isGapAlert ? 'bg-rose-50 text-rose-600' : 'bg-violet-50 text-violet-600'} rounded-2xl transition-colors shadow-sm`}>
+                <ClipboardCheck size={24}/>
+              </div>
+              <div className="text-right leading-none">
+                <span className="text-[10px] font-black text-slate-400 uppercase block tracking-widest">Monitoring GAP</span>
+                <span className={`text-xs font-bold ${isGapAlert ? 'text-rose-500' : 'text-violet-500'} italic uppercase`}>3 Indikator</span>
+              </div>
+          </div>
+          <div className="flex flex-col items-center mb-8 text-center">
+              <div className={`text-6xl font-black tracking-tighter italic mb-1 ${isGapAlert ? 'text-rose-600' : 'text-emerald-600'}`}>
+                {globalStats.gapCount}
+              </div>
+              <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Output Butuh Konfirmasi</div>
+          </div>
+          <div className={`space-y-4 ${isGapAlert ? 'bg-rose-50/50' : 'bg-slate-50'} p-6 rounded-[2rem] border ${isGapAlert ? 'border-rose-100' : 'border-slate-100'} transition-all`}>
+              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tight">
+                  <span className="text-slate-400">Anggaran/Pagu</span>
+                  <span className="text-slate-900 italic font-black">{globalStats.avgAnggaran.toFixed(1)}%</span>
+              </div>
+              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tight">
+                  <span className="text-slate-400">Fisik/Anggaran (GAP)</span>
+                  <span className={`italic font-black ${Math.abs(globalStats.avgFisik - globalStats.avgAnggaran) >= 20 ? 'text-rose-600' : 'text-slate-900'}`}>
+                    {(globalStats.avgFisik - globalStats.avgAnggaran).toFixed(1)}%
+                  </span>
+              </div>
+              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tight">
+                  <span className="text-slate-400">Fisik/Target (GAP)</span>
+                  <span className={`italic font-black ${Math.abs(globalStats.avgFisik - globalStats.avgTarget) >= 20 ? 'text-rose-600' : 'text-slate-900'}`}>
+                    {(globalStats.avgFisik - globalStats.avgTarget).toFixed(1)}%
+                  </span>
+              </div>
+          </div>
+          {isGapAlert ? (
+            <div className="mt-4 flex items-center justify-center gap-2 text-rose-500 text-[9px] font-black uppercase italic animate-pulse">
+              <AlertTriangle size={12}/> Anomali Deviasi Absolut {'>'} 20%
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center justify-center gap-2 text-emerald-600 text-[9px] font-black uppercase italic">
+              <CheckCircle2 size={12}/> Sinkronisasi Fisik & Keuangan Sehat
+            </div>
+          )}
+      </div>
+    );
+  };
+
   if (isAuthLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-sans">
@@ -789,7 +894,7 @@ export default function App() {
                       <div className="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full mb-3 inline-block shadow-lg animate-pulse">
                           Kondisi Terakhir: {kppnMetrics.revisiKe || "DIPA AWAL"}
                       </div>
-                      <h1 className="text-4xl font-black text-slate-800 italic tracking-tighter">Monitoring IKPA</h1>
+                      <h1 className="text-4xl font-black text-slate-800 italic tracking-tighter">Executive Monitoring</h1>
                       <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.3em] mt-1">BPS Kab. Seram Bagian Barat</p>
                   </div>
 
@@ -802,7 +907,7 @@ export default function App() {
                   </div>
               </div>
 
-              {/* 3 Kartu IKPA Radar */}
+              {/* 3 Kartu Radar Monitoring (Penyerapan, Deviasi, GAP) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Kartu 1: Penyerapan */}
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
@@ -845,47 +950,32 @@ export default function App() {
                           {[{l:'Deviasi 51', t:globalStats.rpd51, r:globalStats.real51}, {l:'Deviasi 52', t:globalStats.rpd52, r:globalStats.real52}, {l:'Deviasi 53', t:globalStats.rpd53, r:globalStats.real53}].map((it, i) => (
                               <div key={i} className="flex justify-between items-center text-[14px] font-black uppercase">
                                   <span className="text-slate-500">{it.l}</span>
-                                  <span className="text-slate-900 italic">{it.t > 0 ? Math.abs((it.r-it.t)/it.t*100).toFixed(1) : 0}%</span>
+                                  <span className={`text-slate-900 italic ${Math.abs((it.r-it.t)/it.t*100) >= 5 ? 'text-rose-600' : ''}`}>
+                                    {it.t > 0 ? Math.abs((it.r-it.t)/it.t*100).toFixed(1) : 0}%
+                                  </span>
                               </div>
                           ))}
                       </div>
                   </div>
 
-                  {/* Kartu 3: Capaian Output */}
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
-                      <div className="flex justify-between items-start mb-8">
-                          <div className="p-4 bg-violet-50 text-violet-600 rounded-2xl"><ClipboardCheck size={24}/></div>
-                          <div className="text-right leading-none"><span className="text-[10px] font-black text-slate-400 uppercase block">Capaian Output</span><span className="text-xs font-bold text-violet-500 italic">Progress</span></div>
-                      </div>
-                      <div className="flex flex-col items-center mb-10">
-                          <div className="text-6xl font-black text-slate-800 tracking-tighter italic mb-1">
-                            {globalStats.outputTarget > 0 ? (globalStats.outputReal / globalStats.outputTarget * 100).toFixed(1) : 0}%
-                          </div>
-                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Realisasi</div>
-                      </div>
-                      <div className="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Jumlah RO</span><span className="text-slate-800">{globalStats.outputCount}</span></div>
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Target</span><span className="text-slate-800">{globalStats.outputTarget.toFixed(0)}%</span></div>
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Realisasi</span><span className="text-violet-600">{globalStats.outputReal.toFixed(0)}%</span></div>
-                      </div>
-                  </div>
+                  {/* Kartu 3: Monitoring GAP (INSTRUKSI PERBAIKAN) */}
+                  <GapMonitoringCard />
               </div>
 
               {/* Grafik Lingkaran Per Akun */}
               <div className="bg-white p-12 rounded-[4rem] border border-slate-200 shadow-sm">
                   <h3 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter mb-12 flex items-center gap-4">
                       <div className="w-2 h-10 bg-indigo-600 rounded-full"></div>
-                      Realisasi Belanja & Deviasi Hal.III DIPA
+                      Realisasi Belanja & Proporsi DIPA
                   </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                       {[
-                        { id: '51', label: 'Belanja Pegawai', pagu: globalStats.pagu51, real: globalStats.real51, rpd: globalStats.rpd51, color: '#6366f1' },
-                        { id: '52', label: 'Belanja Barang', pagu: globalStats.pagu52, real: globalStats.real52, rpd: globalStats.rpd52, color: '#10b981' },
-                        { id: '53', label: 'Belanja Modal', pagu: globalStats.pagu53, real: globalStats.real53, rpd: globalStats.rpd53, color: '#f59e0b' }
+                        { id: '51', label: 'Belanja Pegawai', pagu: globalStats.pagu51, real: globalStats.real51, color: '#6366f1' },
+                        { id: '52', label: 'Belanja Barang', pagu: globalStats.pagu52, real: globalStats.real52, color: '#10b981' },
+                        { id: '53', label: 'Belanja Modal', pagu: globalStats.pagu53, real: globalStats.real53, color: '#f59e0b' }
                       ].map((item) => {
                           const pctRealisasi = item.pagu > 0 ? (item.real / item.pagu * 100) : 0;
-                          const deviasi = item.rpd > 0 ? ((item.real - item.rpd) / item.rpd * 100) : 0;
                           const dataPie = [
                               { name: 'Realisasi', value: item.real },
                               { name: 'Sisa Pagu', value: Math.max(0, item.pagu - item.real) }
@@ -894,7 +984,6 @@ export default function App() {
                           return (
                               <div key={item.id} className="flex flex-col items-center bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100">
                                   <span className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4">{item.label}</span>
-                                  
                                   <div className="h-[220px] w-full relative">
                                       <ResponsiveContainer width="100%" height="100%">
                                           <PieChart>
@@ -916,44 +1005,14 @@ export default function App() {
                                               />
                                           </PieChart>
                                       </ResponsiveContainer>
-                                      
                                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                                           <span className="text-3xl font-black text-slate-800 italic leading-none">{pctRealisasi.toFixed(1)}%</span>
                                           <span className="text-[9px] font-black text-slate-400 uppercase mt-1">Terserap</span>
                                       </div>
                                   </div>
-
-                                  <div className="mt-6 w-full space-y-3">
-                                      <div className="flex justify-between items-center bg-white px-5 py-3 rounded-2xl shadow-sm">
-                                          <span className="text-[10px] font-black text-slate-400 uppercase">Deviasi Hal III</span>
-                                          <span className={`text-xs font-black italic ${Math.abs(deviasi) < 5 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                              {deviasi > 0 ? '+' : ''}{deviasi.toFixed(2)}%
-                                          </span>
-                                      </div>
-                                      <div className="px-5 text-center">
-                                          <span className="text-[9px] font-bold text-slate-400 italic block">
-                                            Pagu: Rp {formatMoney(item.pagu)}
-                                          </span>
-                                      </div>
-                                  </div>
                               </div>
                           );
                       })}
-                  </div>
-
-                  <div className="mt-12 flex justify-center gap-10">
-                      <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-indigo-600"></div>
-                          <span className="text-[10px] font-black uppercase text-slate-500">Akun 51</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                          <span className="text-[10px] font-black uppercase text-slate-500">Akun 52</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                          <span className="text-[10px] font-black uppercase text-slate-500">Akun 53</span>
-                      </div>
                   </div>
               </div>
             </div>
@@ -962,6 +1021,7 @@ export default function App() {
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                  {/* Bagian Monitoring KPPN */}
                   <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl relative overflow-hidden">
                     <div className="flex justify-between items-start mb-8">
                         <div className="p-5 bg-emerald-100 text-emerald-600 rounded-[2rem]"><Activity size={32}/></div>
@@ -1003,6 +1063,7 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Bagian Deviasi Hal III DIPA */}
                   <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl overflow-hidden relative group">
                     <div className="flex justify-between items-start mb-8">
                         <div className="p-4 bg-orange-100 text-orange-600 rounded-[2rem]"><Target size={32}/></div>
@@ -1103,7 +1164,6 @@ export default function App() {
                               <td className="px-4 py-2 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
                               <td className="px-5 py-2 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
                               <td className="px-4 py-2 text-right font-black border-r border-slate-100">{!isNonFinancial ? formatMoney(item.pagu) : ""}</td>
-                              {/* Kolom TW I */}
                               <td className="px-3 py-3 text-right border-r border-slate-100">
                                 {!isNonFinancial && (
                                   <div className="flex flex-col text-[11px] font-black leading-tight">
@@ -1112,7 +1172,6 @@ export default function App() {
                                   </div>
                                 )}
                               </td>
-                              {/* Kolom TW II */}
                               <td className="px-3 py-3 text-right border-r border-slate-100">
                                 {!isNonFinancial && (
                                   <div className="flex flex-col text-[11px] font-black leading-tight">
@@ -1121,7 +1180,6 @@ export default function App() {
                                   </div>
                                 )}
                               </td>
-                              {/* Kolom TW III */}
                               <td className="px-3 py-3 text-right border-r border-slate-100">
                                 {!isNonFinancial && (
                                   <div className="flex flex-col text-[11px] font-black leading-tight">
@@ -1130,7 +1188,6 @@ export default function App() {
                                   </div>
                                 )}
                               </td>
-                              {/* Kolom TW IV */}
                               <td className="px-3 py-3 text-right border-r border-slate-100">
                                 {!isNonFinancial && (
                                   <div className="flex flex-col text-[11px] font-black leading-tight">
@@ -1157,12 +1214,17 @@ export default function App() {
 
           {activeTab === 'capaian' && (
             <div className="space-y-10 animate-in fade-in duration-700 pb-20">
+               {/* 1. KARTU MONITORING GAP (INSTRUKSI: DITARUH JUGA DI SINI SEBAGAI FILTER AUDIT) */}
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                 <GapMonitoringCard />
+               </div>
+
                <div className="bg-white p-10 rounded-[4rem] shadow-2xl border border-slate-200 overflow-hidden">
                  <div className="flex items-center gap-5 mb-10">
                     <div className="p-4 bg-violet-100 text-violet-600 rounded-2xl"><TrendingUp size={28}/></div>
                     <div>
-                      <h3 className="text-xl font-black italic uppercase tracking-tighter">Capaian Output (Output)</h3>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Monitoring Progres Fisik vs Keuangan Satker</p>
+                      <h3 className="text-xl font-black italic uppercase tracking-tighter">Entri Progres Rincian Output (RO)</h3>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Silakan perbaiki anomali GAP {'>'} 20% pada tabel di bawah</p>
                     </div>
                  </div>
 
@@ -1171,13 +1233,13 @@ export default function App() {
                        <thead className="sticky top-0 z-30 bg-slate-900 text-white text-center font-black uppercase tracking-widest">
                          <tr>
                              <th rowSpan={2} className="sticky left-0 z-40 bg-slate-900 px-4 py-4 text-left border-r border-white/5 min-w-[300px]">Kode & Output</th>
-                             <th rowSpan={2} className="sticky left-[300px] z-40 bg-slate-900 px-4 py-4 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Pagu & Real Keu.</th>
+                             <th rowSpan={2} className="sticky left-[300px] z-40 bg-slate-900 px-4 py-4 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Kumulatif Anggaran</th>
                              {allMonths.map(m => (
                                <th key={m} className="px-2 py-2 border-r border-white/5 min-w-[120px]">{m}</th>
                              ))}
                          </tr>
                          <tr className="bg-slate-800">
-                             {allMonths.map(m => (<th key={m} className="px-2 py-1 text-[8px] border-r border-white/5 tracking-tighter text-slate-400">Target | Real</th>))}
+                             {allMonths.map(m => (<th key={m} className="px-2 py-1 text-[8px] border-r border-white/5 tracking-tighter text-slate-400">Target % | Real %</th>))}
                          </tr>
                        </thead>
                        <tbody className="divide-y divide-slate-100">
@@ -1187,20 +1249,20 @@ export default function App() {
                                 <React.Fragment key={out.id}>
                                    <tr className="bg-white hover:bg-violet-50/30 transition-all">
                                       <td className="sticky left-0 z-10 bg-white px-5 py-4 border-r border-slate-50 relative">
-                                         <div className="font-black text-slate-800 text-[11px] mb-1">{out.kode}</div>
-                                         <div className="text-[9px] font-bold text-slate-400 uppercase leading-tight">{out.uraian}</div>
-                                         <span className="absolute top-4 right-2 text-[7px] font-black text-violet-500 bg-violet-50 px-1 py-0.5 rounded">BULANAN</span>
+                                          <div className="font-black text-slate-800 text-[11px] mb-1">{out.kode}</div>
+                                          <div className="text-[9px] font-bold text-slate-400 uppercase leading-tight">{out.uraian}</div>
+                                          <span className="absolute top-4 right-2 text-[7px] font-black text-violet-500 bg-violet-50 px-1 py-0.5 rounded">BULANAN</span>
                                       </td>
                                       <td className="sticky left-[300px] z-10 bg-white px-4 py-4 border-r border-slate-50 text-right shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
-                                         <div className="text-slate-400 font-bold mb-1">Pagu: {formatMoney(out.paguOutput)}</div>
-                                         <div className="text-slate-800 font-black tracking-tighter italic">Real: {formatMoney(out.realAnggaranOutput)} ({realKeuPct}%)</div>
+                                          <div className="text-slate-400 font-bold mb-1 italic">Pagu: {formatMoney(out.paguOutput)}</div>
+                                          <div className="text-slate-800 font-black tracking-tighter italic">Realisasi: {realKeuPct}%</div>
                                       </td>
                                       {allMonths.map(m => (
-                                         <td key={m} className="px-3 py-4 border-r border-slate-50">
+                                          <td key={m} className="px-3 py-4 border-r border-slate-50">
                                             <div className="flex flex-col gap-2">
                                                <input 
                                                   type="text" 
-                                                  placeholder="T %"
+                                                  placeholder="Target"
                                                   readOnly={currentUser.role !== 'admin'}
                                                   value={out.targetCapaian?.[m] || ""}
                                                   onChange={async (e) => {
@@ -1209,11 +1271,11 @@ export default function App() {
                                                       await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, out.id), { targetCapaian: { ...out.targetCapaian, [m]: val } });
                                                     }
                                                   }}
-                                                  className="w-full bg-slate-50 border border-slate-100 rounded-lg py-1 px-2 text-center text-[10px] font-black text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20"
+                                                  className="w-full bg-slate-50 border border-slate-100 rounded-lg py-1 px-2 text-center text-[10px] font-black text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20 transition-all"
                                                />
                                                <input 
                                                   type="text" 
-                                                  placeholder="R %"
+                                                  placeholder="Realisasi"
                                                   readOnly={currentUser.role !== 'admin'}
                                                   value={out.realCapaian?.[m] || ""}
                                                   onChange={async (e) => {
@@ -1222,32 +1284,11 @@ export default function App() {
                                                       await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, out.id), { realCapaian: { ...out.realCapaian, [m]: val } });
                                                     }
                                                   }}
-                                                  className="w-full bg-emerald-50 border border-emerald-100 rounded-lg py-1 px-2 text-center text-[10px] font-black text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                                  className="w-full bg-emerald-50 border border-emerald-100 rounded-lg py-1 px-2 text-center text-[10px] font-black text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
                                                />
                                             </div>
-                                         </td>
+                                          </td>
                                       ))}
-                                   </tr>
-                                   <tr className="bg-slate-50/50">
-                                      <td colSpan={2} className="sticky left-0 z-10 bg-slate-50 px-5 py-2 text-right border-r border-slate-50 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
-                                         <span className="text-[9px] font-black text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-200">KUMULATIF %</span>
-                                      </td>
-                                      {allMonths.map((m, idx) => {
-                                         let kumTarget = 0, kumReal = 0;
-                                         for(let i=0; i<=idx; i++){
-                                           kumTarget += Number(out.targetCapaian?.[allMonths[i]] || 0);
-                                           kumReal += Number(out.realCapaian?.[allMonths[i]] || 0);
-                                         }
-                                         const dev = kumReal - kumTarget;
-                                         return (
-                                            <td key={m} className="px-3 py-2 border-r border-slate-50 text-center">
-                                               <div className="flex flex-col text-[10px] font-black tracking-tighter">
-                                                  <span className="text-slate-800">{kumTarget.toFixed(2)} | {kumReal.toFixed(2)}</span>
-                                                  <span className={dev >= 0 ? "text-emerald-600" : "text-rose-600"}>D: {dev.toFixed(2)}</span>
-                                               </div>
-                                            </td>
-                                         );
-                                      })}
                                    </tr>
                                 </React.Fragment>
                              );
@@ -1351,14 +1392,14 @@ export default function App() {
                     <div className="border-4 border-dashed border-slate-100 rounded-[3rem] p-24 hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all" onClick={() => fileInputRef.current?.click()}>
                       <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileAnalyze} disabled={isProcessing} className="hidden" />
                       <FileUp size={64} className="mx-auto mb-8 text-slate-200" />
-                      <span className="text-sm font-black uppercase text-slate-400 italic block">Upload File Excel Baru</span>
+                      <span className="text-sm font-black uppercase text-slate-400 italic block">Upload File Excel SAKTI (.xlsx)</span>
                     </div>
                     {previewData.length > 0 && (
                       <div className="grid grid-cols-3 gap-6 animate-in zoom-in">
-                        <div className="p-6 bg-slate-50 rounded-3xl shadow-sm text-slate-600"><span className="text-[10px] uppercase font-black text-slate-400 block mb-1">Row Data</span><span className="text-3xl font-black">{previewData.length}</span></div>
-                        <div className="p-6 bg-emerald-50 rounded-3xl shadow-sm text-emerald-600"><span className="text-[10px] uppercase font-black text-emerald-400 block mb-1">Match</span><span className="text-3xl font-black">{migrationStats.match}</span></div>
-                        <div className="p-6 bg-rose-50 rounded-3xl shadow-sm text-rose-600"><span className="text-[10px] uppercase font-black text-rose-400 block mb-1">Orphan</span><span className="text-3xl font-black">{migrationStats.orphaned}</span></div>
-                        <button onClick={executeMigration} disabled={isProcessing} className="col-span-3 py-6 bg-blue-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:bg-blue-700 transition-all">Eksekusi Sinkronisasi</button>
+                        <div className="p-6 bg-slate-50 rounded-3xl shadow-sm text-slate-600"><span className="text-[10px] uppercase font-black text-slate-400 block mb-1">Total Baris</span><span className="text-3xl font-black">{previewData.length}</span></div>
+                        <div className="p-6 bg-emerald-50 rounded-3xl shadow-sm text-emerald-600"><span className="text-[10px] uppercase font-black text-emerald-400 block mb-1">Data Match</span><span className="text-3xl font-black">{migrationStats.match}</span></div>
+                        <div className="p-6 bg-rose-50 rounded-3xl shadow-sm text-rose-600"><span className="text-[10px] uppercase font-black text-rose-400 block mb-1">Data Orphan</span><span className="text-3xl font-black">{migrationStats.orphaned}</span></div>
+                        <button onClick={executeMigration} disabled={isProcessing} className="col-span-3 py-6 bg-blue-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:bg-blue-700 active:scale-[0.98] transition-all">Sinkronisasi & Update Database</button>
                       </div>
                     )}
                   </div>
@@ -1385,7 +1426,7 @@ export default function App() {
                            />
                        </div>
                        <button onClick={handleToggleLock} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-xl transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
-                          {isLocked ? <Lock size={16} /> : <Unlock size={16} />} {isLocked ? 'Buka Kunci' : 'Kunci Pengisian'}
+                         {isLocked ? <Lock size={16} /> : <Unlock size={16} />} {isLocked ? 'Buka Kunci' : 'Kunci Pengisian'}
                        </button>
                        <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-white text-slate-600 border border-slate-200 shadow-sm"><Eraser size={16} /> Reset Nilai</button>
                     </div>
@@ -1397,29 +1438,29 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                 <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
+                  <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
                     <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
                       <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>GG</button>
                       <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>WA</button>
                     </div>
-                 </div>
-                 <div className="lg:col-span-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
+                  </div>
+                  <div className="lg:col-span-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tim Pelaksana</span>
                     <div className="flex flex-wrap gap-1 p-1 bg-slate-50 rounded-lg">
                       {ALL_TEAMS.filter(t => activeWilayah === "GG" ? t !== "Umum" : t === "Umum").map(tim => (
                         <button key={tim} disabled={currentUser?.role !== 'admin'} onClick={() => setActiveTim(tim)} className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 opacity-50'}`}>{tim}</button>
                       ))}
                     </div>
-                 </div>
-                 <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
+                  </div>
+                  <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Triwulan</span>
                     <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
                       {[1,2,3,4].map(tw => (
                          <button key={tw} onClick={() => setTwActive(tw)} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>TW {tw}</button>
                       ))}
                     </div>
-                 </div>
+                  </div>
               </div>
 
               <div className="bg-white shadow-2xl border border-slate-200 overflow-hidden rounded-[4rem]">
@@ -1487,18 +1528,19 @@ export default function App() {
           )}
         </div>
 
-        <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0">
+        <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0 shadow-inner">
             <ShieldHalf size={14} className="text-slate-300" />
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">© 2026 BPS Kab. Seram Bagian Barat - Internal Cloud Access</p>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">© 2026 BPS Kab. Seram Bagian Barat - Internal Secure Server Access</p>
         </footer>
       </main>
 
+      {/* --- MODAL KONFIRMASI RESET --- */}
       {showClearDataModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-sm p-10 text-center border border-slate-200 animate-in zoom-in duration-200">
               <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-6"><AlertTriangle size={32} /></div>
-              <h3 className="text-xl font-black text-slate-800 mb-2 italic">Konfirmasi Reset</h3>
-              <p className="text-[11px] text-slate-500 mb-10 leading-relaxed italic">Hapus semua entri pada tab ini? Tindakan ini tidak dapat dibatalkan.</p>
+              <h3 className="text-xl font-black text-slate-800 mb-2 italic uppercase">Konfirmasi Reset</h3>
+              <p className="text-[11px] text-slate-500 mb-10 leading-relaxed italic">Hapus seluruh input data <b>{activeTab.toUpperCase()}</b> pada tim <b>{activeTim}</b> secara permanen?</p>
               <div className="flex flex-col gap-3">
                  <button onClick={async () => { 
                    if (!fbUser || currentUser?.role !== 'admin') return;
@@ -1509,8 +1551,8 @@ export default function App() {
                    snap.docs.forEach(d => batch.update(d.ref, { [fieldToClear]: {} }));
                    await batch.commit(); 
                    setIsProcessing(false); setShowClearDataModal(false); 
-                 }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-rose-700 transition-all">Ya, Hapus Semua</button>
-                 <button onClick={() => setShowClearDataModal(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase hover:bg-slate-200 transition-all">Batal</button>
+                 }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-rose-700 active:scale-95 transition-all">Ya, Kosongkan Data</button>
+                 <button onClick={() => setShowClearDataModal(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase hover:bg-slate-200 transition-all">Batalkan</button>
               </div>
            </div>
         </div>
@@ -1518,9 +1560,13 @@ export default function App() {
 
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 12px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .no-spinner::-webkit-outer-spin-button, .no-spinner::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .no-spinner { -moz-appearance: textfield; }
+        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fade-in 0.5s ease-out forwards; }
       `}} />
     </div>
   );
