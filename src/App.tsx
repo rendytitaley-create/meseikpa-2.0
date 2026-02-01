@@ -346,7 +346,12 @@ export default function App() {
         real51: 0, real52: 0, real53: 0,
         rpd51: 0, rpd52: 0, rpd53: 0,
         outputTarget: 0, outputReal: 0, outputCount: 0,
-        months: allMonths.map(m => ({ name: m, rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 })),
+        // Bagian ini diubah agar bisa dipanggil dengan nama bulan (Jan, Feb, dst)
+        months: allMonths.reduce((acc: any, m) => {
+          acc[m] = { name: m, rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 };
+          return acc;
+        }, {}),
+        chartData: allMonths.map(m => ({ name: m, real: 0 })), // Khusus untuk grafik dashboard
         tw: [0,1,2,3].map(() => ({ rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 }))
     };
 
@@ -371,16 +376,27 @@ export default function App() {
         const valRPD = (Number(d.rpd?.[m]) || 0);
         const valReal = (Number(d.realisasi?.[m]) || 0);
         
-        stats.months[idx].rpd += valRPD;
-        stats.months[idx].real += valReal;
+        // Simpan data bulanan
+        stats.months[m].rpd += valRPD;
+        stats.months[m].real += valReal;
+        stats.chartData[idx].real += valReal; // Untuk grafik dashboard
 
         const twIdx = Math.floor(idx / 3);
         stats.tw[twIdx].rpd += valRPD;
         stats.tw[twIdx].real += valReal;
 
-        if(is51) { stats.tw[twIdx].rpd51 += valRPD; stats.tw[twIdx].real51 += valReal; stats.months[idx].rpd51 += valRPD; stats.months[idx].real51 += valReal; }
-        if(is52) { stats.tw[twIdx].rpd52 += valRPD; stats.tw[twIdx].real52 += valReal; stats.months[idx].rpd52 += valRPD; stats.months[idx].real52 += valReal; }
-        if(is53) { stats.tw[twIdx].rpd53 += valRPD; stats.tw[twIdx].real53 += valReal; stats.months[idx].rpd53 += valRPD; stats.months[idx].real53 += valReal; }
+        if(is51) { 
+          stats.tw[twIdx].rpd51 += valRPD; stats.tw[twIdx].real51 += valReal; 
+          stats.months[m].rpd51 += valRPD; stats.months[m].real51 += valReal; 
+        }
+        if(is52) { 
+          stats.tw[twIdx].rpd52 += valRPD; stats.tw[twIdx].real52 += valReal; 
+          stats.months[m].rpd52 += valRPD; stats.months[m].real52 += valReal; 
+        }
+        if(is53) { 
+          stats.tw[twIdx].rpd53 += valRPD; stats.tw[twIdx].real53 += valReal; 
+          stats.months[m].rpd53 += valRPD; stats.months[m].real53 += valReal; 
+        }
       });
     });
 
