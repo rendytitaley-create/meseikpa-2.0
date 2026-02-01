@@ -26,7 +26,7 @@ import {
   LayoutDashboard, FileUp, Trash2, AlertTriangle, Menu, User,
   Activity, Lock, Unlock, PieChart as PieIcon, Target, Users, UserPlus,
   Edit3, LogOut, Eraser, ShieldHalf, CheckCircle2, LogIn, KeyRound, Search,
-  Filter, Eye, EyeOff, CalendarDays, TrendingUp, ClipboardCheck
+  Filter, Eye, EyeOff, CalendarDays, TrendingUp, ClipboardCheck, Info
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -166,6 +166,9 @@ export default function App() {
   
   // Fitur Rekap Bulanan State
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
+
+  // Monitoring GAP Monthly Filter
+  const [selectedMonthGap, setSelectedMonthGap] = useState<string>("");
 
   // State Password Visibility
   const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
@@ -348,11 +351,12 @@ export default function App() {
         real51: 0, real52: 0, real53: 0,
         rpd51: 0, rpd52: 0, rpd53: 0,
         outputTarget: 0, outputReal: 0, outputCount: 0,
-        // GAP Monitoring Variables
         gapCount: 0,
+        anomaliList: [],
         avgFisik: 0,
         avgAnggaran: 0,
         avgTarget: 0,
+        activeMonth: "",
         months: allMonths.reduce((acc: any, m) => {
           acc[m] = { name: m, rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 };
           return acc;
@@ -394,24 +398,24 @@ export default function App() {
       });
     });
 
-    // --- LOGIKA BARU: MONITORING GAP BULANAN ---
     const outputs = dataTampil.filter(d => getLevel(d.kode) === 4);
     
-    // Temukan bulan terakhir yang memiliki data (Bulan Berjalan)
-    let lastMonthIdx = -1;
-    for (let i = 11; i >= 0; i--) {
-      const m = allMonths[i];
-      const hasData = outputs.some(o => (o.realCapaian?.[m] && o.realCapaian?.[m] !== "0") || (o.targetCapaian?.[m] && o.targetCapaian?.[m] !== "0"));
-      if (hasData) { lastMonthIdx = i; break; }
+    // Auto-detect current month if not selected
+    let targetMonth = selectedMonthGap;
+    if (!targetMonth) {
+        for (let i = 11; i >= 0; i--) {
+            const m = allMonths[i];
+            const hasData = outputs.some(o => (o.realCapaian?.[m] && o.realCapaian?.[m] !== "0") || (o.targetCapaian?.[m] && o.targetCapaian?.[m] !== "0"));
+            if (hasData) { targetMonth = m; break; }
+        }
     }
-    // Jika tidak ada data sama sekali, default ke Jan (idx 0)
-    if (lastMonthIdx === -1) lastMonthIdx = 0;
-    const currentMonth = allMonths[lastMonthIdx];
+    if (!targetMonth) targetMonth = "Jan";
+    stats.activeMonth = targetMonth;
+    const mIdx = allMonths.indexOf(targetMonth);
 
     let sumFisik = 0, sumAnggaran = 0, sumTarget = 0, roCount = 0;
 
     outputs.forEach(o => {
-      // 1. Hitung Pagu & Realisasi Anggaran RO (Kumulatif s.d bulan berjalan)
       let roPagu = 0, roRealKeu = 0;
       const bIdx = dataTampil.findIndex(d => d.id === o.id);
       for (let i = bIdx + 1; i < dataTampil.length; i++) {
@@ -419,23 +423,30 @@ export default function App() {
         if (next.kode !== "" && getLevel(next.kode) <= 4) break;
         if (getLevel(next.kode) === 8) {
           roPagu += (Number(next.pagu) || 0);
-          for (let j = 0; j <= lastMonthIdx; j++) {
+          for (let j = 0; j <= mIdx; j++) {
             roRealKeu += (Number(next.realisasi?.[allMonths[j]]) || 0);
           }
         }
       }
 
-      // 2. Persentase Indikator RO Bulan Berjalan
       const pctAnggaran = roPagu > 0 ? (roRealKeu / roPagu * 100) : 0;
-      const pctFisik = Number(o.realCapaian?.[currentMonth]) || 0;
-      const pctTarget = Number(o.targetCapaian?.[currentMonth]) || 0;
+      const pctFisik = Number(o.realCapaian?.[targetMonth]) || 0;
+      const pctTarget = Number(o.targetCapaian?.[targetMonth]) || 0;
 
-      // 3. Deteksi GAP (Absolut 20%)
       const gapFisikKeu = pctFisik - pctAnggaran;
       const gapFisikTarget = pctFisik - pctTarget;
 
       if (Math.abs(gapFisikKeu) >= 20 || Math.abs(gapFisikTarget) >= 20) {
         stats.gapCount++;
+        stats.anomaliList.push({
+            kode: o.kode,
+            uraian: o.uraian,
+            fisik: pctFisik,
+            anggaran: pctAnggaran,
+            target: pctTarget,
+            gapFisikKeu,
+            gapFisikTarget
+        });
       }
 
       sumFisik += pctFisik;
@@ -450,7 +461,7 @@ export default function App() {
     stats.outputCount = roCount;
 
     return stats;
-  }, [dataTampil, allMonths]);
+  }, [dataTampil, allMonths, selectedMonthGap]);
 
   const handleUpdateKPPN = (category: string, period: string, value: string) => {
     const cleanValue = value.replace(/\D/g, "");
@@ -656,54 +667,83 @@ export default function App() {
     });
   }, [dataTampil]);
 
-  // --- KOMPONEN KARTU MONITORING GAP (REUSABLE) ---
-  const GapMonitoringCard = () => {
+  // --- KOMPONEN KARTU GAP (REUSABLE) ---
+  const GapMonitoringCard = ({ showDetails = false }: { showDetails?: boolean }) => {
     const isGapAlert = globalStats.gapCount > 0;
     return (
-      <div className={`bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all relative overflow-hidden`}>
-          {isGapAlert && <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>}
-          <div className="flex justify-between items-start mb-8">
-              <div className={`p-4 ${isGapAlert ? 'bg-rose-50 text-rose-600' : 'bg-violet-50 text-violet-600'} rounded-2xl transition-colors shadow-sm`}>
-                <ClipboardCheck size={24}/>
+      <div className="space-y-4 w-full">
+          {/* Header Filter Bulan (Halaman Capaian) */}
+          {showDetails && (
+              <div className="flex flex-wrap gap-1 p-1 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                  {allMonths.map(m => (
+                      <button 
+                        key={m} 
+                        onClick={() => setSelectedMonthGap(m)}
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${globalStats.activeMonth === m ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
+                      >
+                          {m}
+                      </button>
+                  ))}
+                  <button onClick={() => setSelectedMonthGap("")} className="px-3 py-1.5 text-[9px] font-black text-slate-300 hover:text-indigo-600 ml-auto uppercase italic underline">Auto</button>
               </div>
-              <div className="text-right leading-none">
-                <span className="text-[10px] font-black text-slate-400 uppercase block tracking-widest">Monitoring GAP</span>
-                <span className={`text-xs font-bold ${isGapAlert ? 'text-rose-500' : 'text-violet-500'} italic uppercase`}>3 Indikator</span>
-              </div>
-          </div>
-          <div className="flex flex-col items-center mb-8 text-center">
-              <div className={`text-6xl font-black tracking-tighter italic mb-1 ${isGapAlert ? 'text-rose-600' : 'text-emerald-600'}`}>
-                {globalStats.gapCount}
-              </div>
-              <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Output Butuh Konfirmasi</div>
-          </div>
-          <div className={`space-y-4 ${isGapAlert ? 'bg-rose-50/50' : 'bg-slate-50'} p-6 rounded-[2rem] border ${isGapAlert ? 'border-rose-100' : 'border-slate-100'} transition-all`}>
-              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tight">
-                  <span className="text-slate-400">Anggaran/Pagu</span>
-                  <span className="text-slate-900 italic font-black">{globalStats.avgAnggaran.toFixed(1)}%</span>
-              </div>
-              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tight">
-                  <span className="text-slate-400">Fisik/Anggaran (GAP)</span>
-                  <span className={`italic font-black ${Math.abs(globalStats.avgFisik - globalStats.avgAnggaran) >= 20 ? 'text-rose-600' : 'text-slate-900'}`}>
-                    {(globalStats.avgFisik - globalStats.avgAnggaran).toFixed(1)}%
-                  </span>
-              </div>
-              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tight">
-                  <span className="text-slate-400">Fisik/Target (GAP)</span>
-                  <span className={`italic font-black ${Math.abs(globalStats.avgFisik - globalStats.avgTarget) >= 20 ? 'text-rose-600' : 'text-slate-900'}`}>
-                    {(globalStats.avgFisik - globalStats.avgTarget).toFixed(1)}%
-                  </span>
-              </div>
-          </div>
-          {isGapAlert ? (
-            <div className="mt-4 flex items-center justify-center gap-2 text-rose-500 text-[9px] font-black uppercase italic animate-pulse">
-              <AlertTriangle size={12}/> Anomali Deviasi Absolut {'>'} 20%
-            </div>
-          ) : (
-            <div className="mt-4 flex items-center justify-center gap-2 text-emerald-600 text-[9px] font-black uppercase italic">
-              <CheckCircle2 size={12}/> Sinkronisasi Fisik & Keuangan Sehat
-            </div>
           )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className={`lg:col-span-4 bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden`}>
+                  <div className="flex justify-between items-start mb-6">
+                      <div className={`p-4 ${isGapAlert ? 'bg-rose-50 text-rose-600' : 'bg-violet-50 text-violet-600'} rounded-2xl`}>
+                        <ClipboardCheck size={24}/>
+                      </div>
+                      <div className="text-right leading-none">
+                        <span className="text-[10px] font-black text-slate-400 uppercase block tracking-widest">Status {globalStats.activeMonth}</span>
+                        <span className={`text-xs font-bold ${isGapAlert ? 'text-rose-500' : 'text-violet-500'} italic uppercase`}>Monitoring GAP</span>
+                      </div>
+                  </div>
+                  <div className="flex flex-col items-center mb-6 text-center">
+                      <div className={`text-6xl font-black tracking-tighter italic ${isGapAlert ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        {globalStats.gapCount}
+                      </div>
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Output Bermasalah</div>
+                  </div>
+                  <div className="space-y-3 bg-slate-50 p-5 rounded-[2rem] border border-slate-100">
+                      <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-400">Avg. Fisik</span><span className="text-slate-800 font-bold">{globalStats.avgFisik.toFixed(1)}%</span></div>
+                      <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-400">Avg. Keu</span><span className="text-slate-800 font-bold">{globalStats.avgAnggaran.toFixed(1)}%</span></div>
+                  </div>
+              </div>
+
+              {showDetails && (
+                  <div className="lg:col-span-8 bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                      <h4 className="text-xs font-black uppercase italic text-slate-800 mb-4 flex items-center gap-2">
+                        <Info size={14} className="text-indigo-500"/> Daftar Output Bermasalah ({globalStats.activeMonth})
+                      </h4>
+                      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2" style={{maxHeight:'220px'}}>
+                          {globalStats.anomaliList.length > 0 ? globalStats.anomaliList.map((item: any, idx: number) => (
+                              <div key={idx} className="p-4 bg-rose-50/50 rounded-2xl border border-rose-100 flex items-center justify-between gap-4">
+                                  <div className="min-w-0">
+                                      <div className="text-[11px] font-black text-slate-800 truncate">{item.uraian}</div>
+                                      <div className="text-[9px] font-bold text-slate-400 font-mono tracking-tighter">{item.kode}</div>
+                                  </div>
+                                  <div className="flex gap-2 shrink-0">
+                                      <div className="text-center px-3 py-1 bg-white rounded-lg border border-rose-100 shadow-sm">
+                                          <span className="block text-[7px] font-black text-slate-400 uppercase leading-none mb-1">GAP KEU</span>
+                                          <span className="text-[10px] font-black text-rose-600 italic">{(item.gapFisikKeu).toFixed(1)}%</span>
+                                      </div>
+                                      <div className="text-center px-3 py-1 bg-white rounded-lg border border-rose-100 shadow-sm">
+                                          <span className="block text-[7px] font-black text-slate-400 uppercase leading-none mb-1">GAP TGT</span>
+                                          <span className="text-[10px] font-black text-rose-600 italic">{(item.gapFisikTarget).toFixed(1)}%</span>
+                                      </div>
+                                  </div>
+                              </div>
+                          )) : (
+                              <div className="h-full flex flex-col items-center justify-center text-emerald-500 opacity-60 italic">
+                                  <CheckCircle2 size={32} className="mb-2"/>
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-center">Semua Output Sinkron</span>
+                              </div>
+                          )}
+                      </div>
+                  </div>
+              )}
+          </div>
       </div>
     );
   };
@@ -828,8 +868,6 @@ export default function App() {
           )}
         </nav>
         <div className="p-4 border-t border-white/5"> 
-          
-          {/* --- TOMBOL KERTAS KERJA DI SIDEBAR --- */}
                   <div className="px-4 mb-2">
                     <button
                       onClick={() => {
@@ -839,7 +877,7 @@ export default function App() {
                       className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition-all rounded-xl group"
                     >
                       <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14.5 2 14.5 7.5 20 7.5"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></svg>
+                        <Target size={20} />
                       </div>
                       <span className="font-medium text-sm">Kertas Kerja</span>
                     </button>
@@ -886,10 +924,8 @@ export default function App() {
         <div className="flex-1 overflow-auto p-8 custom-scrollbar">
           {activeTab === 'dashboard' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
-              {/* Header: Status Revisi & Total Pagu */}
               <div className="flex flex-col md:flex-row justify-between items-end gap-6 bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                  
                   <div className="z-10">
                       <div className="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full mb-3 inline-block shadow-lg animate-pulse">
                           Kondisi Terakhir: {kppnMetrics.revisiKe || "DIPA AWAL"}
@@ -897,7 +933,6 @@ export default function App() {
                       <h1 className="text-4xl font-black text-slate-800 italic tracking-tighter">Executive Monitoring</h1>
                       <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.3em] mt-1">BPS Kab. Seram Bagian Barat</p>
                   </div>
-
                   <div className="z-10 text-right">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Total Pagu</span>
                       <div className="text-4xl font-black text-slate-900 tracking-tighter italic">
@@ -907,9 +942,7 @@ export default function App() {
                   </div>
               </div>
 
-              {/* 3 Kartu Radar Monitoring (Penyerapan, Deviasi, GAP) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  {/* Kartu 1: Penyerapan */}
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
                       <div className="flex justify-between items-start mb-8">
                           <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Activity size={24}/></div>
@@ -934,7 +967,6 @@ export default function App() {
                       </div>
                   </div>
 
-                  {/* Kartu 2: Deviasi Hal III */}
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
                       <div className="flex justify-between items-start mb-8">
                           <div className="p-4 bg-amber-50 text-amber-600 rounded-2xl"><Target size={24}/></div>
@@ -958,17 +990,14 @@ export default function App() {
                       </div>
                   </div>
 
-                  {/* Kartu 3: Monitoring GAP (INSTRUKSI PERBAIKAN) */}
                   <GapMonitoringCard />
               </div>
 
-              {/* Grafik Lingkaran Per Akun */}
               <div className="bg-white p-12 rounded-[4rem] border border-slate-200 shadow-sm">
                   <h3 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter mb-12 flex items-center gap-4">
                       <div className="w-2 h-10 bg-indigo-600 rounded-full"></div>
                       Realisasi Belanja & Proporsi DIPA
                   </h3>
-                  
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                       {[
                         { id: '51', label: 'Belanja Pegawai', pagu: globalStats.pagu51, real: globalStats.real51, color: '#6366f1' },
@@ -976,33 +1005,17 @@ export default function App() {
                         { id: '53', label: 'Belanja Modal', pagu: globalStats.pagu53, real: globalStats.real53, color: '#f59e0b' }
                       ].map((item) => {
                           const pctRealisasi = item.pagu > 0 ? (item.real / item.pagu * 100) : 0;
-                          const dataPie = [
-                              { name: 'Realisasi', value: item.real },
-                              { name: 'Sisa Pagu', value: Math.max(0, item.pagu - item.real) }
-                          ];
-
                           return (
                               <div key={item.id} className="flex flex-col items-center bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100">
                                   <span className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4">{item.label}</span>
                                   <div className="h-[220px] w-full relative">
                                       <ResponsiveContainer width="100%" height="100%">
                                           <PieChart>
-                                              <Pie
-                                                  data={dataPie}
-                                                  innerRadius={65}
-                                                  outerRadius={85}
-                                                  paddingAngle={5}
-                                                  dataKey="value"
-                                                  startAngle={90}
-                                                  endAngle={-270}
-                                              >
+                                              <Pie data={[{ name: 'Realisasi', value: item.real }, { name: 'Sisa Pagu', value: Math.max(0, item.pagu - item.real) }]} innerRadius={65} outerRadius={85} paddingAngle={5} dataKey="value" startAngle={90} endAngle={-270}>
                                                   <Cell fill={item.color} stroke="none" />
                                                   <Cell fill="#e2e8f0" stroke="none" />
                                               </Pie>
-                                              <Tooltip 
-                                                contentStyle={{borderRadius: '15px', border:'none', boxShadow:'0 10px 20px rgba(0,0,0,0.05)'}}
-                                                formatter={(value: any) => `Rp ${formatMoney(value || 0)}`}
-                                              />
+                                              <Tooltip formatter={(value: any) => `Rp ${formatMoney(value || 0)}`} />
                                           </PieChart>
                                       </ResponsiveContainer>
                                       <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -1021,7 +1034,6 @@ export default function App() {
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                  {/* Bagian Monitoring KPPN */}
                   <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl relative overflow-hidden">
                     <div className="flex justify-between items-start mb-8">
                         <div className="p-5 bg-emerald-100 text-emerald-600 rounded-[2rem]"><Activity size={32}/></div>
@@ -1063,7 +1075,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Bagian Deviasi Hal III DIPA */}
                   <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl overflow-hidden relative group">
                     <div className="flex justify-between items-start mb-8">
                         <div className="p-4 bg-orange-100 text-orange-600 rounded-[2rem]"><Target size={32}/></div>
@@ -1153,12 +1164,10 @@ export default function App() {
                           const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
                           const sisaPagu = (Number(item.pagu) || 0) - (item.totalReal || 0);
                           const devPctFinal = item.totalRPD > 0 ? ((item.totalReal - item.totalRPD) / item.totalRPD) * 100 : 0;
-                          
                           let rowBg = "hover:bg-blue-50/40 transition-all";
                           if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
                           if (item.level === 2) rowBg = "bg-blue-100/40 font-black";
                           if (item.level === 7) rowBg = "bg-slate-100 font-black";
-                          
                           return (
                             <tr key={item.id} className={rowBg}>
                               <td className="px-4 py-2 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
@@ -1167,32 +1176,32 @@ export default function App() {
                               <td className="px-3 py-3 text-right border-r border-slate-100">
                                 {!isNonFinancial && (
                                   <div className="flex flex-col text-[11px] font-black leading-tight">
-                                    <span className="text-orange-600">{formatMoney((Number((item as any).monthRPD?.Jan)||0) + (Number((item as any).monthRPD?.Feb)||0) + (Number((item as any).monthRPD?.Mar)||0))}</span>
-                                    <span className="text-blue-600">{formatMoney((Number((item as any).monthReal?.Jan)||0) + (Number((item as any).monthReal?.Feb)||0) + (Number((item as any).monthReal?.Mar)||0))}</span>
+                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Jan)||0) + (Number(item.monthRPD?.Feb)||0) + (Number(item.monthRPD?.Mar)||0))}</span>
+                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Jan)||0) + (Number(item.monthReal?.Feb)||0) + (Number(item.monthReal?.Mar)||0))}</span>
                                   </div>
                                 )}
                               </td>
                               <td className="px-3 py-3 text-right border-r border-slate-100">
                                 {!isNonFinancial && (
                                   <div className="flex flex-col text-[11px] font-black leading-tight">
-                                    <span className="text-orange-600">{formatMoney((Number((item as any).monthRPD?.Apr)||0) + (Number((item as any).monthRPD?.Mei)||0) + (Number((item as any).monthRPD?.Jun)||0))}</span>
-                                    <span className="text-blue-600">{formatMoney((Number((item as any).monthReal?.Apr)||0) + (Number((item as any).monthReal?.Mei)||0) + (Number((item as any).monthReal?.Jun)||0))}</span>
+                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Apr)||0) + (Number(item.monthRPD?.Mei)||0) + (Number(item.monthRPD?.Jun)||0))}</span>
+                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Apr)||0) + (Number(item.monthReal?.Mei)||0) + (Number(item.monthReal?.Jun)||0))}</span>
                                   </div>
                                 )}
                               </td>
                               <td className="px-3 py-3 text-right border-r border-slate-100">
                                 {!isNonFinancial && (
                                   <div className="flex flex-col text-[11px] font-black leading-tight">
-                                    <span className="text-orange-600">{formatMoney((Number((item as any).monthRPD?.Jul)||0) + (Number((item as any).monthRPD?.Ags)||0) + (Number((item as any).monthRPD?.Sep)||0))}</span>
-                                    <span className="text-blue-600">{formatMoney((Number((item as any).monthReal?.Jul)||0) + (Number((item as any).monthReal?.Ags)||0) + (Number((item as any).monthReal?.Sep)||0))}</span>
+                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Jul)||0) + (Number(item.monthRPD?.Ags)||0) + (Number(item.monthRPD?.Sep)||0))}</span>
+                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Jul)||0) + (Number(item.monthReal?.Ags)||0) + (Number(item.monthReal?.Sep)||0))}</span>
                                   </div>
                                 )}
                               </td>
                               <td className="px-3 py-3 text-right border-r border-slate-100">
                                 {!isNonFinancial && (
                                   <div className="flex flex-col text-[11px] font-black leading-tight">
-                                    <span className="text-orange-600">{formatMoney((Number((item as any).monthRPD?.Okt)||0) + (Number((item as any).monthRPD?.Nov)||0) + (Number((item as any).monthRPD?.Des)||0))}</span>
-                                    <span className="text-blue-600">{formatMoney((Number((item as any).monthReal?.Okt)||0) + (Number((item as any).monthReal?.Nov)||0) + (Number((item as any).monthReal?.Des)||0))}</span>
+                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Okt)||0) + (Number(item.monthRPD?.Nov)||0) + (Number(item.monthRPD?.Des)||0))}</span>
+                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Okt)||0) + (Number(item.monthReal?.Nov)||0) + (Number(item.monthReal?.Des)||0))}</span>
                                   </div>
                                 )}
                               </td>
@@ -1213,21 +1222,16 @@ export default function App() {
           )}
 
           {activeTab === 'capaian' && (
-            <div className="space-y-10 animate-in fade-in duration-700 pb-20">
-               {/* 1. KARTU MONITORING GAP (INSTRUKSI: DITARUH JUGA DI SINI SEBAGAI FILTER AUDIT) */}
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                 <GapMonitoringCard />
-               </div>
-
+            <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+               <GapMonitoringCard showDetails={true} />
                <div className="bg-white p-10 rounded-[4rem] shadow-2xl border border-slate-200 overflow-hidden">
                  <div className="flex items-center gap-5 mb-10">
                     <div className="p-4 bg-violet-100 text-violet-600 rounded-2xl"><TrendingUp size={28}/></div>
                     <div>
                       <h3 className="text-xl font-black italic uppercase tracking-tighter">Entri Progres Rincian Output (RO)</h3>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Silakan perbaiki anomali GAP {'>'} 20% pada tabel di bawah</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Silakan perbaiki data pada bulan yang terdeteksi GAP</p>
                     </div>
                  </div>
-
                  <div className="overflow-x-auto overflow-y-auto custom-scrollbar rounded-[2rem] border border-slate-100 max-h-[70vh] relative">
                     <table className="w-full text-[10px] border-separate border-spacing-0">
                        <thead className="sticky top-0 z-30 bg-slate-900 text-white text-center font-black uppercase tracking-widest">
@@ -1246,23 +1250,21 @@ export default function App() {
                           {capaianOutputData.map((out) => {
                              const realKeuPct = out.paguOutput > 0 ? (out.realAnggaranOutput / out.paguOutput * 100).toFixed(1) : "0.0";
                              return (
-                                <React.Fragment key={out.id}>
-                                   <tr className="bg-white hover:bg-violet-50/30 transition-all">
+                                <tr key={out.id} className="bg-white hover:bg-violet-50/30 transition-all">
                                       <td className="sticky left-0 z-10 bg-white px-5 py-4 border-r border-slate-50 relative">
                                           <div className="font-black text-slate-800 text-[11px] mb-1">{out.kode}</div>
                                           <div className="text-[9px] font-bold text-slate-400 uppercase leading-tight">{out.uraian}</div>
-                                          <span className="absolute top-4 right-2 text-[7px] font-black text-violet-500 bg-violet-50 px-1 py-0.5 rounded">BULANAN</span>
                                       </td>
                                       <td className="sticky left-[300px] z-10 bg-white px-4 py-4 border-r border-slate-50 text-right shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
                                           <div className="text-slate-400 font-bold mb-1 italic">Pagu: {formatMoney(out.paguOutput)}</div>
-                                          <div className="text-slate-800 font-black tracking-tighter italic">Realisasi: {realKeuPct}%</div>
+                                          <div className="text-slate-800 font-black tracking-tighter italic">Real: {realKeuPct}%</div>
                                       </td>
                                       {allMonths.map(m => (
                                           <td key={m} className="px-3 py-4 border-r border-slate-50">
                                             <div className="flex flex-col gap-2">
                                                <input 
                                                   type="text" 
-                                                  placeholder="Target"
+                                                  placeholder="T"
                                                   readOnly={currentUser.role !== 'admin'}
                                                   value={out.targetCapaian?.[m] || ""}
                                                   onChange={async (e) => {
@@ -1275,7 +1277,7 @@ export default function App() {
                                                />
                                                <input 
                                                   type="text" 
-                                                  placeholder="Realisasi"
+                                                  placeholder="R"
                                                   readOnly={currentUser.role !== 'admin'}
                                                   value={out.realCapaian?.[m] || ""}
                                                   onChange={async (e) => {
@@ -1289,8 +1291,7 @@ export default function App() {
                                             </div>
                                           </td>
                                       ))}
-                                   </tr>
-                                </React.Fragment>
+                                </tr>
                              );
                           })}
                        </tbody>
@@ -1480,7 +1481,6 @@ export default function App() {
                       {finalDisplay.map((item: any) => {
                         const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
                         const canEdit = (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || (activeTab === 'realisasi' && currentUser?.role === 'admin');
-                        
                         return (
                           <tr key={item.id} className={`transition-all ${item.isOrphan ? 'bg-rose-50/50 italic' : 'hover:bg-blue-50/40'}`}>
                             <td className="px-4 py-2 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
@@ -1534,7 +1534,6 @@ export default function App() {
         </footer>
       </main>
 
-      {/* --- MODAL KONFIRMASI RESET --- */}
       {showClearDataModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-sm p-10 text-center border border-slate-200 animate-in zoom-in duration-200">
