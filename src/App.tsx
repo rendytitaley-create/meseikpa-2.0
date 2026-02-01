@@ -851,25 +851,79 @@ export default function App() {
                       </div>
                   </div>
 
-                  {/* Kartu 3: Capaian Output */}
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
-                      <div className="flex justify-between items-start mb-8">
-                          <div className="p-4 bg-violet-50 text-violet-600 rounded-2xl"><ClipboardCheck size={24}/></div>
-                          <div className="text-right leading-none"><span className="text-[10px] font-black text-slate-400 uppercase block">Capaian Output</span><span className="text-xs font-bold text-violet-500 italic">Progres Fisik</span></div>
-                      </div>
-                      <div className="flex flex-col items-center mb-10">
-                          <div className="text-6xl font-black text-slate-800 tracking-tighter italic mb-1">
-                            {globalStats.outputTarget > 0 ? (globalStats.outputReal / globalStats.outputTarget * 100).toFixed(1) : 0}%
-                          </div>
-                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Realisasi Fisik</div>
-                      </div>
-                      <div className="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Jumlah RO</span><span className="text-slate-800">{globalStats.outputCount}</span></div>
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Target Fisik</span><span className="text-slate-800">{globalStats.outputTarget.toFixed(0)}%</span></div>
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Real Fisik</span><span className="text-violet-600">{globalStats.outputReal.toFixed(0)}%</span></div>
-                      </div>
-                  </div>
+                  {/* Kartu 3: Capaian Output (Sistem Peringatan GAP) */}
+      <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
+          <div className="flex justify-between items-start mb-6">
+              <div className="p-4 bg-violet-50 text-violet-600 rounded-2xl"><ClipboardCheck size={24}/></div>
+              <div className="text-right leading-none">
+                <span className="text-[10px] font-black text-slate-400 uppercase block">Monitoring GAP</span>
+                <span className="text-xs font-bold text-violet-500 italic">Capaian Output</span>
               </div>
+          </div>
+
+          {/* Logika Deteksi Masalah GAP > 20% */}
+          {(() => {
+            let totalMasalah = 0;
+            const detailMasalah: string[] = [];
+
+            capaianOutputData.forEach(out => {
+              let kTarget = 0; 
+              let kRealFisik = 0;
+              // Menghitung total s.d bulan berjalan
+              allMonths.forEach(m => {
+                kTarget += Number(out.targetCapaian?.[m] || 0);
+                kRealFisik += Number(out.realCapaian?.[m] || 0);
+              });
+
+              // % Realisasi Anggaran (Keuangan)
+              const kRealAnggaran = out.paguOutput > 0 ? (out.realAnggaranOutput / out.paguOutput * 100) : 0;
+              
+              // Hitung Selisih (GAP)
+              const gapFisik = Math.abs(kTarget - kRealFisik);
+              const gapEfisiensi = Math.abs(kRealFisik - kRealAnggaran);
+
+              // Jika selisih lebih dari 20%
+              if (gapFisik > 20 || gapEfisiensi > 20) {
+                totalMasalah++;
+                if (detailMasalah.length < 2) detailMasalah.push(out.uraian);
+              }
+            });
+
+            return (
+              <>
+                <div className="flex flex-col items-center mb-6">
+                    <div className={`text-6xl font-black tracking-tighter italic mb-1 ${totalMasalah > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {totalMasalah}
+                    </div>
+                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Output Bermasalah (GAP)</div>
+                </div>
+
+                <div className="space-y-3 bg-slate-50 p-5 rounded-[2rem] border border-slate-100">
+                    <div className="flex justify-between items-center text-[10px] font-black uppercase">
+                      <span className="text-slate-500">Total Periksa</span>
+                      <span className="text-slate-800">{capaianOutputData.length} RO</span>
+                    </div>
+                    
+                    {totalMasalah > 0 ? (
+                      <div className="pt-2 border-t border-slate-200">
+                        <span className="text-[9px] font-black text-rose-500 uppercase block mb-2 italic">⚠️ GAP > 20% Terdeteksi:</span>
+                        {detailMasalah.map((m, i) => (
+                          <div key={i} className="text-[9px] font-bold text-slate-600 leading-tight mb-1 truncate">
+                            • {m}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="pt-2 border-t border-slate-200 flex items-center gap-2 text-emerald-600">
+                        <CheckCircle2 size={12} />
+                        <span className="text-[9px] font-black uppercase italic">Kondisi Output Sehat</span>
+                      </div>
+                    )}
+                </div>
+              </>
+            );
+          })()}
+      </div>
 
               {/* Grafik Lingkaran Per Akun */}
               <div className="bg-white p-12 rounded-[4rem] border border-slate-200 shadow-sm">
