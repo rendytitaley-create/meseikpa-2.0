@@ -1287,7 +1287,7 @@ export default function App() {
               </div>
             </div>
           )}
-
+</div>
         <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0">
             <ShieldHalf size={14} className="text-slate-300" />
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">© 2026 BPS Kab. Seram Bagian Barat - Internal Cloud Access</p>
