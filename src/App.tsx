@@ -346,7 +346,7 @@ export default function App() {
         real51: 0, real52: 0, real53: 0,
         rpd51: 0, rpd52: 0, rpd53: 0,
         outputTarget: 0, outputReal: 0, outputCount: 0,
-        months: allMonths.map(m => ({ name: m, rpd: 0, real: 0 }))
+        months: allMonths.map(m => ({ name: m, rpd: 0, real: 0 })),
     tw: [0,1,2,3].map(() => ({ rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 }))
     };
 
