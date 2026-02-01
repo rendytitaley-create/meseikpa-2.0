@@ -28,7 +28,7 @@ import {
   Edit3, LogOut, Eraser, ShieldHalf, CheckCircle2, LogIn, KeyRound, Search,
   Filter, Eye, EyeOff, CalendarDays, TrendingUp, ClipboardCheck
 } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
 declare global {
@@ -912,7 +912,7 @@ export default function App() {
                                               </Pie>
                                               <Tooltip 
                                                 contentStyle={{borderRadius: '15px', border:'none', boxShadow:'0 10px 20px rgba(0,0,0,0.05)'}}
-                                                formatter={(value: number) => `Rp ${formatMoney(value)}`}
+                                                formatter={(value: any) => `Rp ${formatMoney(value || 0)}`}
                                               />
                                           </PieChart>
                                       </ResponsiveContainer>
