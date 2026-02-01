@@ -803,55 +803,55 @@ export default function App() {
               </div>
 
               {/* 3 Kartu IKPA Radar */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  {/* Kartu 1: Penyerapan */}
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
-                      <div className="flex justify-between items-start mb-8">
-                          <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Activity size={24}/></div>
-                          <div className="text-right leading-none"><span className="text-[10px] font-black text-slate-400 uppercase block">Penyerapan</span><span className="text-xs font-bold text-emerald-500 italic">Anggaran</span></div>
-                      </div>
-                      <div className="flex flex-col items-center mb-10">
-                          <div className="text-6xl font-black text-slate-800 tracking-tighter italic mb-1">
-                            {globalStats.pagu > 0 ? (globalStats.real / globalStats.pagu * 100).toFixed(1) : 0}%
-                          </div>
-                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Realisasi</div>
-                      </div>
-                      <div className="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                          {[{l:'51 (Pegawai)', p:globalStats.pagu51, r:globalStats.real51}, {l:'52 (Barang)', p:globalStats.pagu52, r:globalStats.real52}, {l:'53 (Modal)', p:globalStats.pagu53, r:globalStats.real53}].map((it, i) => (
-                              <div key={i} className="flex justify-between items-center text-[10px] font-black uppercase">
-                                  <span className="text-slate-500">{it.l}</span>
-                                  <div className="text-right">
-                                      <span className="text-slate-900 italic block">{it.p > 0 ? (it.r/it.p*100).toFixed(1) : 0}%</span>
-                                      <span className="text-[9px] text-slate-400">Rp {formatMoney(it.r)}</span>
-                                  </div>
-                              </div>
-                          ))}
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Kartu 1: Penyerapan */}
+      <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
+          <div className="flex justify-between items-start mb-8">
+              <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Activity size={24}/></div>
+              <div className="text-right leading-none"><span className="text-[10px] font-black text-slate-400 uppercase block">Penyerapan</span><span className="text-xs font-bold text-emerald-500 italic">Anggaran</span></div>
+          </div>
+          <div className="flex flex-col items-center mb-10">
+              <div className="text-6xl font-black text-slate-800 tracking-tighter italic mb-1">
+                {globalStats.pagu > 0 ? (globalStats.real / globalStats.pagu * 100).toFixed(1) : 0}%
+              </div>
+              <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Realisasi</div>
+          </div>
+          <div className="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+              {[{l:'51 (Pegawai)', p:globalStats.pagu51, r:globalStats.real51}, {l:'52 (Barang)', p:globalStats.pagu52, r:globalStats.real52}, {l:'53 (Modal)', p:globalStats.pagu53, r:globalStats.real53}].map((it, i) => (
+                  <div key={i} className="flex justify-between items-center text-[10px] font-black uppercase">
+                      <span className="text-slate-500">{it.l}</span>
+                      <div className="text-right">
+                          <span className="text-slate-900 italic block">{it.p > 0 ? (it.r/it.p*100).toFixed(1) : 0}%</span>
+                          <span className="text-[9px] text-slate-400">Rp {formatMoney(it.r)}</span>
                       </div>
                   </div>
+              ))}
+          </div>
+      </div>
 
-                  {/* Kartu 2: Deviasi Hal III */}
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
-                      <div className="flex justify-between items-start mb-8">
-                          <div className="p-4 bg-amber-50 text-amber-600 rounded-2xl"><Target size={24}/></div>
-                          <div className="text-right leading-none"><span className="text-[10px] font-black text-slate-400 uppercase block">Deviasi Hal III</span><span className="text-xs font-bold text-amber-500 italic">RPD vs Realisasi</span></div>
-                      </div>
-                      <div className="flex flex-col items-center mb-10">
-                          <div className="text-6xl font-black text-slate-800 tracking-tighter italic mb-1">
-                            {globalStats.rpd > 0 ? Math.abs((globalStats.real - globalStats.rpd) / globalStats.rpd * 100).toFixed(1) : 0}%
-                          </div>
-                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Rata-rata Deviasi</div>
-                      </div>
-                      <div className="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                          {[{l:'Deviasi 51', t:globalStats.rpd51, r:globalStats.real51}, {l:'Deviasi 52', t:globalStats.rpd52, r:globalStats.real52}, {l:'Deviasi 53', t:globalStats.rpd53, r:globalStats.real53}].map((it, i) => (
-                              <div key={i} className="flex justify-between items-center text-[10px] font-black uppercase">
-                                  <span className="text-slate-500">{it.l}</span>
-                                  <span className="text-slate-900 italic">{it.t > 0 ? Math.abs((it.r-it.t)/it.t*100).toFixed(1) : 0}%</span>
-                              </div>
-                          ))}
-                      </div>
+      {/* Kartu 2: Deviasi Hal III */}
+      <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
+          <div className="flex justify-between items-start mb-8">
+              <div className="p-4 bg-amber-50 text-amber-600 rounded-2xl"><Target size={24}/></div>
+              <div className="text-right leading-none"><span className="text-[10px] font-black text-slate-400 uppercase block">Deviasi Hal III</span><span className="text-xs font-bold text-amber-500 italic">RPD vs Realisasi</span></div>
+          </div>
+          <div className="flex flex-col items-center mb-10">
+              <div className="text-6xl font-black text-slate-800 tracking-tighter italic mb-1">
+                {globalStats.rpd > 0 ? Math.abs((globalStats.real - globalStats.rpd) / globalStats.rpd * 100).toFixed(1) : 0}%
+              </div>
+              <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Rata-rata Deviasi</div>
+          </div>
+          <div className="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+              {[{l:'Deviasi 51', t:globalStats.rpd51, r:globalStats.real51}, {l:'Deviasi 52', t:globalStats.rpd52, r:globalStats.real52}, {l:'Deviasi 53', t:globalStats.rpd53, r:globalStats.real53}].map((it, i) => (
+                  <div key={i} className="flex justify-between items-center text-[10px] font-black uppercase">
+                      <span className="text-slate-500">{it.l}</span>
+                      <span className="text-slate-900 italic">{it.t > 0 ? Math.abs((it.r-it.t)/it.t*100).toFixed(1) : 0}%</span>
                   </div>
+              ))}
+          </div>
+      </div>
 
-                  {/* Kartu 3: Capaian Output (Sistem Peringatan GAP) */}
+      {/* Kartu 3: Capaian Output (Sistem Peringatan GAP) */}
       <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
           <div className="flex justify-between items-start mb-6">
               <div className="p-4 bg-violet-50 text-violet-600 rounded-2xl"><ClipboardCheck size={24}/></div>
@@ -861,28 +861,18 @@ export default function App() {
               </div>
           </div>
 
-          {/* Logika Deteksi Masalah GAP > 20% */}
           {(() => {
             let totalMasalah = 0;
             const detailMasalah: string[] = [];
-
             capaianOutputData.forEach(out => {
-              let kTarget = 0; 
-              let kRealFisik = 0;
-              // Menghitung total s.d bulan berjalan
+              let kTarget = 0; let kRealFisik = 0;
               allMonths.forEach(m => {
                 kTarget += Number(out.targetCapaian?.[m] || 0);
                 kRealFisik += Number(out.realCapaian?.[m] || 0);
               });
-
-              // % Realisasi Anggaran (Keuangan)
               const kRealAnggaran = out.paguOutput > 0 ? (out.realAnggaranOutput / out.paguOutput * 100) : 0;
-              
-              // Hitung Selisih (GAP)
               const gapFisik = Math.abs(kTarget - kRealFisik);
               const gapEfisiensi = Math.abs(kRealFisik - kRealAnggaran);
-
-              // Jika selisih lebih dari 20%
               if (gapFisik > 20 || gapEfisiensi > 20) {
                 totalMasalah++;
                 if (detailMasalah.length < 2) detailMasalah.push(out.uraian);
@@ -897,16 +887,14 @@ export default function App() {
                     </div>
                     <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Output Bermasalah (GAP)</div>
                 </div>
-
                 <div className="space-y-3 bg-slate-50 p-5 rounded-[2rem] border border-slate-100">
                     <div className="flex justify-between items-center text-[10px] font-black uppercase">
                       <span className="text-slate-500">Total Periksa</span>
                       <span className="text-slate-800">{capaianOutputData.length} RO</span>
                     </div>
-                    
                     {totalMasalah > 0 ? (
                       <div className="pt-2 border-t border-slate-200">
-                        <span className="text-[9px] font-black text-rose-500 uppercase block mb-2 italic">⚠️ GAP > 20% Terdeteksi:</span>
+                        <span className="text-[9px] font-black text-rose-500 uppercase block mb-2 italic">GAP {'>'} 20% Terdeteksi:</span>
                         {detailMasalah.map((m, i) => (
                           <div key={i} className="text-[9px] font-bold text-slate-600 leading-tight mb-1 truncate">
                             • {m}
@@ -924,94 +912,69 @@ export default function App() {
             );
           })()}
       </div>
+  </div>
 
-              {/* Grafik Lingkaran Per Akun */}
-              <div className="bg-white p-12 rounded-[4rem] border border-slate-200 shadow-sm">
-                  <h3 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter mb-12 flex items-center gap-4">
-                      <div className="w-2 h-10 bg-indigo-600 rounded-full"></div>
-                      Proporsi Penyerapan Per Jenis Belanja
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                      {[
-                        { id: '51', label: 'Belanja Pegawai', pagu: globalStats.pagu51, real: globalStats.real51, rpd: globalStats.rpd51, color: '#6366f1' },
-                        { id: '52', label: 'Belanja Barang', pagu: globalStats.pagu52, real: globalStats.real52, rpd: globalStats.rpd52, color: '#10b981' },
-                        { id: '53', label: 'Belanja Modal', pagu: globalStats.pagu53, real: globalStats.real53, rpd: globalStats.rpd53, color: '#f59e0b' }
-                      ].map((item) => {
-                          const pctRealisasi = item.pagu > 0 ? (item.real / item.pagu * 100) : 0;
-                          const deviasi = item.rpd > 0 ? ((item.real - item.rpd) / item.rpd * 100) : 0;
-                          const dataPie = [
-                              { name: 'Realisasi', value: item.real },
-                              { name: 'Sisa Pagu', value: Math.max(0, item.pagu - item.real) }
-                          ];
+  {/* Dashboard: 3 Grafik Lingkaran Per Akun Belanja */}
+  <div className="bg-white p-12 rounded-[4rem] border border-slate-200 shadow-sm">
+      <h3 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter mb-12 flex items-center gap-4">
+          <div className="w-2 h-10 bg-indigo-600 rounded-full"></div>
+          Proporsi Penyerapan Per Jenis Belanja
+      </h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          {[
+            { id: '51', label: 'Belanja Pegawai', pagu: globalStats.pagu51, real: globalStats.real51, rpd: globalStats.rpd51, color: '#6366f1' },
+            { id: '52', label: 'Belanja Barang', pagu: globalStats.pagu52, real: globalStats.real52, rpd: globalStats.rpd52, color: '#10b981' },
+            { id: '53', label: 'Belanja Modal', pagu: globalStats.pagu53, real: globalStats.real53, rpd: globalStats.rpd53, color: '#f59e0b' }
+          ].map((item) => {
+              const pctRealisasi = item.pagu > 0 ? (item.real / item.pagu * 100) : 0;
+              const deviasi = item.rpd > 0 ? ((item.real - item.rpd) / item.rpd * 100) : 0;
+              const dataPie = [
+                  { name: 'Realisasi', value: item.real },
+                  { name: 'Sisa Pagu', value: Math.max(0, item.pagu - item.real) }
+              ];
 
-                          return (
-                              <div key={item.id} className="flex flex-col items-center bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100">
-                                  <span className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4">{item.label}</span>
-                                  
-                                  <div className="h-[220px] w-full relative">
-                                      <ResponsiveContainer width="100%" height="100%">
-                                          <PieChart>
-                                              <Pie
-                                                  data={dataPie}
-                                                  innerRadius={65}
-                                                  outerRadius={85}
-                                                  paddingAngle={5}
-                                                  dataKey="value"
-                                                  startAngle={90}
-                                                  endAngle={-270}
-                                              >
-                                                  <Cell fill={item.color} stroke="none" />
-                                                  <Cell fill="#e2e8f0" stroke="none" />
-                                              </Pie>
-                                              <Tooltip 
-                                                contentStyle={{borderRadius: '15px', border:'none', boxShadow:'0 10px 20px rgba(0,0,0,0.05)'}}
-                                                formatter={(value: any) => `Rp ${formatMoney(value || 0)}`}
-                                              />
-                                          </PieChart>
-                                      </ResponsiveContainer>
-                                      
-                                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                          <span className="text-3xl font-black text-slate-800 italic leading-none">{pctRealisasi.toFixed(1)}%</span>
-                                          <span className="text-[9px] font-black text-slate-400 uppercase mt-1">Terserap</span>
-                                      </div>
-                                  </div>
-
-                                  <div className="mt-6 w-full space-y-3">
-                                      <div className="flex justify-between items-center bg-white px-5 py-3 rounded-2xl shadow-sm">
-                                          <span className="text-[10px] font-black text-slate-400 uppercase">Deviasi Hal III</span>
-                                          <span className={`text-xs font-black italic ${Math.abs(deviasi) < 5 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                              {deviasi > 0 ? '+' : ''}{deviasi.toFixed(2)}%
-                                          </span>
-                                      </div>
-                                      <div className="px-5 text-center">
-                                          <span className="text-[9px] font-bold text-slate-400 italic block">
-                                            Pagu: Rp {formatMoney(item.pagu)}
-                                          </span>
-                                      </div>
-                                  </div>
-                              </div>
-                          );
-                      })}
-                  </div>
-
-                  <div className="mt-12 flex justify-center gap-10">
-                      <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-indigo-600"></div>
-                          <span className="text-[10px] font-black uppercase text-slate-500">Akun 51</span>
+              return (
+                  <div key={item.id} className="flex flex-col items-center bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100">
+                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4">{item.label}</span>
+                      <div className="h-[220px] w-full relative">
+                          <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                  <Pie
+                                      data={dataPie}
+                                      innerRadius={65}
+                                      outerRadius={85}
+                                      paddingAngle={5}
+                                      dataKey="value"
+                                      startAngle={90}
+                                      endAngle={-270}
+                                  >
+                                      <Cell fill={item.color} stroke="none" />
+                                      <Cell fill="#e2e8f0" stroke="none" />
+                                  </Pie>
+                                  <Tooltip 
+                                    contentStyle={{borderRadius: '15px', border:'none', boxShadow:'0 10px 20px rgba(0,0,0,0.05)'}}
+                                    formatter={(value: any) => `Rp ${formatMoney(value || 0)}`}
+                                  />
+                              </PieChart>
+                          </ResponsiveContainer>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <span className="text-3xl font-black text-slate-800 italic leading-none">{pctRealisasi.toFixed(1)}%</span>
+                              <span className="text-[9px] font-black text-slate-400 uppercase mt-1">Terserap</span>
+                          </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                          <span className="text-[10px] font-black uppercase text-slate-500">Akun 52</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                          <span className="text-[10px] font-black uppercase text-slate-500">Akun 53</span>
+                      <div className="mt-6 w-full space-y-3">
+                          <div className="flex justify-between items-center bg-white px-5 py-3 rounded-2xl shadow-sm">
+                              <span className="text-[10px] font-black text-slate-400 uppercase">Deviasi Hal III</span>
+                              <span className={`text-xs font-black italic ${Math.abs(deviasi) < 5 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                  {deviasi > 0 ? '+' : ''}{deviasi.toFixed(2)}%
+                              </span>
+                          </div>
                       </div>
                   </div>
-              </div>
-            </div>
-          )}
+              );
+          })}
+      </div>
 
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
