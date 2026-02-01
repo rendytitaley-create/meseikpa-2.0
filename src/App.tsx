@@ -818,7 +818,7 @@ export default function App() {
                       </div>
                       <div className="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
                           {[{l:'51 (Pegawai)', p:globalStats.pagu51, r:globalStats.real51}, {l:'52 (Barang)', p:globalStats.pagu52, r:globalStats.real52}, {l:'53 (Modal)', p:globalStats.pagu53, r:globalStats.real53}].map((it, i) => (
-                              <div key={i} className="flex justify-between items-center text-[10px] font-black uppercase">
+                              <div key={i} className="flex justify-between items-center text-[14px] font-black uppercase">
                                   <span className="text-slate-500">{it.l}</span>
                                   <div className="text-right">
                                       <span className="text-slate-900 italic block">{it.p > 0 ? (it.r/it.p*100).toFixed(1) : 0}%</span>
@@ -843,7 +843,7 @@ export default function App() {
                       </div>
                       <div className="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
                           {[{l:'Deviasi 51', t:globalStats.rpd51, r:globalStats.real51}, {l:'Deviasi 52', t:globalStats.rpd52, r:globalStats.real52}, {l:'Deviasi 53', t:globalStats.rpd53, r:globalStats.real53}].map((it, i) => (
-                              <div key={i} className="flex justify-between items-center text-[10px] font-black uppercase">
+                              <div key={i} className="flex justify-between items-center text-[14px] font-black uppercase">
                                   <span className="text-slate-500">{it.l}</span>
                                   <span className="text-slate-900 italic">{it.t > 0 ? Math.abs((it.r-it.t)/it.t*100).toFixed(1) : 0}%</span>
                               </div>
