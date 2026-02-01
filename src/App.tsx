@@ -909,7 +909,7 @@ export default function App() {
       </div>
   </div>
 </div>
-
+)}
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
