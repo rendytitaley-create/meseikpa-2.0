@@ -837,7 +837,7 @@ export default function App() {
                             total: globalStats.months[m].rpd + globalStats.months[m].real
                           })).filter(item => item.total > 0)
                       }
-                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
                       barGap={8}
                     >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
