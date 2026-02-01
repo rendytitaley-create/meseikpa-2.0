@@ -367,59 +367,43 @@ export default function App() {
   };
 
   const globalStats = useMemo(() => {
-    const stats = { 
+    const stats = {
         pagu: 0, rpd: 0, real: 0,
         pagu51: 0, pagu52: 0, pagu53: 0,
-        tw: Array(4).fill(0).map(() => ({ rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 })),
-        months: {} as Record<string, { rpd: number, real: number, rpd51:number, real51:number, rpd52:number, real52:number, rpd53:number, real53:number }>,
-        belanja: { pegawai: 0, barang: 0, modal: 0 } 
+        real51: 0, real52: 0, real53: 0,
+        rpd51: 0, rpd52: 0, rpd53: 0,
+        outputTarget: 0, outputReal: 0, outputCount: 0,
+        months: allMonths.map(m => ({ name: m, rpd: 0, real: 0 }))
     };
-    
-    allMonths.forEach(m => stats.months[m] = { rpd: 0, real: 0, rpd51: 0, real51: 0, rpd52: 0, real52: 0, rpd53: 0, real53: 0 });
 
-    const details = dataTampil.filter(d => !d.isOrphan && getLevel(d.kode) === 8 && (Number(d.pagu) || 0) > 0);
+    const details = dataTampil.filter(d => !d.isOrphan && getLevel(d.kode) === 8);
     details.forEach(d => {
-      const itemReal = sumMapValues(d.realisasi);
-      const itemPagu = (Number(d.pagu) || 0);
-      stats.pagu += itemPagu;
-      stats.real += itemReal;
-      
-      const keys = (d.tempPathKey || "").split("|");
-      const accountCode = keys[6] || ""; 
-      
-      const is51 = accountCode.startsWith("51");
-      const is52 = accountCode.startsWith("52");
-      const is53 = accountCode.startsWith("53");
+      const p = Number(d.pagu) || 0;
+      const r = sumMapValues(d.realisasi);
+      const rp = sumMapValues(d.rpd);
+      const acc = (d.tempPathKey || "").split("|")[6] || ""; // Mengambil kode akun (level 7)
 
-      if (is51) { stats.belanja.pegawai += itemReal; stats.pagu51 += itemPagu; }
-      else if (is52) { stats.belanja.barang += itemReal; stats.pagu52 += itemPagu; }
-      else if (is53) { stats.belanja.modal += itemReal; stats.pagu53 += itemPagu; }
+      stats.pagu += p; stats.real += r; stats.rpd += rp;
+
+      // Cek apakah akun 51 (Pegawai), 52 (Barang), atau 53 (Modal)
+      if (acc.startsWith("51")) { stats.pagu51 += p; stats.real51 += r; stats.rpd51 += rp; }
+      else if (acc.startsWith("52")) { stats.pagu52 += p; stats.real52 += r; stats.rpd52 += rp; }
+      else if (acc.startsWith("53")) { stats.pagu53 += p; stats.real53 += r; stats.rpd53 += rp; }
 
       allMonths.forEach((m, idx) => {
-        const valRPD = (Number(d.rpd?.[m]) || 0);
-        const valReal = (Number(d.realisasi?.[m]) || 0);
-        stats.rpd += valRPD;
-        
-        stats.months[m].rpd += valRPD;
-        stats.months[m].real += valReal;
-
-        const twIdx = Math.floor(idx / 3);
-        stats.tw[twIdx].rpd += valRPD;
-        stats.tw[twIdx].real += valReal;
-
-        if(is51) { 
-          stats.tw[twIdx].rpd51 += valRPD; stats.tw[twIdx].real51 += valReal; 
-          stats.months[m].rpd51 += valRPD; stats.months[m].real51 += valReal;
-        }
-        if(is52) { 
-          stats.tw[twIdx].rpd52 += valRPD; stats.tw[twIdx].real52 += valReal; 
-          stats.months[m].rpd52 += valRPD; stats.months[m].real52 += valReal;
-        }
-        if(is53) { 
-          stats.tw[twIdx].rpd53 += valRPD; stats.tw[twIdx].real53 += valReal; 
-          stats.months[m].rpd53 += valRPD; stats.months[m].real53 += valReal;
-        }
+        stats.months[idx].rpd += (Number(d.rpd?.[m]) || 0);
+        stats.months[idx].real += (Number(d.realisasi?.[m]) || 0);
       });
+    });
+
+    // Hitung Capaian Output (Level 4)
+    const outputs = dataTampil.filter(d => getLevel(d.kode) === 4);
+    outputs.forEach(o => {
+      allMonths.forEach(m => {
+        stats.outputTarget += (Number(o.targetCapaian?.[m]) || 0);
+        stats.outputReal += (Number(o.realCapaian?.[m]) || 0);
+      });
+      stats.outputCount++;
     });
     return stats;
   }, [dataTampil, allMonths]);
@@ -811,120 +795,120 @@ export default function App() {
 
         <div className="flex-1 overflow-auto p-8 custom-scrollbar">
           {activeTab === 'dashboard' && (
-            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              
-              {/* KARTU STATISTIK PRESISI */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                {[
-                  { label: 'Pagu DIPA Induk', val: globalStats.pagu, icon: Wallet, color: '#6366f1', bg: 'bg-indigo-50' },
-                  { label: 'Target RPD', val: globalStats.rpd, icon: Target, color: '#f59e0b', bg: 'bg-amber-50' },
-                  { label: 'Realisasi Satker', val: globalStats.real, icon: Activity, color: '#3b82f6', bg: 'bg-blue-50' },
-                  { label: 'Sisa Anggaran', val: globalStats.pagu - globalStats.real, icon: ShieldCheck, color: '#10b981', bg: 'bg-emerald-50' },
-                ].map((card, i) => (
-                  <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className={`p-4 ${card.bg} rounded-2xl transition-colors`}>
-                        <card.icon size={28} style={{ color: card.color }} />
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+  {/* Header: Revisi DIPA & Total Pagu */}
+  <div className="flex flex-col md:flex-row justify-between items-end gap-6 bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+      <div className="z-10">
+          <div className="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full mb-3 inline-block shadow-lg">
+              Status: Revisi DIPA/POK Ke-{kppnMetrics.revisiKe || "0"}
+          </div>
+          <h1 className="text-4xl font-black text-slate-800 italic tracking-tighter">Executive Dashboard</h1>
+          <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.3em] mt-1">IKPA Monitoring - BPS SBB</p>
+      </div>
+      <div className="z-10 text-right">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Total Pagu Keseluruhan</span>
+          <div className="text-4xl font-black text-slate-900 tracking-tighter italic">
+              <span className="text-lg text-slate-300 not-italic mr-2">Rp</span>
+              {formatMoney(globalStats.pagu)}
+          </div>
+      </div>
+  </div>
+
+  {/* 3 Kartu IKPA Radar */}
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Kartu 1: Penyerapan */}
+      <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
+          <div className="flex justify-between items-start mb-8">
+              <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Activity size={24}/></div>
+              <div className="text-right leading-none"><span className="text-[10px] font-black text-slate-400 uppercase block">Penyerapan</span><span className="text-xs font-bold text-emerald-500 italic">Anggaran</span></div>
+          </div>
+          <div className="flex flex-col items-center mb-10">
+              <div className="text-6xl font-black text-slate-800 tracking-tighter italic mb-1">
+                {globalStats.pagu > 0 ? (globalStats.real / globalStats.pagu * 100).toFixed(1) : 0}%
+              </div>
+              <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Realisasi</div>
+          </div>
+          <div className="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+              {[{l:'51 (Pegawai)', p:globalStats.pagu51, r:globalStats.real51}, {l:'52 (Barang)', p:globalStats.pagu52, r:globalStats.real52}, {l:'53 (Modal)', p:globalStats.pagu53, r:globalStats.real53}].map((it, i) => (
+                  <div key={i} className="flex justify-between items-center text-[10px] font-black uppercase">
+                      <span className="text-slate-500">{it.l}</span>
+                      <div className="text-right">
+                          <span className="text-slate-900 italic block">{it.p > 0 ? (it.r/it.p*100).toFixed(1) : 0}%</span>
+                          <span className="text-[9px] text-slate-400">Rp {formatMoney(it.r)}</span>
                       </div>
-                      <div className="h-1 w-12 bg-slate-100 rounded-full group-hover:bg-slate-200 transition-colors"></div>
-                    </div>
-                    <h4 className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">{card.label}</h4>
-                    <div className="text-2xl font-black text-slate-800 tracking-tighter italic">
-                      <span className="text-sm font-bold text-slate-400 mr-1 not-italic text-[12px]">Rp</span>
-                      {formatMoney(card.val)}
-                    </div>
                   </div>
-                ))}
-              </div>
+              ))}
+          </div>
+      </div>
 
-              {/* GRAFIK MODERN RECHARTS */}
-              <div className="bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 gap-6">
-                  <div>
-                    <h3 className="text-xl font-black text-slate-800 uppercase italic tracking-tighter flex items-center gap-3">
-                      <div className="w-2 h-8 bg-indigo-600 rounded-full"></div>
-                      Analisis Performa Anggaran
-                    </h3>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1 ml-5">Perbandingan Rencana (RPD) vs Realisasi</p>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
-                    <button onClick={() => setChartMode('TW')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${chartMode === 'TW' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Triwulan</button>
-                    <button onClick={() => setChartMode('Bulan')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${chartMode === 'Bulan' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Bulanan</button>
-                  </div>
-                </div>
-
-                <div className="h-[450px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartMode === 'TW' 
-                        ? [1, 2, 3, 4].map((tw, i) => ({ 
-                            name: `TW ${tw}`, 
-                            'RPD 51': globalStats.tw[i].rpd51, 'REAL 51': globalStats.tw[i].real51,
-                            'RPD 52': globalStats.tw[i].rpd52, 'REAL 52': globalStats.tw[i].real52,
-                            'RPD 53': globalStats.tw[i].rpd53, 'REAL 53': globalStats.tw[i].real53,
-                            total: globalStats.tw[i].rpd + globalStats.tw[i].real
-                          })).filter(item => item.total > 0)
-                        : allMonths.map(m => ({ 
-                            name: m, 
-                            'RPD 51': globalStats.months[m].rpd51, 'REAL 51': globalStats.months[m].real51,
-                            'RPD 52': globalStats.months[m].rpd52, 'REAL 52': globalStats.months[m].real52,
-                            'RPD 53': globalStats.months[m].rpd53, 'REAL 53': globalStats.months[m].real53,
-                            total: globalStats.months[m].rpd + globalStats.months[m].real
-                          })).filter(item => item.total > 0)
-                      }
-                      margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                      barGap={8}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 900 }} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 900 }} tickFormatter={(val: any) => `Rp ${val/1000000}jt`} />
-                      <Tooltip 
-                        cursor={{ fill: '#f8fafc' }}
-                        contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '20px' }}
-                        formatter={(value: any, name: any, props: any) => {
-                          if (!name || !props?.payload) return [`Rp ${formatMoney(value)}`, name || ""];
-                          const dataSistem = props.payload;
-                          const namaBatang = String(name);
-                          const kodeBelanja = namaBatang.split(' ')[1]; 
-                          if (!kodeBelanja) return [`Rp ${formatMoney(value)}`, namaBatang];
-                          const rpdTerget = dataSistem[`RPD ${kodeBelanja}`] || 0;
-                          const realEksesusi = dataSistem[`REAL ${kodeBelanja}`] || 0;
-                          const hitungDev = rpdTerget > 0 
-                            ? ((realEksesusi - rpdTerget) / rpdTerget * 100).toFixed(1) 
-                            : "0";
-                          return [`Rp ${formatMoney(value)} (Dev: ${hitungDev}%)`, namaBatang];
-                        }}
-                      />
-                      <Legend 
-                        verticalAlign="bottom" 
-                        align="center"
-                        iconType="circle"
-                        layout="horizontal"
-                        wrapperStyle={{ 
-                          paddingTop: '50px', 
-                          fontSize: '10px', 
-                          fontWeight: 900, 
-                          textTransform: 'uppercase',
-                          width: '100%',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          flexWrap: 'wrap',
-                          gap: '15px'
-                        }} 
-                      />
-                      <Bar dataKey="RPD 51" fill="#fbbf24" radius={[4, 4, 0, 0]} barSize={20} />
-                      <Bar dataKey="REAL 51" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
-                      <Bar dataKey="RPD 52" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={20} />
-                      <Bar dataKey="REAL 52" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={20} />
-                      <Bar dataKey="RPD 53" fill="#b45309" radius={[4, 4, 0, 0]} barSize={20} />
-                      <Bar dataKey="REAL 53" fill="#1e40af" radius={[4, 4, 0, 0]} barSize={20} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+      {/* Kartu 2: Deviasi Hal III */}
+      <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
+          <div className="flex justify-between items-start mb-8">
+              <div className="p-4 bg-amber-50 text-amber-600 rounded-2xl"><Target size={24}/></div>
+              <div className="text-right leading-none"><span className="text-[10px] font-black text-slate-400 uppercase block">Deviasi Hal III</span><span className="text-xs font-bold text-amber-500 italic">RPD vs Realisasi</span></div>
+          </div>
+          <div className="flex flex-col items-center mb-10">
+              <div className="text-6xl font-black text-slate-800 tracking-tighter italic mb-1">
+                {globalStats.rpd > 0 ? Math.abs((globalStats.real - globalStats.rpd) / globalStats.rpd * 100).toFixed(1) : 0}%
               </div>
-            </div>
-          )}
+              <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Rata-rata Deviasi</div>
+          </div>
+          <div className="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+              {[{l:'Deviasi 51', t:globalStats.rpd51, r:globalStats.real51}, {l:'Deviasi 52', t:globalStats.rpd52, r:globalStats.real52}, {l:'Deviasi 53', t:globalStats.rpd53, r:globalStats.real53}].map((it, i) => (
+                  <div key={i} className="flex justify-between items-center text-[10px] font-black uppercase">
+                      <span className="text-slate-500">{it.l}</span>
+                      <span className="text-slate-900 italic">{it.t > 0 ? Math.abs((it.r-it.t)/it.t*100).toFixed(1) : 0}%</span>
+                  </div>
+              ))}
+          </div>
+      </div>
+
+      {/* Kartu 3: Capaian Output */}
+      <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
+          <div className="flex justify-between items-start mb-8">
+              <div className="p-4 bg-violet-50 text-violet-600 rounded-2xl"><ClipboardCheck size={24}/></div>
+              <div className="text-right leading-none"><span className="text-[10px] font-black text-slate-400 uppercase block">Capaian Output</span><span className="text-xs font-bold text-violet-500 italic">Progres Fisik</span></div>
+          </div>
+          <div className="flex flex-col items-center mb-10">
+              <div className="text-6xl font-black text-slate-800 tracking-tighter italic mb-1">
+                {globalStats.outputTarget > 0 ? (globalStats.outputReal / globalStats.outputTarget * 100).toFixed(1) : 0}%
+              </div>
+              <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Realisasi Fisik</div>
+          </div>
+          <div className="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+              <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Jumlah RO</span><span className="text-slate-800">{globalStats.outputCount}</span></div>
+              <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Target Fisik</span><span className="text-slate-800">{globalStats.outputTarget.toFixed(0)}%</span></div>
+              <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-500">Real Fisik</span><span className="text-violet-600">{globalStats.outputReal.toFixed(0)}%</span></div>
+          </div>
+      </div>
+  </div>
+
+  {/* Grafik Modern Area Chart */}
+  <div className="bg-white p-12 rounded-[4rem] border border-slate-200 shadow-sm">
+      <h3 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter mb-10 flex items-center gap-4">
+          <div className="w-2 h-10 bg-indigo-600 rounded-full"></div>
+          Analisis Performa Anggaran
+      </h3>
+      <div className="h-[400px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={globalStats.months}>
+                  <defs>
+                      <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                      </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 900}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 900}} tickFormatter={(v) => `Rp ${v/1000000}jt`} />
+                  <Tooltip contentStyle={{borderRadius: '24px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)'}} />
+                  <Area type="monotone" dataKey="real" stroke="#6366f1" strokeWidth={4} fill="url(#colorReal)" />
+              </AreaChart>
+          </ResponsiveContainer>
+      </div>
+  </div>
+</div>
 
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
