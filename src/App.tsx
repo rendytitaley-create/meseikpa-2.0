@@ -895,7 +895,7 @@ export default function App() {
       </h3>
       <div className="h-[400px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={globalStats.months}>
+              <AreaChart data={globalStats.chartData}>
                   <defs>
                       <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
