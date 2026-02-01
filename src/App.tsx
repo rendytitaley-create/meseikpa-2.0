@@ -49,9 +49,11 @@ import {
   Filter,
   Eye,
   EyeOff,
-  CalendarDays
+  CalendarDays,
+  TrendingUp
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
 declare global {
   const __firebase_config: string;
@@ -106,14 +108,12 @@ const formatMoney = (val: any) => {
   return num ? num.toLocaleString('id-ID') : '0';
 };
 
-// UTILITY UNTUK MASKING INPUT (TITIK PEMISAH RIBUAN)
 const formatInputMasking = (val: any) => {
   if (val === undefined || val === null || val === "") return "";
   const clean = String(val).replace(/\D/g, "");
   return clean ? Number(clean).toLocaleString('id-ID') : "";
 };
 
-// UTILITY WARNA DEVIASI (KUNING 5%, MERAH 20%)
 const getDevColorClass = (val: number) => {
   const abs = Math.abs(val);
   if (abs >= 20) return 'text-rose-600 bg-rose-50 border-rose-200 font-black';
@@ -172,7 +172,7 @@ export default function App() {
   const [allUsers, setAllUsers] = useState<any[]>([]);
 
   // --- UI STATE ---
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users' | 'capaian'>('dashboard');
   const [activeWilayah, setActiveWilayah] = useState<string>("GG");
   const [activeTim, setActiveTim] = useState<string>("Nerwilis");
   const [rapatDepth, setRapatDepth] = useState<number>(2); 
@@ -601,6 +601,36 @@ export default function App() {
     (d.kode && d.kode.includes(searchTerm))
   );
 
+  // --- LOGIC KHUSUS CAPAIAN OUTPUT (LEVEL RO - LEVEL 2) ---
+  const capaianOutputData = useMemo(() => {
+    // Ambil Level 2 sebagai basis RO
+    const roItems = dataTampil.filter(d => getLevel(d.kode) === 2);
+    
+    return roItems.map((ro, index) => {
+      let totalPaguRO = 0;
+      let totalRealRO = 0;
+
+      // Cari semua detail (level 8) di bawah RO ini
+      const baseIdx = dataTampil.findIndex(d => d.id === ro.id);
+      for (let i = baseIdx + 1; i < dataTampil.length; i++) {
+        const next = dataTampil[i];
+        if (next.kode !== "" && getLevel(next.kode) <= 2) break;
+        if (getLevel(next.kode) === 8) {
+          totalPaguRO += (Number(next.pagu) || 0);
+          totalRealRO += sumMapValues(next.realisasi);
+        }
+      }
+
+      return {
+        ...ro,
+        paguRO: totalPaguRO,
+        realAnggaranRO: totalRealRO,
+        targetCapaian: ro.targetCapaian || {}, // { Jan: "0.5", Feb: "0.1", ... }
+        realCapaian: ro.realCapaian || {}      // { Jan: "0.4", Feb: "0.1", ... }
+      };
+    });
+  }, [dataTampil]);
+
   if (isAuthLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-sans">
@@ -632,29 +662,29 @@ export default function App() {
                  <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Username</label>
                     <div className="relative">
-                       <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                       <input 
-                         type="text" 
-                         value={loginUsername}
-                         onChange={(e) => setLoginUsername(e.target.value)}
-                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" 
-                         placeholder="Username..."
-                         required
-                       />
+                        <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input 
+                          type="text" 
+                          value={loginUsername}
+                          onChange={(e) => setLoginUsername(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" 
+                          placeholder="Username..."
+                          required
+                        />
                     </div>
                  </div>
                  <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Password</label>
                     <div className="relative">
-                       <KeyRound className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                       <input 
-                         type="password" 
-                         value={loginPassword}
-                         onChange={(e) => setLoginPassword(e.target.value)}
-                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" 
-                         placeholder="••••••••"
-                         required
-                       />
+                        <KeyRound className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input 
+                          type="password" 
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" 
+                          placeholder="••••••••"
+                          required
+                        />
                     </div>
                  </div>
                  <button 
@@ -696,6 +726,10 @@ export default function App() {
           <button onClick={() => setActiveTab('realisasi')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'realisasi' ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
             <Activity size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Entri Realisasi</span>}
+          </button>
+          <button onClick={() => setActiveTab('capaian')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'capaian' ? 'bg-violet-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
+            <TrendingUp size={20} className={sidebarOpen ? 'mr-3' : ''} />
+            {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Capaian Output</span>}
           </button>
           <div className="py-2"><div className="h-px bg-white/10 w-full opacity-30"></div></div>
           <button onClick={() => setActiveTab('rapat')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'rapat' ? 'bg-emerald-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
@@ -847,22 +881,16 @@ export default function App() {
                         cursor={{ fill: '#f8fafc' }}
                         contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '20px' }}
                         formatter={(value: any, name: any, props: any) => {
-                          // Pengaman: Jika name atau props tidak ada, tampilkan standar
                           if (!name || !props?.payload) return [`Rp ${formatMoney(value)}`, name || ""];
-
                           const dataSistem = props.payload;
-                          const namaBatang = String(name); // Memastikan nama adalah string
+                          const namaBatang = String(name);
                           const kodeBelanja = namaBatang.split(' ')[1]; 
-                          
                           if (!kodeBelanja) return [`Rp ${formatMoney(value)}`, namaBatang];
-
                           const rpdTerget = dataSistem[`RPD ${kodeBelanja}`] || 0;
                           const realEksesusi = dataSistem[`REAL ${kodeBelanja}`] || 0;
-                          
                           const hitungDev = rpdTerget > 0 
                             ? ((realEksesusi - rpdTerget) / rpdTerget * 100).toFixed(1) 
                             : "0";
-                          
                           return [`Rp ${formatMoney(value)} (Dev: ${hitungDev}%)`, namaBatang];
                         }}
                       />
@@ -879,20 +907,14 @@ export default function App() {
                           width: '100%',
                           display: 'flex',
                           justifyContent: 'center',
-                          flexWrap: 'wrap', // Agar teks otomatis turun ke baris baru jika tidak muat
-                          gap: '15px' // Memberi jarak antar label agar tidak nempel
+                          flexWrap: 'wrap',
+                          gap: '15px'
                         }} 
                       />
-                      
-                      {/* GRUP BELANJA 51 */}
                       <Bar dataKey="RPD 51" fill="#fbbf24" radius={[4, 4, 0, 0]} barSize={20} />
                       <Bar dataKey="REAL 51" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
-
-                      {/* GRUP BELANJA 52 */}
                       <Bar dataKey="RPD 52" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={20} />
                       <Bar dataKey="REAL 52" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={20} />
-
-                      {/* GRUP BELANJA 53 */}
                       <Bar dataKey="RPD 53" fill="#b45309" radius={[4, 4, 0, 0]} barSize={20} />
                       <Bar dataKey="REAL 53" fill="#1e40af" radius={[4, 4, 0, 0]} barSize={20} />
                     </BarChart>
@@ -916,7 +938,7 @@ export default function App() {
                     </div>
                     <div className="p-8 bg-emerald-50/40 rounded-[3rem] border border-emerald-100 space-y-6">
                         <div className="flex justify-between items-center border-b border-emerald-200/50 pb-4">
-                           <span className="text-sm font-black text-slate-800 uppercase tracking-widest bg-emerald-100 px-5 py-2 rounded-2xl shadow-sm">TW {twActive}</span>
+                            <span className="text-sm font-black text-slate-800 uppercase tracking-widest bg-emerald-100 px-5 py-2 rounded-2xl shadow-sm">TW {twActive}</span>
                         </div>
                         <div className="grid grid-cols-1 gap-5">
                            {['51', '52', '53'].map(code => {
@@ -929,16 +951,16 @@ export default function App() {
                               return (
                                 <div key={code} className="grid grid-cols-12 items-center gap-6 bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm transition-all hover:shadow-md">
                                     <div className="col-span-4">
-                                       <span className="text-xs font-black text-slate-400 uppercase block mb-1">Belanja {code}</span>
-                                       <span className={`text-2xl font-black block tracking-tighter ${getDevColorClass(pctReal - pctTarget)}`}>{pctReal.toFixed(1)}% <span className="text-xs text-slate-300">/ {pctTarget.toFixed(1)}%</span></span>
+                                        <span className="text-xs font-black text-slate-400 uppercase block mb-1">Belanja {code}</span>
+                                        <span className={`text-2xl font-black block tracking-tighter ${getDevColorClass(pctReal - pctTarget)}`}>{pctReal.toFixed(1)}% <span className="text-xs text-slate-300">/ {pctTarget.toFixed(1)}%</span></span>
                                     </div>
                                     <div className="col-span-4 text-center border-x border-slate-100 px-2">
-                                       <span className="text-[10px] font-black text-slate-300 block mb-1 uppercase">Realisasi Satker</span>
-                                       <span className="text-sm font-black text-slate-800 italic">Rp {formatMoney(realSub)}</span>
+                                        <span className="text-[10px] font-black text-slate-300 block mb-1 uppercase">Realisasi Satker</span>
+                                        <span className="text-sm font-black text-slate-800 italic">Rp {formatMoney(realSub)}</span>
                                     </div>
                                     <div className="col-span-4">
-                                       <span className="text-[10px] font-black text-slate-300 block mb-1 text-right uppercase">Target KPPN (Rp)</span>
-                                       <input type="text" value={formatInputMasking(kppnMetrics[sCat]?.[`TW${twActive}`])} readOnly={currentUser.role !== 'admin'} onChange={(e) => handleUpdateKPPN(sCat, `TW${twActive}`, e.target.value)} onBlur={saveKppnGlobal} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 text-sm font-black text-right outline-none focus:ring-4 focus:ring-emerald-200/50 transition-all" placeholder="0" />
+                                        <span className="text-[10px] font-black text-slate-300 block mb-1 text-right uppercase">Target KPPN (Rp)</span>
+                                        <input type="text" value={formatInputMasking(kppnMetrics[sCat]?.[`TW${twActive}`])} readOnly={currentUser.role !== 'admin'} onChange={(e) => handleUpdateKPPN(sCat, `TW${twActive}`, e.target.value)} onBlur={saveKppnGlobal} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 text-sm font-black text-right outline-none focus:ring-4 focus:ring-emerald-200/50 transition-all" placeholder="0" />
                                     </div>
                                 </div>
                               );
@@ -965,8 +987,8 @@ export default function App() {
 
                     <div className="space-y-5">
                        {twMonths[twActive].map(m => {
-                          const mData = globalStats.months[m];
-                          return (
+                         const mData = globalStats.months[m];
+                         return (
                              <div key={m} className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-200 space-y-4">
                                 <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                                    <span className="text-sm font-black text-slate-800 uppercase tracking-widest">{m}</span>
@@ -991,7 +1013,7 @@ export default function App() {
                                    </div>
                                 )}
                              </div>
-                          );
+                         );
                        })}
                     </div>
                   </div>
@@ -1070,6 +1092,117 @@ export default function App() {
                       </tbody>
                     </table>
                   </div>
+               </div>
+            </div>
+          )}
+
+          {/* --- VIEW CAPAIAN OUTPUT (MENURUT RO) --- */}
+          {activeTab === 'capaian' && (
+            <div className="space-y-10 animate-in fade-in duration-700 pb-20">
+               <div className="bg-white p-10 rounded-[4rem] shadow-2xl border border-slate-200">
+                 <div className="flex items-center gap-5 mb-10">
+                    <div className="p-4 bg-violet-100 text-violet-600 rounded-2xl"><TrendingUp size={28}/></div>
+                    <div>
+                      <h3 className="text-xl font-black italic uppercase tracking-tighter">Capaian Output Rincian Output (RO)</h3>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Monitoring Progres Fisik vs Keuangan Satker</p>
+                    </div>
+                 </div>
+
+                 <div className="overflow-x-auto custom-scrollbar rounded-[2rem] border border-slate-100">
+                    <table className="w-full text-[10px] border-collapse">
+                       <thead className="bg-slate-900 text-white text-center font-black uppercase tracking-widest">
+                          <tr>
+                             <th rowSpan={2} className="px-4 py-4 text-left border-r border-white/5">RO & Keterangan</th>
+                             <th rowSpan={2} className="px-4 py-4 border-r border-white/5">Pagu & Real Keu.</th>
+                             {allMonths.map(m => (
+                               <th key={m} className="px-2 py-2 border-r border-white/5 min-w-[120px]">{m}</th>
+                             ))}
+                          </tr>
+                          <tr className="bg-slate-800">
+                             {allMonths.map(m => (<th key={m} className="px-2 py-1 text-[8px] border-r border-white/5 tracking-tighter text-slate-400">Target | Real</th>))}
+                          </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-100">
+                          {capaianOutputData.map((ro) => {
+                             const realKeuPct = ro.paguRO > 0 ? (ro.realAnggaranRO / ro.paguRO * 100).toFixed(1) : "0.0";
+                             return (
+                                <React.Fragment key={ro.id}>
+                                   {/* BARIS PERTAMA: NILAI BULANAN */}
+                                   <tr className="bg-white hover:bg-violet-50/30 transition-all">
+                                      <td className="px-5 py-4 border-r border-slate-50 relative">
+                                         <div className="font-black text-slate-800 text-[11px] mb-1">{ro.kode}</div>
+                                         <div className="text-[9px] font-bold text-slate-400 uppercase leading-tight">{ro.uraian}</div>
+                                         <span className="absolute top-4 right-4 text-[8px] font-black text-violet-500 bg-violet-50 px-2 py-1 rounded-md">BULANAN</span>
+                                      </td>
+                                      <td className="px-4 py-4 border-r border-slate-50 text-right">
+                                         <div className="text-slate-400 font-bold mb-1">Pagu: {formatMoney(ro.paguRO)}</div>
+                                         <div className="text-slate-800 font-black tracking-tighter italic">Realisasi: {formatMoney(ro.realAnggaranRO)} ({realKeuPct}%)</div>
+                                      </td>
+                                      {allMonths.map(m => (
+                                         <td key={m} className="px-3 py-4 border-r border-slate-50">
+                                            <div className="flex flex-col gap-2">
+                                               {/* Target Fisik Bulanan */}
+                                               <input 
+                                                  type="text" 
+                                                  placeholder="Target %"
+                                                  readOnly={currentUser.role !== 'admin'}
+                                                  value={ro.targetCapaian?.[m] || ""}
+                                                  onChange={async (e) => {
+                                                    if(currentUser.role === 'admin') {
+                                                      const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, ro.id), { targetCapaian: { ...ro.targetCapaian, [m]: val } });
+                                                    }
+                                                  }}
+                                                  className="w-full bg-slate-50 border border-slate-100 rounded-lg py-1 px-2 text-center text-[10px] font-black text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20"
+                                               />
+                                               {/* Realisasi Fisik Bulanan */}
+                                               <input 
+                                                  type="text" 
+                                                  placeholder="Real %"
+                                                  readOnly={currentUser.role !== 'admin'}
+                                                  value={ro.realCapaian?.[m] || ""}
+                                                  onChange={async (e) => {
+                                                    if(currentUser.role === 'admin') {
+                                                      const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, ro.id), { realCapaian: { ...ro.realCapaian, [m]: val } });
+                                                    }
+                                                  }}
+                                                  className="w-full bg-emerald-50 border border-emerald-100 rounded-lg py-1 px-2 text-center text-[10px] font-black text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                               />
+                                            </div>
+                                         </td>
+                                      ))}
+                                   </tr>
+                                   {/* BARIS KEDUA: NILAI KUMULATIF */}
+                                   <tr className="bg-slate-50/50">
+                                      <td colSpan={2} className="px-5 py-2 text-right border-r border-slate-50">
+                                         <span className="text-[9px] font-black text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-200">KUMULATIF %</span>
+                                      </td>
+                                      {allMonths.map((m, idx) => {
+                                         // Hitung Kumulatif s.d. Bulan Terpilih
+                                         let kumTarget = 0;
+                                         let kumReal = 0;
+                                         for(let i=0; i<=idx; i++){
+                                            kumTarget += Number(ro.targetCapaian?.[allMonths[i]] || 0);
+                                            kumReal += Number(ro.realCapaian?.[allMonths[i]] || 0);
+                                         }
+                                         const dev = kumReal - kumTarget;
+                                         return (
+                                            <td key={m} className="px-3 py-2 border-r border-slate-50 text-center">
+                                               <div className="flex flex-col text-[10px] font-black tracking-tighter">
+                                                  <span className="text-slate-800">{kumTarget.toFixed(2)} | {kumReal.toFixed(2)}</span>
+                                                  <span className={dev >= 0 ? "text-emerald-600" : "text-rose-600"}>Dev: {dev.toFixed(2)}</span>
+                                               </div>
+                                            </td>
+                                         );
+                                      })}
+                                   </tr>
+                                </React.Fragment>
+                             );
+                          })}
+                       </tbody>
+                    </table>
+                 </div>
                </div>
             </div>
           )}
@@ -1287,7 +1420,8 @@ export default function App() {
               </div>
             </div>
           )}
-</div>
+        </div>
+
         <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0">
             <ShieldHalf size={14} className="text-slate-300" />
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">© 2026 BPS Kab. Seram Bagian Barat - Internal Cloud Access</p>
