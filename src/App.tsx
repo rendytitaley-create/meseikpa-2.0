@@ -23,12 +23,12 @@ import {
   onAuthStateChanged 
 } from 'firebase/auth';
 import { 
-  LayoutDashboard, FileUp, Trash2, AlertTriangle, Menu, User, Wallet,
-  Activity, Lock, Unlock, PieChart, ShieldCheck, Target, Users, UserPlus,
+  LayoutDashboard, FileUp, Trash2, AlertTriangle, Menu, User,
+  Activity, Lock, Unlock, PieChart, Target, Users, UserPlus,
   Edit3, LogOut, Eraser, ShieldHalf, CheckCircle2, LogIn, KeyRound, Search,
   Filter, Eye, EyeOff, CalendarDays, TrendingUp, ClipboardCheck
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
 declare global {
@@ -1030,16 +1030,20 @@ export default function App() {
                               <td className="px-4 py-2 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
                               <td className="px-5 py-2 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
                               <td className="px-4 py-2 text-right font-black border-r border-slate-100">{!isNonFinancial ? formatMoney(item.pagu) : ""}</td>
-                              {[1,2,3,4].map(tw => (
-                                <td key={tw} className="px-3 py-3 text-right border-r border-slate-100">
-                                  {!isNonFinancial && (
-                                    <div className="flex flex-col text-[11px] font-black leading-tight">
-                                      <span className="text-orange-600">{formatMoney(twMonths[tw].reduce((a,m)=>a+(Number(item.monthRPD?.[m])||0),0))}</span>
-                                      <span className="text-blue-600">{formatMoney(twMonths[tw].reduce((a,m)=>a+(Number(item.monthReal?.[m])||0),0))}</span>
-                                    </div>
-                                  )}
-                                </td>
-                              ))}
+                              {[1,2,3,4].map((twNum) => (
+  <td key={twNum} className="px-3 py-3 text-right border-r border-slate-100">
+    {!isNonFinancial && (
+      <div className="flex flex-col text-[11px] font-black leading-tight">
+        <span className="text-orange-600">
+          {formatMoney(twMonths[twNum].reduce((a: number, m: string) => a + (Number(item.monthRPD?.[m]) || 0), 0))}
+        </span>
+        <span className="text-blue-600">
+          {formatMoney(twMonths[twNum].reduce((a: number, m: string) => a + (Number(item.monthReal?.[m]) || 0), 0))}
+        </span>
+      </div>
+    )}
+  </td>
+))}
                               <td className="px-3 py-2 text-right font-black text-orange-800 border-r border-slate-100 bg-orange-50/30">{!isNonFinancial ? formatMoney(item.totalRPD) : ""}</td>
                               <td className={`px-3 py-2 text-right font-black border-r border-slate-100 ${getDevColorClass(devPctFinal)}`}>
                                   {(!isNonFinancial && item.totalRPD > 0) ? `${devPctFinal.toFixed(1)}%` : "0%"}
