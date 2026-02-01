@@ -167,7 +167,7 @@ export default function App() {
   // Fitur Rekap Bulanan State
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
 
-  // Monitoring GAP Monthly Filter
+  // Monitoring GAP Monthly Filter - Diisolasi hanya untuk Capaian Output
   const [selectedMonthGap, setSelectedMonthGap] = useState<string>("");
 
   // State Password Visibility
@@ -400,7 +400,7 @@ export default function App() {
 
     const outputs = dataTampil.filter(d => getLevel(d.kode) === 4);
     
-    // Auto-detect current month if not selected
+    // Logika Auto-detect Bulan Terakhir yang ada datanya
     let targetMonth = selectedMonthGap;
     if (!targetMonth) {
         for (let i = 11; i >= 0; i--) {
@@ -668,11 +668,39 @@ export default function App() {
   }, [dataTampil]);
 
   // --- KOMPONEN KARTU GAP (REUSABLE) ---
-  const GapMonitoringCard = ({ showDetails = false }: { showDetails?: boolean }) => {
+  // Penambahan props isDashboard agar desain lebih presisi di kartu kecil
+  const GapMonitoringCard = ({ showDetails = false, isDashboard = false }: { showDetails?: boolean, isDashboard?: boolean }) => {
     const isGapAlert = globalStats.gapCount > 0;
+    
+    if (isDashboard) {
+      return (
+        <div className={`bg-white ${isDashboard ? 'p-6' : 'p-8'} rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all h-full flex flex-col`}>
+            <div className="flex justify-between items-start mb-4">
+                <div className={`p-3 ${isGapAlert ? 'bg-rose-50 text-rose-600' : 'bg-violet-50 text-violet-600'} rounded-2xl`}>
+                  <ClipboardCheck size={20}/>
+                </div>
+                <div className="text-right leading-none">
+                  <span className="text-[9px] font-black text-slate-400 uppercase block tracking-wider">Status {globalStats.activeMonth}</span>
+                  <span className={`text-[11px] font-bold ${isGapAlert ? 'text-rose-500' : 'text-violet-500'} italic uppercase`}>Monitor GAP</span>
+                </div>
+            </div>
+            <div className="flex-1 flex flex-col items-center justify-center mb-4 text-center">
+                <div className={`text-5xl font-black tracking-tighter italic leading-none ${isGapAlert ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  {globalStats.gapCount}
+                </div>
+                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Output Bermasalah</div>
+            </div>
+            <div className="space-y-2 bg-slate-50 p-4 rounded-3xl border border-slate-100">
+                <div className="flex justify-between items-center text-[9px] font-black uppercase"><span className="text-slate-400">Avg. Fisik</span><span className="text-slate-800 font-bold">{globalStats.avgFisik.toFixed(1)}%</span></div>
+                <div className="flex justify-between items-center text-[9px] font-black uppercase"><span className="text-slate-400">Avg. Keu</span><span className="text-slate-800 font-bold">{globalStats.avgAnggaran.toFixed(1)}%</span></div>
+            </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="space-y-4 w-full">
-          {/* Header Filter Bulan (Halaman Capaian) */}
+      <div className="space-y-4 w-full animate-in fade-in duration-500">
+          {/* Filter Bulan Hanya Muncul di Menu Capaian */}
           {showDetails && (
               <div className="flex flex-wrap gap-1 p-1 bg-white rounded-2xl border border-slate-200 shadow-sm">
                   {allMonths.map(m => (
@@ -711,38 +739,36 @@ export default function App() {
                   </div>
               </div>
 
-              {showDetails && (
-                  <div className="lg:col-span-8 bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                      <h4 className="text-xs font-black uppercase italic text-slate-800 mb-4 flex items-center gap-2">
-                        <Info size={14} className="text-indigo-500"/> Daftar Output Bermasalah ({globalStats.activeMonth})
-                      </h4>
-                      <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2" style={{maxHeight:'220px'}}>
-                          {globalStats.anomaliList.length > 0 ? globalStats.anomaliList.map((item: any, idx: number) => (
-                              <div key={idx} className="p-4 bg-rose-50/50 rounded-2xl border border-rose-100 flex items-center justify-between gap-4">
-                                  <div className="min-w-0">
-                                      <div className="text-[11px] font-black text-slate-800 truncate">{item.uraian}</div>
-                                      <div className="text-[9px] font-bold text-slate-400 font-mono tracking-tighter">{item.kode}</div>
+              <div className="lg:col-span-8 bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                  <h4 className="text-xs font-black uppercase italic text-slate-800 mb-4 flex items-center gap-2">
+                    <Info size={14} className="text-indigo-500"/> Daftar Output Bermasalah ({globalStats.activeMonth})
+                  </h4>
+                  <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2" style={{maxHeight:'220px'}}>
+                      {globalStats.anomaliList.length > 0 ? globalStats.anomaliList.map((item: any, idx: number) => (
+                          <div key={idx} className="p-4 bg-rose-50/50 rounded-2xl border border-rose-100 flex items-center justify-between gap-4 animate-in slide-in-from-right duration-300" style={{ animationDelay: `${idx * 50}ms` }}>
+                              <div className="min-w-0">
+                                  <div className="text-[11px] font-black text-slate-800 truncate">{item.uraian}</div>
+                                  <div className="text-[9px] font-bold text-slate-400 font-mono tracking-tighter">{item.kode}</div>
+                              </div>
+                              <div className="flex gap-2 shrink-0">
+                                  <div className="text-center px-3 py-1 bg-white rounded-lg border border-rose-100 shadow-sm">
+                                      <span className="block text-[7px] font-black text-slate-400 uppercase leading-none mb-1">GAP KEU</span>
+                                      <span className="text-[10px] font-black text-rose-600 italic">{(item.gapFisikKeu).toFixed(1)}%</span>
                                   </div>
-                                  <div className="flex gap-2 shrink-0">
-                                      <div className="text-center px-3 py-1 bg-white rounded-lg border border-rose-100 shadow-sm">
-                                          <span className="block text-[7px] font-black text-slate-400 uppercase leading-none mb-1">GAP KEU</span>
-                                          <span className="text-[10px] font-black text-rose-600 italic">{(item.gapFisikKeu).toFixed(1)}%</span>
-                                      </div>
-                                      <div className="text-center px-3 py-1 bg-white rounded-lg border border-rose-100 shadow-sm">
-                                          <span className="block text-[7px] font-black text-slate-400 uppercase leading-none mb-1">GAP TGT</span>
-                                          <span className="text-[10px] font-black text-rose-600 italic">{(item.gapFisikTarget).toFixed(1)}%</span>
-                                      </div>
+                                  <div className="text-center px-3 py-1 bg-white rounded-lg border border-rose-100 shadow-sm">
+                                      <span className="block text-[7px] font-black text-slate-400 uppercase leading-none mb-1">GAP TGT</span>
+                                      <span className="text-[10px] font-black text-rose-600 italic">{(item.gapFisikTarget).toFixed(1)}%</span>
                                   </div>
                               </div>
-                          )) : (
-                              <div className="h-full flex flex-col items-center justify-center text-emerald-500 opacity-60 italic">
-                                  <CheckCircle2 size={32} className="mb-2"/>
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-center">Semua Output Sinkron</span>
-                              </div>
-                          )}
-                      </div>
+                          </div>
+                      )) : (
+                          <div className="h-full flex flex-col items-center justify-center text-emerald-500 opacity-60 italic">
+                              <CheckCircle2 size={32} className="mb-2"/>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-center">Semua Output Sinkron pada Bulan Ini</span>
+                          </div>
+                      )}
                   </div>
-              )}
+              </div>
           </div>
       </div>
     );
@@ -831,7 +857,8 @@ export default function App() {
           {sidebarOpen && <div className="ml-3 font-black text-white italic tracking-tighter leading-tight">MESEIKPA<br/><span className="text-[9px] uppercase tracking-[0.2em] font-bold not-italic text-blue-400">Version 2.0</span></div>}
         </div>
         <nav className="flex-1 py-6 space-y-2 px-3 overflow-y-auto custom-scrollbar">
-          <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
+          {/* Dashboard Tab Reset Filter Gap saat diklik */}
+          <button onClick={() => { setActiveTab('dashboard'); setSelectedMonthGap(""); }} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
             <LayoutDashboard size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Dashboard</span>}
           </button>
@@ -990,7 +1017,8 @@ export default function App() {
                       </div>
                   </div>
 
-                  <GapMonitoringCard />
+                  {/* Kartu Capaian Output Dashboard (Presisi) */}
+                  <GapMonitoringCard isDashboard={true} />
               </div>
 
               <div className="bg-white p-12 rounded-[4rem] border border-slate-200 shadow-sm">
@@ -1223,13 +1251,14 @@ export default function App() {
 
           {activeTab === 'capaian' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+               {/* Filter Bulan Hanya Bekerja Lokal di Sini */}
                <GapMonitoringCard showDetails={true} />
                <div className="bg-white p-10 rounded-[4rem] shadow-2xl border border-slate-200 overflow-hidden">
                  <div className="flex items-center gap-5 mb-10">
                     <div className="p-4 bg-violet-100 text-violet-600 rounded-2xl"><TrendingUp size={28}/></div>
                     <div>
                       <h3 className="text-xl font-black italic uppercase tracking-tighter">Entri Progres Rincian Output (RO)</h3>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Silakan perbaiki data pada bulan yang terdeteksi GAP</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Perbaikan data pada bulan {globalStats.activeMonth} terpilih</p>
                     </div>
                  </div>
                  <div className="overflow-x-auto overflow-y-auto custom-scrollbar rounded-[2rem] border border-slate-100 max-h-[70vh] relative">
@@ -1239,11 +1268,11 @@ export default function App() {
                              <th rowSpan={2} className="sticky left-0 z-40 bg-slate-900 px-4 py-4 text-left border-r border-white/5 min-w-[300px]">Kode & Output</th>
                              <th rowSpan={2} className="sticky left-[300px] z-40 bg-slate-900 px-4 py-4 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Kumulatif Anggaran</th>
                              {allMonths.map(m => (
-                               <th key={m} className="px-2 py-2 border-r border-white/5 min-w-[120px]">{m}</th>
+                               <th key={m} className={`px-2 py-2 border-r border-white/5 min-w-[120px] ${selectedMonthGap === m ? 'bg-indigo-600 text-white' : ''}`}>{m}</th>
                              ))}
                          </tr>
                          <tr className="bg-slate-800">
-                             {allMonths.map(m => (<th key={m} className="px-2 py-1 text-[8px] border-r border-white/5 tracking-tighter text-slate-400">Target % | Real %</th>))}
+                             {allMonths.map(m => (<th key={m} className="px-2 py-1 text-[8px] border-r border-white/5 tracking-tighter text-slate-400">T % | R %</th>))}
                          </tr>
                        </thead>
                        <tbody className="divide-y divide-slate-100">
@@ -1260,7 +1289,7 @@ export default function App() {
                                           <div className="text-slate-800 font-black tracking-tighter italic">Real: {realKeuPct}%</div>
                                       </td>
                                       {allMonths.map(m => (
-                                          <td key={m} className="px-3 py-4 border-r border-slate-50">
+                                          <td key={m} className={`px-3 py-4 border-r border-slate-50 ${selectedMonthGap === m ? 'bg-indigo-50/30' : ''}`}>
                                             <div className="flex flex-col gap-2">
                                                <input 
                                                   type="text" 
