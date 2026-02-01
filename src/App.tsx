@@ -400,14 +400,12 @@ export default function App() {
 
     const outputs = dataTampil.filter(d => getLevel(d.kode) === 4);
     
-    // Logika Auto-detect Bulan Terakhir yang ada datanya
+    // Perbaikan: Gunakan bulan berjalan (Februari) sebagai default jika belum pilih bulan
     let targetMonth = selectedMonthGap;
     if (!targetMonth) {
-        for (let i = 11; i >= 0; i--) {
-            const m = allMonths[i];
-            const hasData = outputs.some(o => (o.realCapaian?.[m] && o.realCapaian?.[m] !== "0") || (o.targetCapaian?.[m] && o.targetCapaian?.[m] !== "0"));
-            if (hasData) { targetMonth = m; break; }
-        }
+        const currentMonthIdx = new Date().getMonth(); // Mengambil bulan saat ini dari sistem
+        targetMonth = allMonths[currentMonthIdx];
+    }
     }
     if (!targetMonth) targetMonth = "Jan";
     stats.activeMonth = targetMonth;
@@ -858,7 +856,7 @@ export default function App() {
         </div>
         <nav className="flex-1 py-6 space-y-2 px-3 overflow-y-auto custom-scrollbar">
           {/* Dashboard Tab Reset Filter Gap saat diklik */}
-          <button onClick={() => { setActiveTab('dashboard'); setSelectedMonthGap(""); }} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
+          <button onClick={() => { setActiveTab('dashboard'); }} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
             <LayoutDashboard size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Dashboard</span>}
           </button>
