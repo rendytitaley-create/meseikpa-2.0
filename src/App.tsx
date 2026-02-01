@@ -23,36 +23,12 @@ import {
   onAuthStateChanged 
 } from 'firebase/auth';
 import { 
-  LayoutDashboard, 
-  FileUp, 
-  Trash2, 
-  AlertTriangle, 
-  Menu, 
-  User,
-  Wallet,
-  Activity,
-  Lock,
-  Unlock,
-  PieChart, 
-  ShieldCheck,
-  Target,
-  Users,
-  UserPlus,
-  Edit3,
-  LogOut,
-  Eraser,
-  ShieldHalf,
-  CheckCircle2,
-  LogIn,
-  KeyRound,
-  Search,
-  Filter,
-  Eye,
-  EyeOff,
-  CalendarDays,
-  TrendingUp
+  LayoutDashboard, FileUp, Trash2, AlertTriangle, Menu, User, Wallet,
+  Activity, Lock, Unlock, PieChart, ShieldCheck, Target, Users, UserPlus,
+  Edit3, LogOut, Eraser, ShieldHalf, CheckCircle2, LogIn, KeyRound, Search,
+  Filter, Eye, EyeOff, CalendarDays, TrendingUp, ClipboardCheck
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar } from 'recharts';
 
 // --- DEKLARASI GLOBAL UNTUK TYPESCRIPT ---
 declare global {
@@ -192,9 +168,6 @@ export default function App() {
 
   // State Password Visibility
   const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
-
-  // State Periode Grafik Dashboard
-  const [chartMode, setChartMode] = useState<'TW' | 'Bulan'>('TW');
 
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -374,6 +347,7 @@ export default function App() {
         rpd51: 0, rpd52: 0, rpd53: 0,
         outputTarget: 0, outputReal: 0, outputCount: 0,
         months: allMonths.map(m => ({ name: m, rpd: 0, real: 0 }))
+    tw: [0,1,2,3].map(() => ({ rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 }))
     };
 
     const details = dataTampil.filter(d => !d.isOrphan && getLevel(d.kode) === 8);
