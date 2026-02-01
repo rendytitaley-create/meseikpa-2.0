@@ -1030,6 +1030,10 @@ export default function App() {
                         { id: '53', label: 'Belanja Modal (53)', pagu: globalStats.pagu53, real: globalStats.real53, color: '#f59e0b' }
                       ].map((item) => {
                           const pctRealisasi = item.pagu > 0 ? (item.real / item.pagu * 100) : 0;
+                          const rpdVal = Number(globalStats[`rpd${item.id}`]) || 0;
+                          const realVal = Number(globalStats[`real${item.id}`]) || 0;
+                          const devVal = rpdVal > 0 ? Math.abs((realVal - rpdVal) / rpdVal * 100) : 0;
+                          
                           return (
                               <div key={item.id} className="flex flex-col items-center bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100">
                                   <span className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4">{item.label}</span>
@@ -1044,25 +1048,21 @@ export default function App() {
                                           </PieChart>
                                       </ResponsiveContainer>
                                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                          <span className="text-3xl font-black text-slate-800 italic leading-none">{pctRealisasi.toFixed(1)}%</span>
-                                          <span className="text-[9px] font-black text-slate-400 uppercase mt-1">Terserap</span>
-                                        {/* Penambahan Keterangan Deviasi Hal III */}
-<div className="mt-2 pt-1 border-t border-slate-100 flex flex-col items-center">
-    <span className="text-[7px] font-black text-slate-300 uppercase">Deviasi Hal III</span>
-    <span className={`text-[10px] font-black italic ${getDevColorClass(
-        globalStats[`rpd${item.id}`] > 0 
-        ? Math.abs((globalStats[`real${item.id}`] - globalStats[`rpd${item.id}`]) / globalStats[`rpd${item.id}`] * 100) 
-        : 0
-    )}`}>
-        {globalStats[`rpd${item.id}`] > 0 
-            ? Math.abs((globalStats[`real${item.id}`] - globalStats[`rpd${item.id}`]) / globalStats[`rpd${item.id}`] * 100).toFixed(1) 
-            : "0.0"}%
-    </span>
+                                          <span className="text-2xl font-black text-slate-800 italic leading-none">{pctRealisasi.toFixed(1)}%</span>
+                                          <span className="text-[8px] font-black text-slate-400 uppercase mt-1">Terserap</span>
+                                          
+                                          <div className="mt-2 pt-1 border-t border-slate-200 flex flex-col items-center">
+                                              <span className="text-[7px] font-black text-slate-300 uppercase">Deviasi H.III</span>
+                                              <span className={`text-[10px] font-black italic ${getDevColorClass(devVal)}`}>
+                                                  {devVal.toFixed(1)}%
+                                              </span>
+                                          </div>
                                       </div>
                                   </div>
                               </div>
                           );
                       })}
+                  </div>
                   </div>
               </div>
             </div>
