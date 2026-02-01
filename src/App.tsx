@@ -606,7 +606,7 @@ export default function App() {
     // Ambil Level 2 sebagai basis RO
     const roItems = dataTampil.filter(d => getLevel(d.kode) === 2);
     
-    return roItems.map((ro, index) => {
+    return roItems.map((ro) => {
       let totalPaguRO = 0;
       let totalRealRO = 0;
 
