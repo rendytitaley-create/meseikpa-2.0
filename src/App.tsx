@@ -838,7 +838,7 @@ export default function App() {
                           })).filter(item => item.total > 0)
                       }
                       margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                      barGap={3}
+                      barGap={8}
                     >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 900 }} dy={10} />
