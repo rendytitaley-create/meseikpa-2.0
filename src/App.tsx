@@ -1034,35 +1034,54 @@ export default function App() {
 <td className="px-3 py-3 text-right border-r border-slate-100">
   {!isNonFinancial && (
     <div className="flex flex-col text-[11px] font-black leading-tight">
-      <span className="text-orange-600">{formatMoney(twMonths[1].reduce((a: any, m: any) => a + (Number(item.monthRPD?.[m]) || 0), 0))}</span>
-      <span className="text-blue-600">{formatMoney(twMonths[1].reduce((a: any, m: any) => a + (Number(item.monthReal?.[m]) || 0), 0))}</span>
+      <span className="text-orange-600">
+        {formatMoney((Number(item.monthRPD?.Jan)||0) + (Number(item.monthRPD?.Feb)||0) + (Number(item.monthRPD?.Mar)||0))}
+      </span>
+      <span className="text-blue-600">
+        {formatMoney((Number(item.monthReal?.Jan)||0) + (Number(item.monthReal?.Feb)||0) + (Number(item.monthReal?.Mar)||0))}
+      </span>
     </div>
   )}
 </td>
+
 {/* Kolom TW II */}
 <td className="px-3 py-3 text-right border-r border-slate-100">
   {!isNonFinancial && (
     <div className="flex flex-col text-[11px] font-black leading-tight">
-      <span className="text-orange-600">{formatMoney(twMonths[2].reduce((a: any, m: any) => a + (Number(item.monthRPD?.[m]) || 0), 0))}</span>
-      <span className="text-blue-600">{formatMoney(twMonths[2].reduce((a: any, m: any) => a + (Number(item.monthReal?.[m]) || 0), 0))}</span>
+      <span className="text-orange-600">
+        {formatMoney((Number(item.monthRPD?.Apr)||0) + (Number(item.monthRPD?.Mei)||0) + (Number(item.monthRPD?.Jun)||0))}
+      </span>
+      <span className="text-blue-600">
+        {formatMoney((Number(item.monthReal?.Apr)||0) + (Number(item.monthReal?.Mei)||0) + (Number(item.monthReal?.Jun)||0))}
+      </span>
     </div>
   )}
 </td>
+
 {/* Kolom TW III */}
 <td className="px-3 py-3 text-right border-r border-slate-100">
   {!isNonFinancial && (
     <div className="flex flex-col text-[11px] font-black leading-tight">
-      <span className="text-orange-600">{formatMoney(twMonths[3].reduce((a: any, m: any) => a + (Number(item.monthRPD?.[m]) || 0), 0))}</span>
-      <span className="text-blue-600">{formatMoney(twMonths[3].reduce((a: any, m: any) => a + (Number(item.monthReal?.[m]) || 0), 0))}</span>
+      <span className="text-orange-600">
+        {formatMoney((Number(item.monthRPD?.Jul)||0) + (Number(item.monthRPD?.Ags)||0) + (Number(item.monthRPD?.Sep)||0))}
+      </span>
+      <span className="text-blue-600">
+        {formatMoney((Number(item.monthReal?.Jul)||0) + (Number(item.monthReal?.Ags)||0) + (Number(item.monthReal?.Sep)||0))}
+      </span>
     </div>
   )}
 </td>
+
 {/* Kolom TW IV */}
 <td className="px-3 py-3 text-right border-r border-slate-100">
   {!isNonFinancial && (
     <div className="flex flex-col text-[11px] font-black leading-tight">
-      <span className="text-orange-600">{formatMoney(twMonths[4].reduce((a: any, m: any) => a + (Number(item.monthRPD?.[m]) || 0), 0))}</span>
-      <span className="text-blue-600">{formatMoney(twMonths[4].reduce((a: any, m: any) => a + (Number(item.monthReal?.[m]) || 0), 0))}</span>
+      <span className="text-orange-600">
+        {formatMoney((Number(item.monthRPD?.Okt)||0) + (Number(item.monthRPD?.Nov)||0) + (Number(item.monthRPD?.Des)||0))}
+      </span>
+      <span className="text-blue-600">
+        {formatMoney((Number(item.monthReal?.Okt)||0) + (Number(item.monthReal?.Nov)||0) + (Number(item.monthReal?.Des)||0))}
+      </span>
     </div>
   )}
 </td>
