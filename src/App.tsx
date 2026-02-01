@@ -678,14 +678,14 @@ export default function App() {
                 </div>
                 <div className="text-right leading-none">
                   <span className="text-[9px] font-black text-slate-400 uppercase block tracking-wider">Status {globalStats.activeMonth}</span>
-                  <span className={`text-[11px] font-bold ${isGapAlert ? 'text-rose-500' : 'text-violet-500'} italic uppercase`}>Monitor GAP</span>
+                  <span className={`text-[11px] font-bold ${isGapAlert ? 'text-rose-500' : 'text-violet-500'} italic uppercase`}>Capaian Output</span>
                 </div>
             </div>
             <div className="flex-1 flex flex-col items-center justify-center mb-4 text-center">
                 <div className={`text-5xl font-black tracking-tighter italic leading-none ${isGapAlert ? 'text-rose-600' : 'text-emerald-600'}`}>
                   {globalStats.gapCount}
                 </div>
-                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Output Bermasalah</div>
+                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Perlu Konfirmasi</div>
             </div>
             <div className="space-y-2 bg-slate-50 p-4 rounded-3xl border border-slate-100">
                 <div className="flex justify-between items-center text-[9px] font-black uppercase"><span className="text-slate-400">Avg. Fisik</span><span className="text-slate-800 font-bold">{globalStats.avgFisik.toFixed(1)}%</span></div>
@@ -728,7 +728,7 @@ export default function App() {
                       <div className={`text-6xl font-black tracking-tighter italic ${isGapAlert ? 'text-rose-600' : 'text-emerald-600'}`}>
                         {globalStats.gapCount}
                       </div>
-                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Output Bermasalah</div>
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Perlu Konfirmasi</div>
                   </div>
                   <div className="space-y-3 bg-slate-50 p-5 rounded-[2rem] border border-slate-100">
                       <div className="flex justify-between items-center text-[10px] font-black uppercase"><span className="text-slate-400">Avg. Fisik</span><span className="text-slate-800 font-bold">{globalStats.avgFisik.toFixed(1)}%</span></div>
@@ -954,7 +954,7 @@ export default function App() {
                       <div className="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full mb-3 inline-block shadow-lg animate-pulse">
                           Kondisi Terakhir: {kppnMetrics.revisiKe || "DIPA AWAL"}
                       </div>
-                      <h1 className="text-4xl font-black text-slate-800 italic tracking-tighter">Executive Monitoring</h1>
+                      <h1 className="text-4xl font-black text-slate-800 italic tracking-tighter">Monitoring IKPA</h1>
                       <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.3em] mt-1">BPS Kab. Seram Bagian Barat</p>
                   </div>
                   <div className="z-10 text-right">
@@ -1021,13 +1021,13 @@ export default function App() {
               <div className="bg-white p-12 rounded-[4rem] border border-slate-200 shadow-sm">
                   <h3 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter mb-12 flex items-center gap-4">
                       <div className="w-2 h-10 bg-indigo-600 rounded-full"></div>
-                      Realisasi Belanja & Proporsi DIPA
+                      Realisasi Belanja & Hal.III DIPA
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                       {[
-                        { id: '51', label: 'Belanja Pegawai', pagu: globalStats.pagu51, real: globalStats.real51, color: '#6366f1' },
-                        { id: '52', label: 'Belanja Barang', pagu: globalStats.pagu52, real: globalStats.real52, color: '#10b981' },
-                        { id: '53', label: 'Belanja Modal', pagu: globalStats.pagu53, real: globalStats.real53, color: '#f59e0b' }
+                        { id: '51', label: 'Belanja Pegawai (51)', pagu: globalStats.pagu51, real: globalStats.real51, color: '#6366f1' },
+                        { id: '52', label: 'Belanja Barang (52)', pagu: globalStats.pagu52, real: globalStats.real52, color: '#10b981' },
+                        { id: '53', label: 'Belanja Modal (53)', pagu: globalStats.pagu53, real: globalStats.real53, color: '#f59e0b' }
                       ].map((item) => {
                           const pctRealisasi = item.pagu > 0 ? (item.real / item.pagu * 100) : 0;
                           return (
