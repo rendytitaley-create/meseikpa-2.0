@@ -340,14 +340,14 @@ export default function App() {
   };
 
   const globalStats = useMemo(() => {
-    const stats = {
+    const stats: any = {
         pagu: 0, rpd: 0, real: 0,
         pagu51: 0, pagu52: 0, pagu53: 0,
         real51: 0, real52: 0, real53: 0,
         rpd51: 0, rpd52: 0, rpd53: 0,
         outputTarget: 0, outputReal: 0, outputCount: 0,
-        months: allMonths.map(m => ({ name: m, rpd: 0, real: 0 })),
-    tw: [0,1,2,3].map(() => ({ rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 }))
+        months: allMonths.map(m => ({ name: m, rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 })),
+        tw: [0,1,2,3].map(() => ({ rpd: 0, real: 0, rpd51:0, real51:0, rpd52:0, real52:0, rpd53:0, real53:0 }))
     };
 
     const details = dataTampil.filter(d => !d.isOrphan && getLevel(d.kode) === 8);
@@ -355,22 +355,35 @@ export default function App() {
       const p = Number(d.pagu) || 0;
       const r = sumMapValues(d.realisasi);
       const rp = sumMapValues(d.rpd);
-      const acc = (d.tempPathKey || "").split("|")[6] || ""; // Mengambil kode akun (level 7)
+      const acc = (d.tempPathKey || "").split("|")[6] || "";
 
       stats.pagu += p; stats.real += r; stats.rpd += rp;
 
-      // Cek apakah akun 51 (Pegawai), 52 (Barang), atau 53 (Modal)
-      if (acc.startsWith("51")) { stats.pagu51 += p; stats.real51 += r; stats.rpd51 += rp; }
-      else if (acc.startsWith("52")) { stats.pagu52 += p; stats.real52 += r; stats.rpd52 += rp; }
-      else if (acc.startsWith("53")) { stats.pagu53 += p; stats.real53 += r; stats.rpd53 += rp; }
+      const is51 = acc.startsWith("51");
+      const is52 = acc.startsWith("52");
+      const is53 = acc.startsWith("53");
+
+      if (is51) { stats.pagu51 += p; stats.real51 += r; stats.rpd51 += rp; }
+      else if (is52) { stats.pagu52 += p; stats.real52 += r; stats.rpd52 += rp; }
+      else if (is53) { stats.pagu53 += p; stats.real53 += r; stats.rpd53 += rp; }
 
       allMonths.forEach((m, idx) => {
-        stats.months[idx].rpd += (Number(d.rpd?.[m]) || 0);
-        stats.months[idx].real += (Number(d.realisasi?.[m]) || 0);
+        const valRPD = (Number(d.rpd?.[m]) || 0);
+        const valReal = (Number(d.realisasi?.[m]) || 0);
+        
+        stats.months[idx].rpd += valRPD;
+        stats.months[idx].real += valReal;
+
+        const twIdx = Math.floor(idx / 3);
+        stats.tw[twIdx].rpd += valRPD;
+        stats.tw[twIdx].real += valReal;
+
+        if(is51) { stats.tw[twIdx].rpd51 += valRPD; stats.tw[twIdx].real51 += valReal; stats.months[idx].rpd51 += valRPD; stats.months[idx].real51 += valReal; }
+        if(is52) { stats.tw[twIdx].rpd52 += valRPD; stats.tw[twIdx].real52 += valReal; stats.months[idx].rpd52 += valRPD; stats.months[idx].real52 += valReal; }
+        if(is53) { stats.tw[twIdx].rpd53 += valRPD; stats.tw[twIdx].real53 += valReal; stats.months[idx].rpd53 += valRPD; stats.months[idx].real53 += valReal; }
       });
     });
 
-    // Hitung Capaian Output (Level 4)
     const outputs = dataTampil.filter(d => getLevel(d.kode) === 4);
     outputs.forEach(o => {
       allMonths.forEach(m => {
@@ -1034,12 +1047,8 @@ export default function App() {
 <td className="px-3 py-3 text-right border-r border-slate-100">
   {!isNonFinancial && (
     <div className="flex flex-col text-[11px] font-black leading-tight">
-      <span className="text-orange-600">
-        {formatMoney((Number(item.monthRPD?.Jan)||0) + (Number(item.monthRPD?.Feb)||0) + (Number(item.monthRPD?.Mar)||0))}
-      </span>
-      <span className="text-blue-600">
-        {formatMoney((Number(item.monthReal?.Jan)||0) + (Number(item.monthReal?.Feb)||0) + (Number(item.monthReal?.Mar)||0))}
-      </span>
+      <span className="text-orange-600">{formatMoney((Number((item as any).monthRPD?.Jan)||0) + (Number((item as any).monthRPD?.Feb)||0) + (Number((item as any).monthRPD?.Mar)||0))}</span>
+      <span className="text-blue-600">{formatMoney((Number((item as any).monthReal?.Jan)||0) + (Number((item as any).monthReal?.Feb)||0) + (Number((item as any).monthReal?.Mar)||0))}</span>
     </div>
   )}
 </td>
@@ -1048,12 +1057,8 @@ export default function App() {
 <td className="px-3 py-3 text-right border-r border-slate-100">
   {!isNonFinancial && (
     <div className="flex flex-col text-[11px] font-black leading-tight">
-      <span className="text-orange-600">
-        {formatMoney((Number(item.monthRPD?.Apr)||0) + (Number(item.monthRPD?.Mei)||0) + (Number(item.monthRPD?.Jun)||0))}
-      </span>
-      <span className="text-blue-600">
-        {formatMoney((Number(item.monthReal?.Apr)||0) + (Number(item.monthReal?.Mei)||0) + (Number(item.monthReal?.Jun)||0))}
-      </span>
+      <span className="text-orange-600">{formatMoney((Number((item as any).monthRPD?.Apr)||0) + (Number((item as any).monthRPD?.Mei)||0) + (Number((item as any).monthRPD?.Jun)||0))}</span>
+      <span className="text-blue-600">{formatMoney((Number((item as any).monthReal?.Apr)||0) + (Number((item as any).monthReal?.Mei)||0) + (Number((item as any).monthReal?.Jun)||0))}</span>
     </div>
   )}
 </td>
@@ -1062,12 +1067,8 @@ export default function App() {
 <td className="px-3 py-3 text-right border-r border-slate-100">
   {!isNonFinancial && (
     <div className="flex flex-col text-[11px] font-black leading-tight">
-      <span className="text-orange-600">
-        {formatMoney((Number(item.monthRPD?.Jul)||0) + (Number(item.monthRPD?.Ags)||0) + (Number(item.monthRPD?.Sep)||0))}
-      </span>
-      <span className="text-blue-600">
-        {formatMoney((Number(item.monthReal?.Jul)||0) + (Number(item.monthReal?.Ags)||0) + (Number(item.monthReal?.Sep)||0))}
-      </span>
+      <span className="text-orange-600">{formatMoney((Number((item as any).monthRPD?.Jul)||0) + (Number((item as any).monthRPD?.Ags)||0) + (Number((item as any).monthRPD?.Sep)||0))}</span>
+      <span className="text-blue-600">{formatMoney((Number((item as any).monthReal?.Jul)||0) + (Number((item as any).monthReal?.Ags)||0) + (Number((item as any).monthReal?.Sep)||0))}</span>
     </div>
   )}
 </td>
@@ -1076,12 +1077,8 @@ export default function App() {
 <td className="px-3 py-3 text-right border-r border-slate-100">
   {!isNonFinancial && (
     <div className="flex flex-col text-[11px] font-black leading-tight">
-      <span className="text-orange-600">
-        {formatMoney((Number(item.monthRPD?.Okt)||0) + (Number(item.monthRPD?.Nov)||0) + (Number(item.monthRPD?.Des)||0))}
-      </span>
-      <span className="text-blue-600">
-        {formatMoney((Number(item.monthReal?.Okt)||0) + (Number(item.monthReal?.Nov)||0) + (Number(item.monthReal?.Des)||0))}
-      </span>
+      <span className="text-orange-600">{formatMoney((Number((item as any).monthRPD?.Okt)||0) + (Number((item as any).monthRPD?.Nov)||0) + (Number((item as any).monthRPD?.Des)||0))}</span>
+      <span className="text-blue-600">{formatMoney((Number((item as any).monthReal?.Okt)||0) + (Number((item as any).monthReal?.Nov)||0) + (Number((item as any).monthReal?.Des)||0))}</span>
     </div>
   )}
 </td>
