@@ -406,7 +406,6 @@ export default function App() {
         const currentMonthIdx = new Date().getMonth(); // Mengambil bulan saat ini dari sistem
         targetMonth = allMonths[currentMonthIdx];
     }
-    }
     if (!targetMonth) targetMonth = "Jan";
     stats.activeMonth = targetMonth;
     const mIdx = allMonths.indexOf(targetMonth);
