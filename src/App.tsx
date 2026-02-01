@@ -1046,6 +1046,19 @@ export default function App() {
                                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                                           <span className="text-3xl font-black text-slate-800 italic leading-none">{pctRealisasi.toFixed(1)}%</span>
                                           <span className="text-[9px] font-black text-slate-400 uppercase mt-1">Terserap</span>
+                                        {/* Penambahan Keterangan Deviasi Hal III */}
+<div className="mt-2 pt-1 border-t border-slate-100 flex flex-col items-center">
+    <span className="text-[7px] font-black text-slate-300 uppercase">Deviasi Hal III</span>
+    <span className={`text-[10px] font-black italic ${getDevColorClass(
+        globalStats[`rpd${item.id}`] > 0 
+        ? Math.abs((globalStats[`real${item.id}`] - globalStats[`rpd${item.id}`]) / globalStats[`rpd${item.id}`] * 100) 
+        : 0
+    )}`}>
+        {globalStats[`rpd${item.id}`] > 0 
+            ? Math.abs((globalStats[`real${item.id}`] - globalStats[`rpd${item.id}`]) / globalStats[`rpd${item.id}`] * 100).toFixed(1) 
+            : "0.0"}%
+    </span>
+</div>
                                       </div>
                                   </div>
                               </div>
