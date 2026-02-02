@@ -20,7 +20,9 @@ import {
   getAuth, 
   signInAnonymously, 
   signInWithCustomToken,
-  onAuthStateChanged 
+  onAuthStateChanged,
+  setPersistence,
+  browserSessionPersistence
 } from 'firebase/auth';
 import { 
   LayoutDashboard, FileUp, Trash2, AlertTriangle, Menu, User,
@@ -322,11 +324,15 @@ export default function App() {
     }
 
     try {
-      const qUser = query(
-        collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION),
-        where("username", "==", loginUsername.trim().toLowerCase()),
-        limit(1)
-      );
+  // PAKSA SESI HANGUS SAAT BROWSER DITUTUP
+  const auth = getAuth();
+  await setPersistence(auth, browserSessionPersistence);
+
+  const qUser = query(
+    collection(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION),
+    where("username", "==", loginUsername.trim().toLowerCase()),
+    limit(1)
+  );
       
       const snap = await getDocs(qUser);
       if (snap.empty) {
