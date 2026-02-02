@@ -157,7 +157,7 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [, setLogs] = useState<string[]>([]); 
+  // const [, setLogs] = useState<string[]>([]); 
   const [libReady, setLibReady] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]); 
   const [migrationStats, setMigrationStats] = useState({ match: 0, new: 0, orphaned: 0 });
@@ -357,33 +357,28 @@ export default function App() {
 
   const handleExportExcel = async () => {
     const ExcelJS = (window as any).ExcelJS;
-    const saveAs = (window as any).saveAs;
     if (!ExcelJS) { alert("Sistem Excel belum siap, tunggu sebentar..."); return; }
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(activeTab.toUpperCase());
 
-    // 1. Susun Kolom Utama
     const columns = [
       { header: 'KODE', key: 'kode', width: 15 },
       { header: 'URAIAN', key: 'uraian', width: 50 },
       { header: 'PAGU DIPA', key: 'pagu', width: 20 },
     ];
     
-    // Tambahkan kolom bulan dinamis berdasarkan Triwulan yang aktif
     twMonths[twActive].forEach(m => columns.push({ header: m, key: m, width: 15 }));
     columns.push({ header: 'TOTAL', key: 'total', width: 20 });
     columns.push({ header: 'SISA', key: 'sisa', width: 20 });
 
     worksheet.columns = columns;
 
-    // 2. Styling Header (Warna Biru Tua, Teks Putih, Tebal)
     const headerRow = worksheet.getRow(1);
     headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
     headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0F172A' } };
     headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    // 3. Masukkan Isian Data
     finalDisplay.forEach(item => {
       const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
       const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
@@ -397,26 +392,21 @@ export default function App() {
         sisa: isInduk ? null : sisa
       };
 
-      // Isi angka per bulannya
       twMonths[twActive].forEach(m => {
         rowData[m] = isInduk ? null : Number(activeTab === 'rpd' ? (item.rpd?.[m] || 0) : (item.realisasi?.[m] || 0));
       });
 
       const row = worksheet.addRow(rowData);
-      
-      // Beri warna background khusus untuk baris judul (Level 1 & 2)
       if (item.level === 1) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FEF3C7' } };
       if (item.level === 2) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DBEAFE' } };
     });
 
-    // 4. Perapihan Format Angka & Garis (Grid)
-    worksheet.eachRow((row, any) => {
+    // BAGIAN ANTI-ERROR TS (Sudah diperbaiki)
+    worksheet.eachRow((row: any) => {
       row.eachCell((cell: any, colNumber: number) => {
-        // Kolom 3 ke kanan diformat jadi angka ribuan
         if (colNumber >= 3 && cell.value !== null) {
           cell.numFmt = '#,##0';
         }
-        // Beri garis pembatas (border) di setiap kotak
         cell.border = {
           top: { style: 'thin' }, left: { style: 'thin' },
           bottom: { style: 'thin' }, right: { style: 'thin' }
@@ -424,7 +414,6 @@ export default function App() {
       });
     });
 
-    // 5. Perintah Download (Versi Anti-Error)
     const buffer = await workbook.xlsx.writeBuffer();
     (window as any).saveAs(new Blob([buffer]), `Laporan_${activeTab}_TW${twActive}_${new Date().toLocaleDateString('id-ID')}.xlsx`);
   };
