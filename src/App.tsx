@@ -1070,7 +1070,7 @@ export default function App() {
                                               </Pie>
                                               <Tooltip 
                                                 contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }}
-                                                formatter={(value: any, name: string) => [`Rp ${formatMoney(value)}`, name]} 
+                                                formatter={(value: any, name?: string) => [`Rp ${formatMoney(value)}`, name || "" ]} 
                                               />
                                           </PieChart>
                                       </ResponsiveContainer>
