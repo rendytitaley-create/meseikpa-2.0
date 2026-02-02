@@ -1564,6 +1564,7 @@ export default function App() {
                         <th className="px-4 py-5 text-right w-32">Pagu DIPA</th>
                         {twMonths[twActive].map(m => (<th key={m} className={`px-2 py-5 text-right w-28 ${activeTab === 'rpd' ? 'bg-orange-900' : 'bg-blue-900'}`}>{m}</th>))}
                         <th className="px-4 py-5 text-right bg-slate-800 w-32">Total</th>
+                        <th className="px-4 py-5 text-right bg-rose-900 w-32">Sisa</th>
                         <th className="px-2 py-5 text-center w-16">Opsi</th>
                       </tr>
                     </thead>
@@ -1571,6 +1572,10 @@ export default function App() {
                       {finalDisplay.map((item: any) => {
                         const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
                         const canEdit = (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || (activeTab === 'realisasi' && currentUser?.role === 'admin');
+
+// Perhitungan sisa otomatis
+const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
+const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
                         return (
                           <tr key={item.id} className={`transition-all ${item.isOrphan ? 'bg-rose-50/50 italic' : 'hover:bg-blue-50/40'}`}>
                             <td className="px-4 py-2 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
@@ -1598,6 +1603,9 @@ export default function App() {
                                 </td>
                             ))}
                             <td className="px-4 py-2 text-right font-black bg-slate-100/50">{!isInduk ? formatMoney(activeTab === 'rpd' ? item.totalRPD : item.totalReal) : ""}</td>
+                            <td className={`px-4 py-2 text-right font-black ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50 animate-pulse' : 'text-slate-800'}`}>
+    {!isInduk ? formatMoney(sisaPagu) : ""}
+</td>
                             <td className="px-2 py-2 text-center">
                                {item.isOrphan && currentUser?.role === 'admin' && (
                                  <button onClick={async () => {
