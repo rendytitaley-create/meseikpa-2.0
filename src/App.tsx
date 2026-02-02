@@ -180,6 +180,7 @@ export default function App() {
   const [newUserTeam, setNewUserTeam] = useState("Nerwilis");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRPDRef = useRef<HTMLInputElement>(null);
   const allMonths = useMemo(() => ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'], []);
   const twMonths: Record<number, string[]> = {
     1: ['Jan', 'Feb', 'Mar'], 2: ['Apr', 'Mei', 'Jun'],
@@ -416,6 +417,71 @@ export default function App() {
 
     const buffer = await workbook.xlsx.writeBuffer();
     (window as any).saveAs(new Blob([buffer]), `Laporan_${activeTab}_TW${twActive}_${new Date().toLocaleDateString('id-ID')}.xlsx`);
+  };
+
+  const handleImportExcel = async (e: any) => {
+    const file = e.target.files?.[0];
+    const XLSX = (window as any).XLSX;
+    if (!file || !XLSX) return;
+
+    if (!window.confirm("Apakah Anda yakin ingin memperbarui database berdasarkan file Excel ini? Data lama akan tertimpa.")) {
+       e.target.value = ""; return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (evt: any) => {
+      try {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rawData: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        
+        let updateCount = 0;
+        const batch = writeBatch(db);
+        const colRef = collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION);
+        const fieldName = activeTab === 'rpd' ? 'rpd' : 'realisasi';
+
+        // Cari index kolom bulan di Excel (Mulai dari Januari s.d Desember)
+        const headers = rawData[0];
+        const monthColumns: any = {};
+        allMonths.forEach(m => {
+           const idx = headers.indexOf(m);
+           if (idx !== -1) monthColumns[m] = idx;
+        });
+
+        // Ambil data dari database untuk dicocokkan kodenya
+        const snap = await getDocs(colRef);
+        
+        for (let i = 1; i < rawData.length; i++) {
+          const row = rawData[i];
+          const kodeExcel = String(row[0] || "").trim();
+          if (!kodeExcel) continue;
+
+          const docMatch = snap.docs.find(d => d.data().kode === kodeExcel);
+          if (docMatch) {
+            const currentData = docMatch.data()[fieldName] || {};
+            const newData = { ...currentData };
+            
+            // Masukkan angka dari Excel ke data bulan yang sesuai
+            Object.keys(monthColumns).forEach(m => {
+               const val = row[monthColumns[m]];
+               if (val !== undefined && val !== null && !isNaN(val)) {
+                 newData[m] = String(val).replace(/\D/g, "");
+               }
+            });
+
+            batch.update(docMatch.ref, { [fieldName]: newData });
+            updateCount++;
+          }
+        }
+
+        await batch.commit();
+        alert(`Berhasil! ${updateCount} baris data ${activeTab.toUpperCase()} telah diperbarui.`);
+      } catch (err) {
+        alert("Gagal membaca file. Pastikan format kolom KODE tidak berubah.");
+      }
+      e.target.value = "";
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   // --- LOGIKA GLOBAL STATS ---
@@ -1596,6 +1662,10 @@ export default function App() {
                        </button>
                        <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-white text-slate-600 border border-slate-200 shadow-sm"><Eraser size={16} /> Reset Nilai</button><button onClick={handleExportExcel} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-emerald-600 text-white shadow-xl hover:bg-emerald-700 transition-all">
   <FileUp size={16} /> Export Excel
+</button>
+                      <button onClick={() => fileInputRPDRef.current?.click()} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-indigo-600 text-white shadow-xl hover:bg-indigo-700 transition-all">
+  <FileUp size={16} /> Import Excel
+  <input type="file" ref={fileInputRPDRef} onChange={handleImportExcel} className="hidden" accept=".xlsx, .xls" />
 </button>
                     </div>
                   ) : (
