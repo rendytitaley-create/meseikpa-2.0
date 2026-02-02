@@ -197,13 +197,25 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Excel Loader
+  // Enhanced Excel & PDF Loader
   useEffect(() => {
-    if ((window as any).XLSX) { setLibReady(true); return; }
-    const script = document.createElement('script');
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-    script.onload = () => { setLibReady(true); addLog("Sistem Excel Aktif."); };
-    document.head.appendChild(script);
+    // 1. Loader Dasar
+    if (!(window as any).XLSX) {
+      const script = document.createElement('script');
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+      script.onload = () => setLibReady(true);
+      document.head.appendChild(script);
+    } else { setLibReady(true); }
+
+    // 2. Loader untuk Excel Rapi (ExcelJS)
+    const scriptExcelJS = document.createElement('script');
+    scriptExcelJS.src = "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js";
+    document.head.appendChild(scriptExcelJS);
+
+    // 3. Loader untuk Download File (FileSaver)
+    const scriptFileSaver = document.createElement('script');
+    scriptFileSaver.src = "https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js";
+    document.head.appendChild(scriptFileSaver);
   }, []);
 
   // Firebase Init & Auth Bootstrap
@@ -341,6 +353,80 @@ export default function App() {
     setLoginPassword("");
     setLoginError("");
     setActiveTab('dashboard');
+  };
+
+  const handleExportExcel = async () => {
+    const ExcelJS = (window as any).ExcelJS;
+    const saveAs = (window as any).saveAs;
+    if (!ExcelJS) { alert("Sistem Excel belum siap, tunggu sebentar..."); return; }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(activeTab.toUpperCase());
+
+    // 1. Susun Kolom Utama
+    const columns = [
+      { header: 'KODE', key: 'kode', width: 15 },
+      { header: 'URAIAN', key: 'uraian', width: 50 },
+      { header: 'PAGU DIPA', key: 'pagu', width: 20 },
+    ];
+    
+    // Tambahkan kolom bulan dinamis berdasarkan Triwulan yang aktif
+    twMonths[twActive].forEach(m => columns.push({ header: m, key: m, width: 15 }));
+    columns.push({ header: 'TOTAL', key: 'total', width: 20 });
+    columns.push({ header: 'SISA', key: 'sisa', width: 20 });
+
+    worksheet.columns = columns;
+
+    // 2. Styling Header (Warna Biru Tua, Teks Putih, Tebal)
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0F172A' } };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // 3. Masukkan Isian Data
+    finalDisplay.forEach(item => {
+      const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
+      const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
+      const sisa = (Number(item.pagu) || 0) - currentTotal;
+
+      const rowData: any = {
+        kode: item.kode,
+        uraian: item.uraian,
+        pagu: isInduk ? null : Number(item.pagu),
+        total: isInduk ? null : currentTotal,
+        sisa: isInduk ? null : sisa
+      };
+
+      // Isi angka per bulannya
+      twMonths[twActive].forEach(m => {
+        rowData[m] = isInduk ? null : Number(activeTab === 'rpd' ? (item.rpd?.[m] || 0) : (item.realisasi?.[m] || 0));
+      });
+
+      const row = worksheet.addRow(rowData);
+      
+      // Beri warna background khusus untuk baris judul (Level 1 & 2)
+      if (item.level === 1) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FEF3C7' } };
+      if (item.level === 2) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DBEAFE' } };
+    });
+
+    // 4. Perapihan Format Angka & Garis (Grid)
+    worksheet.eachRow((row, rowNumber) => {
+      row.eachCell((cell, colNumber) => {
+        // Kolom 3 ke kanan diformat jadi angka ribuan
+        if (colNumber >= 3 && cell.value !== null) {
+          cell.numFmt = '#,##0';
+        }
+        // Beri garis pembatas (border) di setiap kotak
+        cell.border = {
+          top: { style: 'thin' }, left: { style: 'thin' },
+          bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+      });
+    });
+
+    // 5. Perintah Download
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), `Laporan_${activeTab}_TW${twActive}_${new Date().toLocaleDateString('id-ID')}.xlsx`);
   };
 
   // --- LOGIKA GLOBAL STATS ---
@@ -1519,7 +1605,9 @@ export default function App() {
                        <button onClick={handleToggleLock} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-xl transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
                          {isLocked ? <Lock size={16} /> : <Unlock size={16} />} {isLocked ? 'Buka Kunci' : 'Kunci Pengisian'}
                        </button>
-                       <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-white text-slate-600 border border-slate-200 shadow-sm"><Eraser size={16} /> Reset Nilai</button>
+                       <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-white text-slate-600 border border-slate-200 shadow-sm"><Eraser size={16} /> Reset Nilai</button><button onClick={handleExportExcel} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-emerald-600 text-white shadow-xl hover:bg-emerald-700 transition-all">
+  <FileUp size={16} /> Export Excel
+</button>
                     </div>
                   ) : (
                     <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl border italic text-sm font-black ${isLocked ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-blue-50 text-blue-600 border-blue-100 shadow-sm'}`}>
