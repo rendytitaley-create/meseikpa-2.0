@@ -1020,75 +1020,102 @@ export default function App() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                       {[
-                        { id: '51', label: 'Belanja Pegawai (51)', pagu: globalStats.pagu51, real: globalStats.real51, rpd: globalStats.rpd51, baseColor: '#6366f1' },
-                        { id: '52', label: 'Belanja Barang (52)', pagu: globalStats.pagu52, real: globalStats.real52, rpd: globalStats.rpd52, baseColor: '#10b981' },
-                        { id: '53', label: 'Belanja Modal (53)', pagu: globalStats.pagu53, real: globalStats.real53, rpd: globalStats.rpd53, baseColor: '#f59e0b' }
-                      ].map((item) => {
-                          const pctRealisasi = item.pagu > 0 ? (item.real / item.pagu * 100) : 0;
-                          const pctRPD = item.pagu > 0 ? (item.rpd / item.pagu * 100) : 0;
-                          const deviasi = item.rpd > 0 ? Math.abs(((item.real - item.rpd) / item.rpd) * 100) : 0;
+  { id: '51', label: 'Belanja Pegawai (51)', code: '51' },
+  { id: '52', label: 'Belanja Barang (52)', code: '52' },
+  { id: '53', label: 'Belanja Modal (53)', code: '53' }
+].map((item) => {
+    // 1. Ambil Target KUMULATIF KPPN dari input manual
+    const targetKPPNKumulatif = Number(kppnMetrics[`real${item.code}`]?.[`TW${twActive}`]) || 0;
+    
+    // 2. Identifikasi semua bulan dari awal tahun s.d. akhir TW aktif (Kumulatif)
+    const targetMonthIdx = twActive * 3; 
+    const cumulativeMonths = allMonths.slice(0, targetMonthIdx);
 
-                          // Logika Warna Otomatis Berdasarkan Deviasi
-                          let statusColor = '#10b981'; // Default Emerald
-                          if (deviasi >= 10) statusColor = '#e11d48'; // Rose
-                          else if (deviasi >= 5) statusColor = '#d97706'; // Amber
+    // 3. Hitung Realisasi & RPD Kumulatif (Jan s.d. Akhir TW)
+    const realKumulatif = cumulativeMonths.reduce((acc, m) => 
+      acc + (Number(globalStats.months[m][`real${item.code}`]) || 0), 0);
+    
+    const rpdKumulatif = cumulativeMonths.reduce((acc, m) => 
+      acc + (Number(globalStats.months[m][`rpd${item.code}`]) || 0), 0);
 
-                          return (
-                              <div key={item.id} className="flex flex-col items-center bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100 group transition-all hover:bg-white hover:shadow-xl">
-                                  <span className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4 text-center">{item.label}</span>
-                                  <div className="h-[240px] w-full relative">
-                                      <ResponsiveContainer width="100%" height="100%">
-                                          <PieChart>
-                                              {/* Ring Luar: Target RPD */}
-                                              <Pie 
-                                                data={[{ name: 'Target RPD', value: item.rpd }, { name: 'Sisa', value: Math.max(0, item.pagu - item.rpd) }]} 
-                                                innerRadius={85} 
-                                                outerRadius={100} 
-                                                paddingAngle={2} 
-                                                dataKey="value" 
-                                                startAngle={90} 
-                                                endAngle={-270}
-                                                stroke="none"
-                                              >
-                                                  <Cell fill="#cbd5e1" opacity={0.5} />
-                                                  <Cell fill="transparent" />
-                                              </Pie>
+    // 4. Hitung Persentase terhadap Target Kumulatif KPPN
+    const pctRealTerhadapKPPN = targetKPPNKumulatif > 0 ? (realKumulatif / targetKPPNKumulatif * 100) : 0;
+    
+    // 5. Akurasi RPD (Realisasi vs Rencana Internal)
+    const deviasiRPD = rpdKumulatif > 0 ? Math.abs(((realKumulatif - rpdKumulatif) / rpdKumulatif) * 100) : 0;
 
-                                              {/* Ring Dalam: Realisasi */}
-                                              <Pie 
-                                                data={[{ name: 'Realisasi', value: item.real }, { name: 'Sisa Pagu', value: Math.max(0, item.pagu - item.real) }]} 
-                                                innerRadius={60} 
-                                                outerRadius={82} 
-                                                paddingAngle={5} 
-                                                dataKey="value" 
-                                                startAngle={90} 
-                                                endAngle={-270}
-                                                stroke="none"
-                                              >
-                                                  <Cell fill={statusColor} />
-                                                  <Cell fill="#f1f5f9" />
-                                              </Pie>
-                                              <Tooltip 
-                                                contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }}
-                                                formatter={(value: any, name?: string) => [`Rp ${formatMoney(value)}`, name || "" ]} 
-                                              />
-                                          </PieChart>
-                                      </ResponsiveContainer>
-                                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                          <span className={`text-3xl font-black italic leading-none`} style={{ color: statusColor }}>{pctRealisasi.toFixed(1)}%</span>
-                                          <div className="mt-2 text-center">
-                                            <span className="text-[8px] font-black text-slate-400 uppercase block">Target RPD</span>
-                                            <span className="text-[10px] font-black text-slate-800">{pctRPD.toFixed(1)}%</span>
-                                          </div>
-                                      </div>
-                                  </div>
-                                  <div className={`mt-6 w-full p-4 rounded-2xl border flex justify-between items-center ${deviasi >= 5 ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
-                                    <span className="text-[9px] font-black uppercase text-slate-500">Deviasi</span>
-                                    <span className={`text-xs font-black ${deviasi >= 5 ? 'text-rose-600' : 'text-emerald-600'}`}>{deviasi.toFixed(1)}%</span>
-                                  </div>
-                              </div>
-                          );
-                      })}
+    // Warna otomatis berdasarkan pencapaian
+    let statusColor = '#6366f1'; 
+    if (pctRealTerhadapKPPN >= 100) statusColor = '#10b981'; 
+    else if (pctRealTerhadapKPPN < 70) statusColor = '#f59e0b'; 
+    if (pctRealTerhadapKPPN < 40) statusColor = '#e11d48';
+
+    return (
+        <div key={item.id} className="flex flex-col items-center bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100 group transition-all hover:bg-white hover:shadow-xl">
+            <div className="text-center mb-4">
+              <span className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] block">{item.label}</span>
+              <span className="text-[9px] font-bold text-indigo-500 uppercase italic">Target Kum. TW {twActive}: Rp {formatMoney(targetKPPNKumulatif)}</span>
+            </div>
+            
+            <div className="h-[240px] w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        {/* Ring Luar: Rencana Kumulatif (RPD) */}
+                        <Pie 
+                          data={[
+                            { name: 'Rencana Kumulatif', value: Math.min(rpdKumulatif, targetKPPNKumulatif) }, 
+                            { name: 'Sisa Target', value: Math.max(0, targetKPPNKumulatif - rpdKumulatif) }
+                          ]} 
+                          innerRadius={85} outerRadius={95} dataKey="value" 
+                          startAngle={90} endAngle={-270} stroke="none"
+                        >
+                            <Cell fill="#cbd5e1" opacity={0.6} />
+                            <Cell fill="transparent" />
+                        </Pie>
+
+                        {/* Ring Dalam: Realisasi Kumulatif */}
+                        <Pie 
+                          data={[
+                            { name: 'Realisasi Kumulatif', value: Math.min(realKumulatif, targetKPPNKumulatif) }, 
+                            { name: 'Belum Tercapai', value: Math.max(0, targetKPPNKumulatif - realKumulatif) }
+                          ]} 
+                          innerRadius={65} outerRadius={82} dataKey="value" 
+                          startAngle={90} endAngle={-270} stroke="none"
+                        >
+                            <Cell fill={statusColor} />
+                            <Cell fill="#f1f5f9" />
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: any, name?: string) => [`Rp ${formatMoney(value)}`, name || ""]} 
+                        />
+                    </PieChart>
+                </ResponsiveContainer>
+                
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-2xl font-black italic leading-none" style={{ color: statusColor }}>
+                      {pctRealTerhadapKPPN.toFixed(1)}%
+                    </span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase mt-1">S.D TW {twActive}</span>
+                </div>
+            </div>
+
+            <div className="mt-6 w-full space-y-2">
+              <div className="flex justify-between items-center px-4 py-2 bg-white rounded-xl border border-slate-100 shadow-sm">
+                <span className="text-[9px] font-black text-slate-400 uppercase">Deviasi RPD</span>
+                <span className={`text-[10px] font-black ${deviasiRPD > 5 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                  {deviasiRPD.toFixed(1)}%
+                </span>
+              </div>
+              <div className="flex justify-between items-center px-4 py-2 bg-white rounded-xl border border-slate-100 shadow-sm">
+                <span className="text-[9px] font-black text-slate-400 uppercase">Sisa Target KPPN</span>
+                <span className="text-[10px] font-black text-slate-700">
+                  Rp {formatMoney(Math.max(0, targetKPPNKumulatif - realKumulatif))}
+                </span>
+              </div>
+            </div>
+        </div>
+    );
+})}
                   </div>
               </div>
             </div>
