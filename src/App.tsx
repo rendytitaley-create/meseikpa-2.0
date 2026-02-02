@@ -186,7 +186,7 @@ export default function App() {
     3: ['Jul', 'Ags', 'Sep'], 4: ['Okt', 'Nov', 'Des']
   };
 
-  const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
+  // const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
 
   // Efek Otomatis Set Tim Berdasarkan Profil User
   useEffect(() => {
@@ -410,8 +410,8 @@ export default function App() {
     });
 
     // 4. Perapihan Format Angka & Garis (Grid)
-    worksheet.eachRow((row, rowNumber) => {
-      row.eachCell((cell, colNumber) => {
+    worksheet.eachRow((row, any) => {
+      row.eachCell((cell: any, colNumber: number) => {
         // Kolom 3 ke kanan diformat jadi angka ribuan
         if (colNumber >= 3 && cell.value !== null) {
           cell.numFmt = '#,##0';
@@ -424,9 +424,9 @@ export default function App() {
       });
     });
 
-    // 5. Perintah Download
+    // 5. Perintah Download (Versi Anti-Error)
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `Laporan_${activeTab}_TW${twActive}_${new Date().toLocaleDateString('id-ID')}.xlsx`);
+    (window as any).saveAs(new Blob([buffer]), `Laporan_${activeTab}_TW${twActive}_${new Date().toLocaleDateString('id-ID')}.xlsx`);
   };
 
   // --- LOGIKA GLOBAL STATS ---
