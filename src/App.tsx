@@ -403,7 +403,7 @@ export default function App() {
     // Perbaikan: Gunakan bulan berjalan (Februari) sebagai default jika belum pilih bulan
     let targetMonth = selectedMonthGap;
     if (!targetMonth) {
-        const currentMonthIdx = new Date().getMonth(); // Mengambil bulan saat ini dari sistem
+        const currentMonthIdx = new Date().getMonth(); 
         targetMonth = allMonths[currentMonthIdx];
     }
     if (!targetMonth) targetMonth = "Jan";
@@ -664,8 +664,6 @@ export default function App() {
     });
   }, [dataTampil]);
 
-  // --- KOMPONEN KARTU GAP (REUSABLE) ---
-  // Penambahan props isDashboard agar desain lebih presisi di kartu kecil
   const GapMonitoringCard = ({ showDetails = false, isDashboard = false }: { showDetails?: boolean, isDashboard?: boolean }) => {
     const isGapAlert = globalStats.gapCount > 0;
     
@@ -697,7 +695,6 @@ export default function App() {
 
     return (
       <div className="space-y-4 w-full animate-in fade-in duration-500">
-          {/* Filter Bulan Hanya Muncul di Menu Capaian */}
           {showDetails && (
               <div className="flex flex-wrap gap-1 p-1 bg-white rounded-2xl border border-slate-200 shadow-sm">
                   {allMonths.map(m => (
@@ -854,7 +851,6 @@ export default function App() {
           {sidebarOpen && <div className="ml-3 font-black text-white italic tracking-tighter leading-tight">MESEIKPA<br/><span className="text-[9px] uppercase tracking-[0.2em] font-bold not-italic text-blue-400">Version 2.0</span></div>}
         </div>
         <nav className="flex-1 py-6 space-y-2 px-3 overflow-y-auto custom-scrollbar">
-          {/* Dashboard Tab Reset Filter Gap saat diklik */}
           <button onClick={() => { setActiveTab('dashboard'); }} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
             <LayoutDashboard size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Dashboard</span>}
@@ -1014,39 +1010,81 @@ export default function App() {
                       </div>
                   </div>
 
-                  {/* Kartu Capaian Output Dashboard (Presisi) */}
                   <GapMonitoringCard isDashboard={true} />
               </div>
 
               <div className="bg-white p-12 rounded-[4rem] border border-slate-200 shadow-sm">
                   <h3 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter mb-12 flex items-center gap-4">
                       <div className="w-2 h-10 bg-indigo-600 rounded-full"></div>
-                      Realisasi Belanja & Hal.III DIPA
+                      Realisasi Belanja & RPD Hal.III DIPA
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                       {[
-                        { id: '51', label: 'Belanja Pegawai (51)', pagu: globalStats.pagu51, real: globalStats.real51, color: '#6366f1' },
-                        { id: '52', label: 'Belanja Barang (52)', pagu: globalStats.pagu52, real: globalStats.real52, color: '#10b981' },
-                        { id: '53', label: 'Belanja Modal (53)', pagu: globalStats.pagu53, real: globalStats.real53, color: '#f59e0b' }
+                        { id: '51', label: 'Belanja Pegawai (51)', pagu: globalStats.pagu51, real: globalStats.real51, rpd: globalStats.rpd51, baseColor: '#6366f1' },
+                        { id: '52', label: 'Belanja Barang (52)', pagu: globalStats.pagu52, real: globalStats.real52, rpd: globalStats.rpd52, baseColor: '#10b981' },
+                        { id: '53', label: 'Belanja Modal (53)', pagu: globalStats.pagu53, real: globalStats.real53, rpd: globalStats.rpd53, baseColor: '#f59e0b' }
                       ].map((item) => {
                           const pctRealisasi = item.pagu > 0 ? (item.real / item.pagu * 100) : 0;
+                          const pctRPD = item.pagu > 0 ? (item.rpd / item.pagu * 100) : 0;
+                          const deviasi = item.rpd > 0 ? Math.abs(((item.real - item.rpd) / item.rpd) * 100) : 0;
+
+                          // Logika Warna Otomatis Berdasarkan Deviasi
+                          let statusColor = '#10b981'; // Default Emerald
+                          if (deviasi >= 10) statusColor = '#e11d48'; // Rose
+                          else if (deviasi >= 5) statusColor = '#d97706'; // Amber
+
                           return (
-                              <div key={item.id} className="flex flex-col items-center bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100">
-                                  <span className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4">{item.label}</span>
-                                  <div className="h-[220px] w-full relative">
+                              <div key={item.id} className="flex flex-col items-center bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100 group transition-all hover:bg-white hover:shadow-xl">
+                                  <span className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4 text-center">{item.label}</span>
+                                  <div className="h-[240px] w-full relative">
                                       <ResponsiveContainer width="100%" height="100%">
                                           <PieChart>
-                                              <Pie data={[{ name: 'Realisasi', value: item.real }, { name: 'Sisa Pagu', value: Math.max(0, item.pagu - item.real) }]} innerRadius={65} outerRadius={85} paddingAngle={5} dataKey="value" startAngle={90} endAngle={-270}>
-                                                  <Cell fill={item.color} stroke="none" />
-                                                  <Cell fill="#e2e8f0" stroke="none" />
+                                              {/* Ring Luar: Target RPD */}
+                                              <Pie 
+                                                data={[{ name: 'Target RPD', value: item.rpd }, { name: 'Sisa', value: Math.max(0, item.pagu - item.rpd) }]} 
+                                                innerRadius={85} 
+                                                outerRadius={100} 
+                                                paddingAngle={2} 
+                                                dataKey="value" 
+                                                startAngle={90} 
+                                                endAngle={-270}
+                                                stroke="none"
+                                              >
+                                                  <Cell fill="#cbd5e1" opacity={0.5} />
+                                                  <Cell fill="transparent" />
                                               </Pie>
-                                              <Tooltip formatter={(value: any) => `Rp ${formatMoney(value || 0)}`} />
+
+                                              {/* Ring Dalam: Realisasi */}
+                                              <Pie 
+                                                data={[{ name: 'Realisasi', value: item.real }, { name: 'Sisa Pagu', value: Math.max(0, item.pagu - item.real) }]} 
+                                                innerRadius={60} 
+                                                outerRadius={82} 
+                                                paddingAngle={5} 
+                                                dataKey="value" 
+                                                startAngle={90} 
+                                                endAngle={-270}
+                                                stroke="none"
+                                              >
+                                                  <Cell fill={statusColor} />
+                                                  <Cell fill="#f1f5f9" />
+                                              </Pie>
+                                              <Tooltip 
+                                                contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }}
+                                                formatter={(value: any, name: string) => [`Rp ${formatMoney(value)}`, name]} 
+                                              />
                                           </PieChart>
                                       </ResponsiveContainer>
-                                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                          <span className="text-3xl font-black text-slate-800 italic leading-none">{pctRealisasi.toFixed(1)}%</span>
-                                          <span className="text-[9px] font-black text-slate-400 uppercase mt-1">Terserap</span>
+                                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                          <span className={`text-3xl font-black italic leading-none`} style={{ color: statusColor }}>{pctRealisasi.toFixed(1)}%</span>
+                                          <div className="mt-2 text-center">
+                                            <span className="text-[8px] font-black text-slate-400 uppercase block">Target RPD</span>
+                                            <span className="text-[10px] font-black text-slate-800">{pctRPD.toFixed(1)}%</span>
+                                          </div>
                                       </div>
+                                  </div>
+                                  <div className={`mt-6 w-full p-4 rounded-2xl border flex justify-between items-center ${deviasi >= 5 ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
+                                    <span className="text-[9px] font-black uppercase text-slate-500">Deviasi</span>
+                                    <span className={`text-xs font-black ${deviasi >= 5 ? 'text-rose-600' : 'text-emerald-600'}`}>{deviasi.toFixed(1)}%</span>
                                   </div>
                               </div>
                           );
@@ -1248,7 +1286,6 @@ export default function App() {
 
           {activeTab === 'capaian' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-               {/* Filter Bulan Hanya Bekerja Lokal di Sini */}
                <GapMonitoringCard showDetails={true} />
                <div className="bg-white p-10 rounded-[4rem] shadow-2xl border border-slate-200 overflow-hidden">
                  <div className="flex items-center gap-5 mb-10">
@@ -1370,19 +1407,19 @@ export default function App() {
                <div className="bg-white rounded-[4rem] border border-slate-200 overflow-hidden shadow-sm">
                   <table className="w-full text-left text-xs">
                      <thead className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black text-slate-400">
-                        <tr>
+                       <tr>
                            <th className="px-8 py-4">Nama</th>
                            <th className="px-4 py-4">Username</th>
                            <th className="px-4 py-4">Password</th>
                            <th className="px-4 py-4 text-center">Aksi</th>
-                        </tr>
+                       </tr>
                      </thead>
                      <tbody className="divide-y divide-slate-50">
                         {allUsers.map((u) => (
                            <tr key={u.id}>
                               <td className="px-8 py-5 font-bold text-slate-800">
-                                 <div>{u.name}</div>
-                                 <div className="text-[9px] text-blue-500 uppercase tracking-widest">{u.role} • {u.team}</div>
+                                  <div>{u.name}</div>
+                                  <div className="text-[9px] text-blue-500 uppercase tracking-widest">{u.role} • {u.team}</div>
                               </td>
                               <td className="px-4 py-5 font-mono text-slate-500 italic">@{u.username}</td>
                               <td className="px-4 py-5 font-mono">
@@ -1596,3 +1633,4 @@ export default function App() {
     </div>
   );
 }
+// === SELESAI: SELURUH KODE UTUH TERKIRIM ===
