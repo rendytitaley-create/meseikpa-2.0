@@ -790,26 +790,49 @@ export default function App() {
     return outputItems.map((out) => {
       let totalPaguOut = 0;
       let totalRealOut = 0;
+      let monthlyFinancials: Record<string, { rpd: number, real: number }> = {};
+      
+      // Inisialisasi monthlyFinancials untuk tiap bulan
+      allMonths.forEach(m => monthlyFinancials[m] = { rpd: 0, real: 0 });
 
       const baseIdx = dataTampil.findIndex(d => d.id === out.id);
       for (let i = baseIdx + 1; i < dataTampil.length; i++) {
         const next = dataTampil[i];
         if (next.kode !== "" && getLevel(next.kode) <= 4) break;
         if (getLevel(next.kode) === 8) {
-          totalPaguOut += (Number(next.pagu) || 0);
-          totalRealOut += sumMapValues(next.realisasi);
+          const p = (Number(next.pagu) || 0);
+          totalPaguOut += p;
+          allMonths.forEach(m => {
+            monthlyFinancials[m].rpd += (Number(next.rpd?.[m]) || 0);
+            monthlyFinancials[m].real += (Number(next.realisasi?.[m]) || 0);
+          });
         }
       }
+
+      // Hitung Suggestion (Otomatis)
+      const suggestedTarget: Record<string, string> = {};
+      const suggestedReal: Record<string, string> = {};
+
+      allMonths.forEach(m => {
+        // Logika Target: (RPD / Pagu) atau Minimal 0.5
+        const rpdPct = totalPaguOut > 0 ? (monthlyFinancials[m].rpd / totalPaguOut * 100) : 0;
+        suggestedTarget[m] = rpdPct > 0 ? rpdPct.toFixed(2) : "0.50";
+
+        // Logika Realisasi: (Realisasi / Pagu)
+        const realPct = totalPaguOut > 0 ? (monthlyFinancials[m].real / totalPaguOut * 100) : 0;
+        suggestedReal[m] = realPct.toFixed(2);
+      });
 
       return {
         ...out,
         paguOutput: totalPaguOut,
-        realAnggaranOutput: totalRealOut,
+        suggestedTarget, // Data otomatis hasil hitungan
+        suggestedReal,   // Data otomatis hasil hitungan
         targetCapaian: out.targetCapaian || {}, 
         realCapaian: out.realCapaian || {}      
       };
     });
-  }, [dataTampil]);
+  }, [dataTampil, allMonths]);
 
   const GapMonitoringCard = ({ showDetails = false, isDashboard = false }: { showDetails?: boolean, isDashboard?: boolean }) => {
     const isGapAlert = globalStats.gapCount > 0;
@@ -1500,31 +1523,39 @@ export default function App() {
                                           <td key={m} className={`px-3 py-4 border-r border-slate-50 ${selectedMonthGap === m ? 'bg-indigo-50/30' : ''}`}>
                                             <div className="flex flex-col gap-2">
                                                <input 
-                                                  type="text" 
-                                                  placeholder="T"
-                                                  readOnly={currentUser.role !== 'admin'}
-                                                  value={out.targetCapaian?.[m] || ""}
-                                                  onChange={async (e) => {
-                                                    if(currentUser.role === 'admin') {
-                                                      const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, out.id), { targetCapaian: { ...out.targetCapaian, [m]: val } });
-                                                    }
-                                                  }}
-                                                  className="w-full bg-slate-50 border border-slate-100 rounded-lg py-1 px-2 text-center text-[10px] font-black text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20 transition-all"
-                                               />
+  type="text" 
+  placeholder="T"
+  readOnly={currentUser.role !== 'admin'}
+  // Jika database kosong, tampilkan angka sugesti 0.5 atau hasil bagi RPD
+  value={out.targetCapaian?.[m] || out.suggestedTarget[m]} 
+  onChange={async (e) => {
+    if(currentUser.role === 'admin') {
+      const val = e.target.value.replace(/[^0-9.]/g, '');
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, out.id), { 
+        targetCapaian: { ...out.targetCapaian, [m]: val } 
+      });
+    }
+  }}
+  // Warna Kuning Gading jika otomatis, Putih jika sudah diisi manual
+  className={`w-full border rounded-lg py-1 px-2 text-center text-[10px] font-black outline-none transition-all ${out.targetCapaian?.[m] ? 'bg-white border-slate-200 text-slate-800' : 'bg-amber-50 border-amber-200 text-amber-600 italic'}`}
+/>
                                                <input 
-                                                  type="text" 
-                                                  placeholder="R"
-                                                  readOnly={currentUser.role !== 'admin'}
-                                                  value={out.realCapaian?.[m] || ""}
-                                                  onChange={async (e) => {
-                                                    if(currentUser.role === 'admin') {
-                                                      const val = e.target.value.replace(/[^0-9.]/g, '');
-                                                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, out.id), { realCapaian: { ...out.realCapaian, [m]: val } });
-                                                    }
-                                                  }}
-                                                  className="w-full bg-emerald-50 border border-emerald-100 rounded-lg py-1 px-2 text-center text-[10px] font-black text-emerald-700 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                                               />
+  type="text" 
+  placeholder="R"
+  readOnly={currentUser.role !== 'admin'}
+  // Jika database kosong, tampilkan hasil bagi Realisasi Keuangan
+  value={out.realCapaian?.[m] || out.suggestedReal[m]} 
+  onChange={async (e) => {
+    if(currentUser.role === 'admin') {
+      const val = e.target.value.replace(/[^0-9.]/g, '');
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, out.id), { 
+        realCapaian: { ...out.realCapaian, [m]: val } 
+      });
+    }
+  }}
+  // Warna Hijau jika sudah diisi manual, Abu-abu jika otomatis
+  className={`w-full border rounded-lg py-1 px-2 text-center text-[10px] font-black outline-none transition-all ${out.realCapaian?.[m] ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-400 italic'}`}
+/>
                                             </div>
                                           </td>
                                       ))}
