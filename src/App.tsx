@@ -1267,7 +1267,16 @@ export default function App() {
                     <span className="text-[8px] font-black text-slate-400 uppercase mt-1">S.D TW {twActive}</span>
                 </div>
             </div>
-
+<div className="mt-4 w-full p-4 bg-white rounded-[2rem] border border-slate-100 shadow-sm space-y-2">
+            <div className="flex justify-between items-center">
+                <span className="text-[9px] font-black text-slate-400 uppercase">Rencana Internal (RPD)</span>
+                <span className="text-[10px] font-black text-slate-700 italic">Rp {formatMoney(rpdKumulatif)}</span>
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t border-slate-50">
+                <span className="text-[9px] font-black text-slate-400 uppercase">Target KPPN TW {twActive}</span>
+                <span className="text-[10px] font-black text-blue-600 italic">Rp {formatMoney(targetKPPNKumulatif)}</span>
+            </div>
+        </div>
             <div className="mt-6 w-full space-y-2">
               <div className="flex justify-between items-center px-4 py-2 bg-white rounded-xl border border-slate-100 shadow-sm">
                 <span className="text-[9px] font-black text-slate-400 uppercase">Deviasi RPD</span>
