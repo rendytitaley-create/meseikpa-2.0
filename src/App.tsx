@@ -1364,7 +1364,8 @@ export default function App() {
       </div>
       <div className="text-right">
         <span className="text-xs font-black text-indigo-700 block">
-          Rp {formatMoney(rpdKumulatif)}
+          {/* Rumus di bawah ini akan menghitung otomatis tanpa perlu variabel rpdKumulatif */}
+          Rp {formatMoney(globalStats.tw[twActive - 1][`rpd${code}` as keyof typeof globalStats.tw[number]])}
         </span>
         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Berdasarkan Input Tim</span>
       </div>
