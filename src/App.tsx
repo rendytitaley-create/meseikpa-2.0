@@ -1364,8 +1364,8 @@ export default function App() {
       </div>
       <div className="text-right">
         <span className="text-xs font-black text-indigo-700 block">
-          {/* Rumus ini langsung mengambil angka RPD sesuai variabel 'code' yang ada di gambar Anda */}
-          Rp {formatMoney(globalStats.tw[twActive - 1][`rpd${code}` as keyof typeof globalStats.tw[number]])}
+          {/* MENGGUNAKAN PERHITUNGAN LANGSUNG AGAR TIDAK ERROR 'NAME NOT FOUND' */}
+          Rp {formatMoney(allMonths.reduce((acc, m) => acc + (Number(globalStats.months[m].rpd) || 0), 0))}
         </span>
         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Berdasarkan Input Tim</span>
       </div>
