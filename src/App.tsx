@@ -1680,38 +1680,44 @@ const realKeuPct = totalRealAuto.toFixed(1);
           {(activeTab === 'rpd' || activeTab === 'realisasi') && (
             <div className="space-y-6 animate-in fade-in duration-700">
               <div className="flex items-center justify-between mb-4">
-                  {currentUser?.role === 'admin' ? (
-                    <div className="flex gap-4">
-                       <div className="flex items-center gap-3 bg-white px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
-                           <span className="text-[10px] font-black uppercase text-slate-400 italic">Kondisi DIPA:</span>
-                           <input 
-                               type="text" 
-                               value={kppnMetrics.revisiKe || ""} 
-                               placeholder="Contoh: Revisi POK II"
-                               onChange={(e) => {
-                                   setKppnMetrics((prev: any) => ({ ...prev, revisiKe: e.target.value }));
-                               }} 
-                               onBlur={saveKppnGlobal} 
-                               className="w-48 font-black text-xs text-blue-600 outline-none bg-transparent" 
-                           />
-                       </div>
-                       <button onClick={handleToggleLock} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-xl transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
-                         {isLocked ? <Lock size={16} /> : <Unlock size={16} />} {isLocked ? 'Buka Kunci' : 'Kunci Pengisian'}
-                       </button>
-                       <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-white text-slate-600 border border-slate-200 shadow-sm"><Eraser size={16} /> Reset Nilai</button><button onClick={handleExportExcel} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-emerald-600 text-white shadow-xl hover:bg-emerald-700 transition-all">
-  <FileUp size={16} /> Export Excel
-</button>
-                      <button onClick={() => fileInputRPDRef.current?.click()} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-indigo-600 text-white shadow-xl hover:bg-indigo-700 transition-all">
-  <FileUp size={16} /> Import Excel
-  <input type="file" ref={fileInputRPDRef} onChange={handleImportExcel} className="hidden" accept=".xlsx, .xls" />
-</button>
-                    </div>
-                  ) : (
-                    <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl border italic text-sm font-black ${isLocked ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-blue-50 text-blue-600 border-blue-100 shadow-sm'}`}>
-                       {isLocked ? <Lock size={18} /> : <ShieldHalf size={18} />} {isLocked ? 'Mode Terkunci' : `Aktif: Tim ${currentUser?.team}`}
-                    </div>
-                  )}
-              </div>
+  <div className="flex flex-wrap gap-4">
+    {/* HANYA UNTUK ADMIN: Kondisi DIPA, Lock, dan Reset */}
+    {currentUser?.role === 'admin' && (
+      <>
+        <div className="flex items-center gap-3 bg-white px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
+          <span className="text-[10px] font-black uppercase text-slate-400 italic">Kondisi DIPA:</span>
+          <input 
+            type="text" 
+            value={kppnMetrics.revisiKe || ""} 
+            onChange={(e) => setKppnMetrics((prev: any) => ({ ...prev, revisiKe: e.target.value }))}
+            onBlur={saveKppnGlobal}
+            className="w-48 font-black text-xs text-blue-600 outline-none bg-transparent" 
+          />
+        </div>
+        <button onClick={handleToggleLock} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-xl transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
+          {isLocked ? <Lock size={16} /> : <Unlock size={16} />} {isLocked ? 'Buka Kunci' : 'Kunci Pengisian'}
+        </button>
+        <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-white text-slate-600 border border-slate-200 shadow-sm"><Eraser size={16} /> Reset Nilai</button>
+      </>
+    )}
+
+    {/* UNTUK SEMUA ROLE: Export dan Import */}
+    <button onClick={handleExportExcel} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-emerald-600 text-white shadow-xl hover:bg-emerald-700 transition-all">
+      <FileUp size={16} /> Export Excel
+    </button>
+    <button onClick={() => fileInputRPDRef.current?.click()} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-indigo-600 text-white shadow-xl hover:bg-indigo-700 transition-all">
+      <FileUp size={16} /> Import Excel
+      <input type="file" ref={fileInputRPDRef} onChange={handleImportExcel} className="hidden" accept=".xlsx, .xls" />
+    </button>
+  </div>
+
+  {/* STATUS UNTUK NON-ADMIN */}
+  {currentUser?.role !== 'admin' && (
+    <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl border italic text-sm font-black ${isLocked ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-blue-50 text-blue-600 border-blue-100 shadow-sm'}`}>
+      {isLocked ? <Lock size={18} /> : <ShieldHalf size={18} />} {isLocked ? 'Mode Terkunci' : `Aktif: Tim ${currentUser?.team}`}
+    </div>
+  )}
+</div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                   <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
