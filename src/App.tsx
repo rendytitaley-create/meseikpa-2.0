@@ -1364,8 +1364,8 @@ export default function App() {
       </div>
       <div className="text-right">
         <span className="text-xs font-black text-indigo-700 block">
-          {/* Mengambil data RPD langsung dari ringkasan triwulan yang sudah ada di globalStats */}
-          Rp {formatMoney(globalStats.tw[twActive - 1][`rpd${item.code}` as keyof typeof globalStats.tw[number]])}
+          {/* Rumus ini langsung mengambil angka RPD sesuai variabel 'code' yang ada di gambar Anda */}
+          Rp {formatMoney(globalStats.tw[twActive - 1][`rpd${code}` as keyof typeof globalStats.tw[number]])}
         </span>
         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Berdasarkan Input Tim</span>
       </div>
