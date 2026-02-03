@@ -1507,7 +1507,9 @@ export default function App() {
                        </thead>
                        <tbody className="divide-y divide-slate-100">
                           {capaianOutputData.map((out) => {
-                             const realKeuPct = out.paguOutput > 0 ? (out.realAnggaranOutput / out.paguOutput * 100).toFixed(1) : "0.0";
+                             // Menghitung kumulatif realisasi dari seluruh bulan yang sudah berjalan
+const totalRealAuto = allMonths.reduce((acc, m) => acc + (Number(out.suggestedReal[m]) || 0), 0);
+const realKeuPct = totalRealAuto.toFixed(1);
                              return (
                                 <tr key={out.id} className="bg-white hover:bg-violet-50/30 transition-all">
                                       <td className="sticky left-0 z-10 bg-white px-5 py-4 border-r border-slate-50 relative">
