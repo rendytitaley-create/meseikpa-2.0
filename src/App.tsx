@@ -1357,15 +1357,15 @@ export default function App() {
                           <CalendarDays size={18} /> {expandedMonthlyRPD[twActive] ? 'Tutup Rincian' : 'Buka Rincian'}
                        </button>
                     </div>
-<div className="mt-4 mb-5 px-6 py-4 bg-indigo-50/50 rounded-[2rem] border border-indigo-100/50 flex justify-between items-center animate-in fade-in duration-500">
+<div className="mt-4 mb-5 px-6 py-4 bg-indigo-50/50 rounded-[2rem] border border-indigo-100/50 flex justify-between items-center">
       <div className="flex flex-col">
         <span className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Total Rencana RPD TW {twActive}</span>
         <span className="text-[10px] font-black text-indigo-600 italic">Target Akumulasi Internal</span>
       </div>
       <div className="text-right">
         <span className="text-xs font-black text-indigo-700 block">
-          {/* Rumus di bawah ini akan menghitung otomatis tanpa perlu variabel rpdKumulatif */}
-          Rp {formatMoney(globalStats.tw[twActive - 1][`rpd${code}` as keyof typeof globalStats.tw[number]])}
+          {/* Mengambil data RPD langsung dari ringkasan triwulan yang sudah ada di globalStats */}
+          Rp {formatMoney(globalStats.tw[twActive - 1][`rpd${item.code}` as keyof typeof globalStats.tw[number]])}
         </span>
         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Berdasarkan Input Tim</span>
       </div>
