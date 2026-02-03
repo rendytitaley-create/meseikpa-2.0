@@ -789,7 +789,6 @@ export default function App() {
     
     return outputItems.map((out) => {
       let totalPaguOut = 0;
-      let totalRealOut = 0;
       let monthlyFinancials: Record<string, { rpd: number, real: number }> = {};
       
       // Inisialisasi monthlyFinancials untuk tiap bulan
