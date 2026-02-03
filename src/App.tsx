@@ -1223,7 +1223,7 @@ export default function App() {
         <div key={item.id} className="flex flex-col items-center bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100 group transition-all hover:bg-white hover:shadow-xl">
             <div className="text-center mb-4">
               <span className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] block">{item.label}</span>
-              <span className="text-[9px] font-bold text-indigo-500 uppercase italic">Target Kum. TW {twActive}: Rp {formatMoney(targetKPPNKumulatif)}</span>
+              <span className="text-[9px] font-bold text-indigo-500 uppercase italic">Target KPPN TW {twActive}: Rp {formatMoney(targetKPPNKumulatif)}</span>
             </div>
             
             <div className="h-[240px] w-full relative">
@@ -1268,15 +1268,17 @@ export default function App() {
                 </div>
             </div>
 <div className="mt-4 w-full p-4 bg-white rounded-[2rem] border border-slate-100 shadow-sm space-y-2">
-            <div className="flex justify-between items-center">
-                <span className="text-[9px] font-black text-slate-400 uppercase">Rencana Internal (RPD)</span>
-                <span className="text-[10px] font-black text-slate-700 italic">Rp {formatMoney(rpdKumulatif)}</span>
+                <div className="flex justify-between items-center">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">RPD</span>
+                    <span className="text-[10px] font-black text-slate-700 italic">Rp {formatMoney(rpdKumulatif)}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-slate-50">
+                    <span className="text-[9px] font-black text-blue-500 uppercase tracking-tighter">Sisa Target RPD</span>
+                    <span className="text-[10px] font-black text-slate-800 italic">
+                        Rp {formatMoney(Math.max(0, rpdKumulatif - realKumulatif))}
+                    </span>
+                </div>
             </div>
-            <div className="flex justify-between items-center pt-2 border-t border-slate-50">
-                <span className="text-[9px] font-black text-slate-400 uppercase">Target KPPN TW {twActive}</span>
-                <span className="text-[10px] font-black text-blue-600 italic">Rp {formatMoney(targetKPPNKumulatif)}</span>
-            </div>
-        </div>
             <div className="mt-6 w-full space-y-2">
               <div className="flex justify-between items-center px-4 py-2 bg-white rounded-xl border border-slate-100 shadow-sm">
                 <span className="text-[9px] font-black text-slate-400 uppercase">Deviasi RPD</span>
