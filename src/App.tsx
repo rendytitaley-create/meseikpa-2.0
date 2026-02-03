@@ -1357,19 +1357,7 @@ export default function App() {
                           <CalendarDays size={18} /> {expandedMonthlyRPD[twActive] ? 'Tutup Rincian' : 'Buka Rincian'}
                        </button>
                     </div>
-<div className="mt-4 mb-5 px-6 py-4 bg-indigo-50/50 rounded-[2rem] border border-indigo-100/50 flex justify-between items-center">
-      <div className="flex flex-col">
-        <span className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Total Rencana RPD TW {twActive}</span>
-        <span className="text-[10px] font-black text-indigo-600 italic">Target Akumulasi Internal</span>
-      </div>
-      <div className="text-right">
-        <span className="text-xs font-black text-indigo-700 block">
-          {/* MENGGUNAKAN PERHITUNGAN LANGSUNG AGAR TIDAK ERROR 'NAME NOT FOUND' */}
-          Rp {formatMoney(allMonths.reduce((acc, m) => acc + (Number(globalStats.months[m].rpd) || 0), 0))}
-        </span>
-        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Berdasarkan Input Tim</span>
-      </div>
-    </div>
+
                     <div className="space-y-5">
                        {twMonths[twActive].map(m => {
                          const mData = globalStats.months[m];
