@@ -1352,12 +1352,23 @@ export default function App() {
                         </div>
                     </div>
                     <div className="flex items-center justify-between mb-8">
-                       <h4 className="text-xl font-black italic text-slate-800 uppercase tracking-tighter">Ketepatan Rencana (RPD)</h4>
+                       <h4 className="text-xl font-black italic text-slate-800 uppercase tracking-tighter">Ketepatan RPD</h4>
                        <button onClick={() => setExpandedMonthlyRPD(prev => ({ ...prev, [twActive]: !prev[twActive] }))} className="flex items-center gap-3 px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl border border-slate-200 transition-all hover:bg-slate-200 font-black text-xs uppercase">
                           <CalendarDays size={18} /> {expandedMonthlyRPD[twActive] ? 'Tutup Rincian' : 'Buka Rincian'}
                        </button>
                     </div>
-
+<div className="mt-4 mb-5 px-6 py-4 bg-indigo-50/50 rounded-[2rem] border border-indigo-100/50 flex justify-between items-center animate-in fade-in duration-500">
+      <div className="flex flex-col">
+        <span className="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Total Rencana RPD TW {twActive}</span>
+        <span className="text-[10px] font-black text-indigo-600 italic">Target Akumulasi Internal</span>
+      </div>
+      <div className="text-right">
+        <span className="text-xs font-black text-indigo-700 block">
+          Rp {formatMoney(rpdKumulatif)}
+        </span>
+        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Berdasarkan Input Tim</span>
+      </div>
+    </div>
                     <div className="space-y-5">
                        {twMonths[twActive].map(m => {
                          const mData = globalStats.months[m];
