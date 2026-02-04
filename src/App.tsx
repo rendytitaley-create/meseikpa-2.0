@@ -427,78 +427,40 @@ export default function App() {
   };
   const handleExportRekapFull = async () => {
     const ExcelJS = (window as any).ExcelJS;
-    if (!ExcelJS) { alert("Sistem Excel belum siap, tunggu sebentar..."); return; }
-
+    if (!ExcelJS) { alert("Sistem Excel belum siap..."); return; }
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('REKAP_AUDIT_MESE');
-
-    // Header Utama
+    const worksheet = workbook.addWorksheet('REKAP_AUDIT');
     const columns = [
       { header: 'KODE', key: 'kode', width: 15 },
       { header: 'URAIAN', key: 'uraian', width: 50 },
       { header: 'PAGU DIPA', key: 'pagu', width: 20 },
     ];
-
-    // Tambahkan 12 Kolom RPD dan 12 Kolom REALISASI
     allMonths.forEach(m => columns.push({ header: `RPD ${m.toUpperCase()}`, key: `rpd_${m}`, width: 15 }));
     allMonths.forEach(m => columns.push({ header: `REAL ${m.toUpperCase()}`, key: `real_${m}`, width: 15 }));
-    
-    columns.push({ header: 'TOTAL RPD', key: 'totalRPD', width: 20 });
-    columns.push({ header: 'TOTAL REAL', key: 'totalReal', width: 20 });
-    columns.push({ header: 'DEVIASI (%)', key: 'deviasi', width: 15 });
-
+    columns.push({ header: 'TOTAL RPD', key: 'totalRPD', width: 20 }, { header: 'TOTAL REAL', key: 'totalReal', width: 20 }, { header: 'DEV %', key: 'deviasi', width: 15 });
     worksheet.columns = columns;
-
-    // Styling Header agar terlihat profesional (Biru Gelap)
     const headerRow = worksheet.getRow(1);
     headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
     headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0F172A' } };
-    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-    finalDisplay.forEach(item => {
+    finalDisplay.forEach((item: any) => {
       const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
       const dev = item.totalRPD > 0 ? ((item.totalReal - item.totalRPD) / item.totalRPD * 100) : 0;
-
-      const rowData: any = {
-        kode: item.kode,
-        uraian: item.uraian,
-        pagu: isInduk ? null : Number(item.pagu),
-        totalRPD: isInduk ? null : item.totalRPD,
-        totalReal: isInduk ? null : item.totalReal,
-        deviasi: isInduk ? null : Number(dev.toFixed(2))
-      };
-
-      // Loop untuk mengisi nilai tiap bulan
+      const rowData: any = { kode: item.kode, uraian: item.uraian, pagu: isInduk ? null : Number(item.pagu), totalRPD: isInduk ? null : item.totalRPD, totalReal: isInduk ? null : item.totalReal, deviasi: isInduk ? null : Number(dev.toFixed(2)) };
       allMonths.forEach(m => {
         rowData[`rpd_${m}`] = isInduk ? null : Number(item.monthRPD?.[m] || 0);
         rowData[`real_${m}`] = isInduk ? null : Number(item.monthReal?.[m] || 0);
       });
-
       const row = worksheet.addRow(rowData);
-      
-      // Memberi warna baris berdasarkan Level (seperti di aplikasi)
       if (item.level === 1) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FEF3C7' } };
-      if (item.level === 2) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DBEAFE' } };
     });
-
-    // Format Numbering dan Border Otomatis
     worksheet.eachRow((row: any, rowNum: number) => {
-      row.eachCell((cell: any, colNum: number) => {
-        if (colNum >= 3 && rowNum > 1 && cell.value !== null) {
-          cell.numFmt = '#,##0';
-        }
-        cell.border = {
-          top: { style: 'thin' }, left: { style: 'thin' },
-          bottom: { style: 'thin' }, right: { style: 'thin' }
-        };
+      row.eachCell((cell: any) => { 
+        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }; 
       });
     });
-
     const buffer = await workbook.xlsx.writeBuffer();
-    const timestamp = new Date().toISOString().split('T')[0];
-    (window as any).saveAs(new Blob([buffer]), `BACKUP_MESE_REKAP_${timestamp}.xlsx`);
-  };
-  
+    (window as any).saveAs(new Blob([buffer]), `BACKUP_MESE_REKAP_${new Date().getTime()}.xlsx`);
+  };  
   const handleImportExcel = async (e: any) => {
     const file = e.target.files?.[0];
     const XLSX = (window as any).XLSX;
@@ -1556,13 +1518,13 @@ export default function App() {
                   </div>
                </div>
 
-               {/* FILTER KOMBINASI: LEVEL & AUDIT IKPA */}
-               <div className="bg-white p-8 rounded-[4rem] shadow-xl border border-slate-200 flex flex-col lg:flex-row items-center gap-8">
+               {/* BAR FILTER LENGKAP: LEVEL, AUDIT, & CETAK */}
+               <div className="bg-white p-8 rounded-[4rem] shadow-xl border border-slate-200 flex flex-col xl:flex-row items-center gap-8">
                   <div className="p-5 bg-blue-100 text-blue-600 rounded-2xl shrink-0"><Filter size={28}/></div>
                   
-                  {/* KOLOM 1: LEVEL KEDALAMAN */}
+                  {/* PILIHAN LEVEL */}
                   <div className="flex-1 w-full">
-                    <label className="text-xs font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Pilih Kedalaman Data</label>
+                    <label className="text-xs font-black text-slate-500 uppercase mb-2 block tracking-widest">Kedalaman Data</label>
                     <select 
                       value={rapatDepth} 
                       onChange={(e) => setRapatDepth(Number(e.target.value))} 
@@ -1574,9 +1536,9 @@ export default function App() {
                     </select>
                   </div>
 
-                  {/* KOLOM 2: FILTER KONDISI AUDIT */}
-                  <div className="flex-1 w-full">
-                    <label className="text-xs font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Filter Kondisi Audit</label>
+                  {/* FILTER KONDISI AUDIT */}
+                  <div className="flex-[1.5] w-full">
+                    <label className="text-xs font-black text-slate-500 uppercase mb-2 block tracking-widest">Filter Kondisi (IKPA)</label>
                     <div className="flex p-1 bg-slate-100 rounded-2xl gap-1">
                       {[
                         {id: 'all', label: 'Semua', color: 'bg-slate-800'},
@@ -1587,10 +1549,10 @@ export default function App() {
                         <button
                           key={btn.id}
                           onClick={() => setAuditFilter(btn.id as any)}
-                          className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all duration-300 ${
+                          className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${
                             auditFilter === btn.id 
                             ? `${btn.color} text-white shadow-lg scale-105` 
-                            : 'text-slate-400 hover:bg-white hover:text-slate-600'
+                            : 'text-slate-400 hover:text-slate-600'
                           }`}
                         >
                           {btn.label}
@@ -1598,8 +1560,17 @@ export default function App() {
                       ))}
                     </div>
                   </div>
-               </div>
 
+                  {/* TOMBOL CETAK REKAP BACKUP */}
+                  <div className="w-full xl:w-auto shrink-0">
+                    <button 
+                      onClick={() => handleExportRekapFull()}
+                      className="w-full flex items-center justify-center gap-4 px-10 py-4 bg-emerald-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 active:scale-95 transition-all"
+                    >
+                      <FileUp size={20} /> Cetak Rekap Backup
+                    </button>
+                  </div>
+               </div>
                <div className="bg-white rounded-[4rem] shadow-2xl border border-slate-200 overflow-hidden">
                   <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
                     <table className="w-full border-collapse text-[11px]">
