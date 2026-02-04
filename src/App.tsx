@@ -947,6 +947,7 @@ export default function App() {
   }
 
   // --- RENDER LOGIN VIEW ---
+  // --- RENDER LOGIN VIEW (DESAIN MESE) ---
   if (!currentUser) {
     return (
       <div className="h-screen flex items-center justify-center bg-[#F8FAFC] font-sans p-6">
@@ -954,11 +955,18 @@ export default function App() {
            <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden">
               <div className="bg-[#0F172A] p-10 text-center relative overflow-hidden">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
-                 <div className="w-16 h-16 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center text-white font-black text-2xl mb-4 shadow-lg shadow-blue-500/30">M</div>
-                 <h1 className="text-white text-3xl font-black italic tracking-tighter">MESEIKPA 2.0</h1>
-                 <p className="text-slate-400 text-[10px] uppercase font-black tracking-[0.2em] mt-2 italic">BPS Kab. Seram Bagian Barat</p>
+                 {/* Logo MESE dengan penekanan pada huruf E */}
+                 <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] mx-auto flex items-center justify-center text-white font-black text-3xl mb-4 shadow-xl shadow-blue-500/30 italic">
+                   ME
+                 </div>
+                 <h1 className="text-white text-4xl font-black italic tracking-tighter">MESE</h1>
+                 <p className="text-blue-400 text-[10px] uppercase font-black tracking-[0.3em] mt-1 leading-none">MonEv SinErgi IKPA</p>
+                 <div className="mt-4 pt-4 border-t border-white/5">
+                    <p className="text-slate-400 text-[9px] uppercase font-bold tracking-widest">BPS Kab. Seram Bagian Barat</p>
+                 </div>
               </div>
-              <form onSubmit={handleLogin} className="p-10 space-y-6">
+              
+              <form onSubmit={handleLogin} className="p-10 space-y-5">
                  {loginError && (
                    <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 text-rose-600 animate-in slide-in-from-top duration-300">
                       <AlertTriangle size={18} />
@@ -973,21 +981,21 @@ export default function App() {
                           type="text" 
                           value={loginUsername}
                           onChange={(e) => setLoginUsername(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" 
-                          placeholder="Username..."
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" 
+                          placeholder="Masukkan username..."
                           required
                         />
                     </div>
                  </div>
                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Password</label>
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-4">Password Access</label>
                     <div className="relative">
                         <KeyRound className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input 
                           type="password" 
                           value={loginPassword}
                           onChange={(e) => setLoginPassword(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all" 
+                          className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" 
                           placeholder="••••••••"
                           required
                         />
@@ -996,16 +1004,17 @@ export default function App() {
                  <button 
                    type="submit" 
                    disabled={isProcessing}
-                   className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/30 hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                   className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/30 hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
                  >
                     {isProcessing ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     ) : (
-                      <><LogIn size={18}/> Masuk Sistem</>
+                      <><LogIn size={18}/> Verifikasi & Masuk</>
                     )}
                  </button>
               </form>
            </div>
+           <p className="text-center mt-8 text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-50 italic">Saka Mese Nusa • Integritas Tanpa Batas</p>
         </div>
       </div>
     );
@@ -1119,8 +1128,11 @@ export default function App() {
                       <div className="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full mb-3 inline-block shadow-lg animate-pulse">
                           Kondisi Terakhir: {kppnMetrics.revisiKe || "DIPA AWAL"}
                       </div>
-                      <h1 className="text-4xl font-black text-slate-800 italic tracking-tighter">Monitoring IKPA</h1>
-                      <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.3em] mt-1">BPS Kab. Seram Bagian Barat</p>
+                      <h1 className="text-5xl font-black text-slate-800 italic tracking-tighter leading-none">MESE</h1>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-blue-600 font-black uppercase text-[12px] tracking-widest italic">MonEv SinErgi IKPA</span>
+                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">BPS Kab. Seram Bagian Barat</p>
                   </div>
                   <div className="z-10 text-right">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Total Pagu</span>
