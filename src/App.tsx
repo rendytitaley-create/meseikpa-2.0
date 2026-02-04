@@ -957,7 +957,7 @@ export default function App() {
                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
                  
                  {/* Tulisan MESE di dalam kotak Biru Gradasi */}
-                 <div className="w-auto h-20 px-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] mx-auto flex items-center justify-center text-white font-black text-4xl shadow-xl shadow-blue-500/30 italic tracking-tighter mb-4">
+                 <div className="w-40 h-20 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] mx-auto flex items-center justify-center text-white font-black text-4xl shadow-xl shadow-blue-500/30 italic tracking-tighter mb-4">
                    MESE
                  </div>
 
@@ -1130,7 +1130,7 @@ export default function App() {
                       <div className="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full mb-3 inline-block shadow-lg animate-pulse">
                           Kondisi Terakhir: {kppnMetrics.revisiKe || "DIPA AWAL"}
                       </div>
-                      <h1 className="text-5xl font-black text-slate-800 italic tracking-tighter leading-none">MonEv SinErgi IKPA</h1>
+                      <h1 className="text-3xl font-black text-slate-800 italic tracking-tighter leading-none">MonEv SinErgi IKPA</h1>
                       <div className="flex items-center gap-2 mt-2">
                         <span className="text-blue-600 font-black uppercase text-[12px] tracking-widest italic">BPS Kab. Seram Bagian Barat</span>
                       </div>
