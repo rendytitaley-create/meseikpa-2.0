@@ -1128,11 +1128,9 @@ export default function App() {
                       <div className="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full mb-3 inline-block shadow-lg animate-pulse">
                           Kondisi Terakhir: {kppnMetrics.revisiKe || "DIPA AWAL"}
                       </div>
-                      <h1 className="text-5xl font-black text-slate-800 italic tracking-tighter leading-none">MESE</h1>
+                      <h1 className="text-5xl font-black text-slate-800 italic tracking-tighter leading-none">MonEv SinErgi IKPA</h1>
                       <div className="flex items-center gap-2 mt-2">
-                        <span className="text-blue-600 font-black uppercase text-[12px] tracking-widest italic">MonEv SinErgi IKPA</span>
-                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">BPS Kab. Seram Bagian Barat</p>
+                        <span className="text-blue-600 font-black uppercase text-[12px] tracking-widest italic">BPS Kab. Seram Bagian Barat</span>
                       </div>
                   </div>
                   <div className="z-10 text-right">
