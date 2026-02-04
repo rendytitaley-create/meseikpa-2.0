@@ -1169,33 +1169,70 @@ export default function App() {
                       </div>
                   </div>
 
-                  {/* KARTU DEVIASI KUMULATIF (INDIKATOR HIJAU EXCEL) */}
+                  {/* KARTU DEVIASI TERTIMBANG (FIX 51, 52, 53) */}
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all relative overflow-hidden">
                       <div className="flex justify-between items-start mb-8">
                           <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Target size={24}/></div>
                           <div className="text-right leading-none">
-                            <span className="text-[10px] font-black text-slate-400 uppercase block">Indikator KPPN</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase block">Indikator KPPN 2026</span>
                             <span className="text-[11px] font-bold text-emerald-500 italic uppercase">Deviasi Kumulatif</span>
                           </div>
                       </div>
                       
                       <div className="flex flex-col items-center mb-8 text-center">
-                          <div className={`text-6xl font-black tracking-tighter italic mb-1 ${Math.abs((globalStats.real - globalStats.rpd) / globalStats.rpd * 100) > 5 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                            {globalStats.rpd > 0 ? Math.abs((globalStats.real - globalStats.rpd) / globalStats.rpd * 100).toFixed(2) : "0.00"}%
+                          <div className={`text-6xl font-black tracking-tighter italic mb-1 ${
+                            (() => {
+                              const totalPagu = globalStats.pagu || 1;
+                              
+                              // Fungsi Hitung Deviasi Tertimbang per Akun
+                              const getWeightedDev = (real: number, rpd: number, pagu: number) => {
+                                if (rpd <= 0) return 0;
+                                return Math.abs((real - rpd) / rpd) * (pagu / totalPagu);
+                              };
+
+                              const finalDevTotal = (
+                                getWeightedDev(globalStats.real51, globalStats.rpd51, globalStats.pagu51) +
+                                getWeightedDev(globalStats.real52, globalStats.rpd52, globalStats.pagu52) +
+                                getWeightedDev(globalStats.real53, globalStats.rpd53, globalStats.pagu53)
+                              ) * 100;
+
+                              // Merah jika di atas 5% (Ambang batas IKPA)
+                              return finalDevTotal > 5 ? 'text-rose-600' : 'text-emerald-600';
+                            })()
+                          }`}>
+                            {(() => {
+                              const totalPagu = globalStats.pagu || 1;
+                              const getWeightedDev = (real: number, rpd: number, pagu: number) => {
+                                if (rpd <= 0) return 0;
+                                return Math.abs((real - rpd) / rpd) * (pagu / totalPagu);
+                              };
+                              const finalDevTotal = (
+                                getWeightedDev(globalStats.real51, globalStats.rpd51, globalStats.pagu51) +
+                                getWeightedDev(globalStats.real52, globalStats.rpd52, globalStats.pagu52) +
+                                getWeightedDev(globalStats.real53, globalStats.rpd53, globalStats.pagu53)
+                              ) * 100;
+                              return finalDevTotal.toFixed(2);
+                            })()}%
                           </div>
-                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Rata-Rata Kumulatif (Target 0)</div>
+                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Rata-Rata Deviasi Kumulatif</div>
                       </div>
 
                       <div className="space-y-3 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                          <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-200 pb-1">Rincian per Akun:</div>
-                          {[{l:'Deviasi 51', t:globalStats.rpd51, r:globalStats.real51}, {l:'Deviasi 52', t:globalStats.rpd52, r:globalStats.real52}, {l:'Deviasi 53', t:globalStats.rpd53, r:globalStats.real53}].map((it, i) => (
-                              <div key={i} className="flex justify-between items-center text-[12px] font-black uppercase">
-                                  <span className="text-slate-500">{it.l}</span>
-                                  <span className={`italic ${it.t > 0 && Math.abs((it.r-it.t)/it.t*100) >= 5 ? 'text-rose-600' : 'text-slate-900'}`}>
-                                    {it.t > 0 ? Math.abs((it.r-it.t)/it.t*100).toFixed(1) : 0}%
-                                  </span>
-                              </div>
-                          ))}
+                          <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-200 pb-1">Proporsi Pagu Satker:</div>
+                          <div className="flex justify-between items-center text-[11px] font-black uppercase">
+                             <span className="text-slate-500">Belanja 51</span>
+                             <span className="text-slate-800">{(globalStats.pagu51/globalStats.pagu*100 || 0).toFixed(2)}%</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[11px] font-black uppercase">
+                             <span className="text-slate-500">Belanja 52</span>
+                             <span className="text-slate-800">{(globalStats.pagu52/globalStats.pagu*100 || 0).toFixed(2)}%</span>
+                          </div>
+                          {globalStats.pagu53 > 0 && (
+                            <div className="flex justify-between items-center text-[11px] font-black uppercase pt-1 border-t border-slate-200/50">
+                               <span className="text-slate-500">Belanja 53</span>
+                               <span className="text-slate-800">{(globalStats.pagu53/globalStats.pagu*100 || 0).toFixed(2)}%</span>
+                            </div>
+                          )}
                       </div>
                   </div>
 
