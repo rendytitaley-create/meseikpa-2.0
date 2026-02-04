@@ -1169,22 +1169,29 @@ export default function App() {
                       </div>
                   </div>
 
-                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
+                  {/* KARTU DEVIASI KUMULATIF (INDIKATOR HIJAU EXCEL) */}
+                  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all relative overflow-hidden">
                       <div className="flex justify-between items-start mb-8">
-                          <div className="p-4 bg-amber-50 text-amber-600 rounded-2xl"><Target size={24}/></div>
-                          <div className="text-right leading-none"><span className="text-[10px] font-black text-slate-400 uppercase block">Deviasi Hal III</span><span className="text-xs font-bold text-amber-500 italic">RPD vs Realisasi</span></div>
-                      </div>
-                      <div className="flex flex-col items-center mb-10">
-                          <div className="text-6xl font-black text-slate-800 tracking-tighter italic mb-1">
-                            {globalStats.rpd > 0 ? Math.abs((globalStats.real - globalStats.rpd) / globalStats.rpd * 100).toFixed(1) : 0}%
+                          <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Target size={24}/></div>
+                          <div className="text-right leading-none">
+                            <span className="text-[10px] font-black text-slate-400 uppercase block">Indikator KPPN</span>
+                            <span className="text-[11px] font-bold text-emerald-500 italic uppercase">Deviasi Kumulatif</span>
                           </div>
-                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Rata-rata Deviasi</div>
                       </div>
-                      <div className="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                      
+                      <div className="flex flex-col items-center mb-8 text-center">
+                          <div className={`text-6xl font-black tracking-tighter italic mb-1 ${Math.abs((globalStats.real - globalStats.rpd) / globalStats.rpd * 100) > 5 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                            {globalStats.rpd > 0 ? Math.abs((globalStats.real - globalStats.rpd) / globalStats.rpd * 100).toFixed(2) : "0.00"}%
+                          </div>
+                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Rata-Rata Kumulatif (Target 0)</div>
+                      </div>
+
+                      <div className="space-y-3 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                          <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-200 pb-1">Rincian per Akun:</div>
                           {[{l:'Deviasi 51', t:globalStats.rpd51, r:globalStats.real51}, {l:'Deviasi 52', t:globalStats.rpd52, r:globalStats.real52}, {l:'Deviasi 53', t:globalStats.rpd53, r:globalStats.real53}].map((it, i) => (
-                              <div key={i} className="flex justify-between items-center text-[14px] font-black uppercase">
+                              <div key={i} className="flex justify-between items-center text-[12px] font-black uppercase">
                                   <span className="text-slate-500">{it.l}</span>
-                                  <span className={`text-slate-900 italic ${Math.abs((it.r-it.t)/it.t*100) >= 5 ? 'text-rose-600' : ''}`}>
+                                  <span className={`italic ${it.t > 0 && Math.abs((it.r-it.t)/it.t*100) >= 5 ? 'text-rose-600' : 'text-slate-900'}`}>
                                     {it.t > 0 ? Math.abs((it.r-it.t)/it.t*100).toFixed(1) : 0}%
                                   </span>
                               </div>
