@@ -956,8 +956,8 @@ export default function App() {
               <div className="bg-[#0F172A] p-10 text-center relative overflow-hidden">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
                  {/* Logo MESE dengan penekanan pada huruf E */}
-                 <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] mx-auto flex items-center justify-center text-white font-black text-3xl mb-4 shadow-xl shadow-blue-500/30 italic">
-                   ME
+                 <div className="w-auto h-20 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] mx-auto flex items-center justify-center text-white font-black text-3xl mb-4 shadow-xl shadow-blue-500/30 italic">
+                   KAPATA
                  </div>
                  <h1 className="text-white text-4xl font-black italic tracking-tighter">MESE</h1>
                  <p className="text-blue-400 text-[10px] uppercase font-black tracking-[0.3em] mt-1 leading-none">MonEv SinErgi IKPA</p>
