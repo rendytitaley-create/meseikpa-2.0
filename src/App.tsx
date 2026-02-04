@@ -904,7 +904,7 @@ export default function App() {
 
               <div className="lg:col-span-8 bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                   <h4 className="text-xs font-black uppercase italic text-slate-800 mb-4 flex items-center gap-2">
-                    <Info size={14} className="text-indigo-500"/> Daftar Output Bermasalah ({globalStats.activeMonth})
+                    <Info size={14} className="text-indigo-500"/> Output Perlu Konfirmasi ({globalStats.activeMonth})
                   </h4>
                   <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2" style={{maxHeight:'220px'}}>
                       {globalStats.anomaliList.length > 0 ? globalStats.anomaliList.map((item: any, idx: number) => (
@@ -1321,7 +1321,7 @@ export default function App() {
                     <div className="flex justify-between items-start mb-8">
                         <div className="p-5 bg-emerald-100 text-emerald-600 rounded-[2rem]"><Activity size={32}/></div>
                         <div className="text-right">
-                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">Daya Serap KPPN</span>
+                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">Realisasi Anggaran</span>
                             <span className="text-[11px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={14}/> Monitoring Triwulan</span>
                         </div>
                     </div>
@@ -1367,7 +1367,7 @@ export default function App() {
                         </div>
                     </div>
                     <div className="flex items-center justify-between mb-8">
-                       <h4 className="text-xl font-black italic text-slate-800 uppercase tracking-tighter">Ketepatan RPD</h4>
+                       <h4 className="text-xl font-black italic text-slate-800 uppercase tracking-tighter">Kesesuaian RPD</h4>
                        <button onClick={() => setExpandedMonthlyRPD(prev => ({ ...prev, [twActive]: !prev[twActive] }))} className="flex items-center gap-3 px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl border border-slate-200 transition-all hover:bg-slate-200 font-black text-xs uppercase">
                           <CalendarDays size={18} /> {expandedMonthlyRPD[twActive] ? 'Tutup Rincian' : 'Buka Rincian'}
                        </button>
@@ -1410,7 +1410,7 @@ export default function App() {
                <div className="bg-white p-8 rounded-[4rem] shadow-xl border border-slate-200 flex items-center gap-8">
                   <div className="p-5 bg-blue-100 text-blue-600 rounded-2xl"><Filter size={28}/></div>
                   <div className="flex-1">
-                    <label className="text-xs font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Kedalaman Struktur Rekapitulasi</label>
+                    <label className="text-xs font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]"> Rekap RPD & Realisasi</label>
                     <select 
                       value={rapatDepth} 
                       onChange={(e) => setRapatDepth(Number(e.target.value))} 
@@ -1680,7 +1680,7 @@ const realKeuPct = totalRealAuto.toFixed(1);
             <div className="max-w-4xl mx-auto py-6 animate-in slide-in-from-bottom duration-700">
                <div className="bg-white rounded-[4rem] shadow-2xl border border-slate-200 overflow-hidden">
                   <div className="bg-slate-900 p-10 text-white relative">
-                    <h3 className="text-2xl font-black uppercase tracking-widest italic text-white">Migrasi Database SAKTI</h3>
+                    <h3 className="text-2xl font-black uppercase tracking-widest italic text-white">Migrasi POK</h3>
                   </div>
                   <div className="p-16 space-y-12 text-center">
                     <div className="border-4 border-dashed border-slate-100 rounded-[3rem] p-24 hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all" onClick={() => fileInputRef.current?.click()}>
