@@ -154,7 +154,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users' | 'capaian'>('dashboard');
   const [activeWilayah, setActiveWilayah] = useState<string>("GG");
   const [activeTim, setActiveTim] = useState<string>("Nerwilis");
-  const [rapatDepth, setRapatDepth] = useState<number>(2); 
+  const [rapatDepth, setRapatDepth] = useState<number>(2);
+  const [auditFilter, setAuditFilter] = useState<'all' | 'aman' | 'meleset' | 'anomali'>('all'); // State baru
   const [twActive, setTwActive] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -768,16 +769,33 @@ export default function App() {
         level: 8, isDetail: true
     }));
 
-    const merged = [...calculatedNormal, ...calculatedOrphan];
-    if (activeTab === 'rapat') return merged.filter(item => item.level <= rapatDepth);
+    const allMerged = [...calculatedNormal, ...calculatedOrphan];
+    
+    // LOGIKA FILTER AUDIT KHUSUS RAPAT
+    const filteredByAudit = allMerged.filter(item => {
+      if (auditFilter === 'all') return true;
+      
+      const dev = item.totalRPD > 0 ? Math.abs(((item.totalReal - item.totalRPD) / item.totalRPD) * 100) : 0;
+      const hasRealNoRPD = item.totalReal > 0 && item.totalRPD === 0;
+
+      if (auditFilter === 'aman') return dev <= 5 && !hasRealNoRPD;
+      if (auditFilter === 'meleset') return dev > 5;
+      if (auditFilter === 'anomali') return hasRealNoRPD;
+      return true;
+    });
+
+    if (activeTab === 'rapat') {
+        return filteredByAudit.filter(item => item.level <= rapatDepth);
+    }
+    
     const allowed = TIM_MAPPING[activeTim] || [];
     let insideAllowed = false;
-    return merged.filter((item) => {
+    return filteredByAudit.filter((item) => {
       if (item.isOrphan) return true; 
       if (getLevel(item.kode) === 2) insideAllowed = allowed.includes(item.kode);
       return insideAllowed || getLevel(item.kode) === 1; 
     });
-  }, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth, allMonths]);
+  }, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth, allMonths, auditFilter]);
 
   const finalDisplay = processedData.filter((d) => 
     (d.uraian && d.uraian.toLowerCase().includes(searchTerm.toLowerCase())) || 
@@ -1451,21 +1469,47 @@ export default function App() {
                   </div>
                </div>
 
-               <div className="bg-white p-8 rounded-[4rem] shadow-xl border border-slate-200 flex items-center gap-8">
-                  <div className="p-5 bg-blue-100 text-blue-600 rounded-2xl"><Filter size={28}/></div>
-                  <div className="flex-1">
-                    <label className="text-xs font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]"> Rekap RPD & Realisasi</label>
+               {/* FILTER KOMBINASI: LEVEL & AUDIT IKPA */}
+               <div className="bg-white p-8 rounded-[4rem] shadow-xl border border-slate-200 flex flex-col lg:flex-row items-center gap-8">
+                  <div className="p-5 bg-blue-100 text-blue-600 rounded-2xl shrink-0"><Filter size={28}/></div>
+                  
+                  {/* KOLOM 1: LEVEL KEDALAMAN */}
+                  <div className="flex-1 w-full">
+                    <label className="text-xs font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Pilih Kedalaman Data</label>
                     <select 
                       value={rapatDepth} 
                       onChange={(e) => setRapatDepth(Number(e.target.value))} 
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-6 text-[13px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                     >
-                        <option value={1}>Level 1: DIPA Induk Satker</option>
-                        <option value={2}>Level 2: Output Rincian Output (RO)</option>
-                        <option value={5}>Level 5: Komponen & Sub Komponen</option>
-                        <option value={7}>Level 7: Kode Akun (6 Digit)</option>
-                        <option value={8}>Level 8: Seluruh Detail Rincian</option>
+                        <option value={1}>Level 1: DIPA Induk</option>
+                        <option value={2}>Level 2: Output RO</option>
+                        <option value={8}>Level 8: Detail Pagu (Item)</option>
                     </select>
+                  </div>
+
+                  {/* KOLOM 2: FILTER KONDISI AUDIT */}
+                  <div className="flex-1 w-full">
+                    <label className="text-xs font-black text-slate-500 uppercase mb-2 block tracking-[0.2em]">Filter Kondisi Audit</label>
+                    <div className="flex p-1 bg-slate-100 rounded-2xl gap-1">
+                      {[
+                        {id: 'all', label: 'Semua', color: 'bg-slate-800'},
+                        {id: 'aman', label: 'Aman', color: 'bg-emerald-600'},
+                        {id: 'meleset', label: 'Meleset', color: 'bg-rose-600'},
+                        {id: 'anomali', label: 'Tanpa RPD', color: 'bg-amber-600'}
+                      ].map((btn) => (
+                        <button
+                          key={btn.id}
+                          onClick={() => setAuditFilter(btn.id as any)}
+                          className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all duration-300 ${
+                            auditFilter === btn.id 
+                            ? `${btn.color} text-white shadow-lg scale-105` 
+                            : 'text-slate-400 hover:bg-white hover:text-slate-600'
+                          }`}
+                        >
+                          {btn.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                </div>
 
