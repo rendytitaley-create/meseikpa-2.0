@@ -773,14 +773,24 @@ export default function App() {
       const level = getLevel(item.kode);
       const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
       const isDetail = level === 8 && (Number(item.pagu) || 0) > 0 && !isInduk;
+      
       let totalRPD = 0, totalReal = 0;
       let mRPD: Record<string, number> = {};
       let mReal: Record<string, number> = {};
 
+      // RESET: Pastikan semua bulan mulai dari nol
+      allMonths.forEach(m => { mRPD[m] = 0; mReal[m] = 0; });
+
       if (isDetail) {
+        // Jika level 8, ambil angka bulanan langsung dari item tersebut
         totalRPD = sumMapValues(item.rpd);
         totalReal = sumMapValues(item.realisasi);
+        allMonths.forEach(m => {
+          mRPD[m] = Number(item.rpd?.[m]) || 0;
+          mReal[m] = Number(item.realisasi?.[m]) || 0;
+        });
       } else if (!isInduk) {
+        // Jika level atas, jumlahkan rincian bulanan dari semua Level 8 di bawahnya
         for (let i = index + 1; i < base.length; i++) {
             const next = base[i];
             const nLevel = getLevel(next.kode);
@@ -789,8 +799,8 @@ export default function App() {
                 totalRPD += sumMapValues(next.rpd);
                 totalReal += sumMapValues(next.realisasi);
                 allMonths.forEach(m => {
-                    mRPD[m] = (mRPD[m] || 0) + (Number(next.rpd?.[m]) || 0);
-                    mReal[m] = (mReal[m] || 0) + (Number(next.realisasi?.[m]) || 0);
+                    mRPD[m] += (Number(next.rpd?.[m]) || 0);
+                    mReal[m] += (Number(next.realisasi?.[m]) || 0);
                 });
             }
         }
@@ -802,29 +812,15 @@ export default function App() {
         ...item, 
         totalRPD: sumMapValues(item.rpd), 
         totalReal: sumMapValues(item.realisasi),
-        // PERBAIKAN: Pastikan data bulanan terisi untuk Orphan
         monthRPD: item.rpd || {}, 
         monthReal: item.realisasi || {},
-        level: 8, 
-        isDetail: true
+        level: 8, isDetail: true
     }));
 
     const allMerged = [...calculatedNormal, ...calculatedOrphan];
     
-    // PERBAIKAN: Pastikan item Level 8 murni (detail) memiliki monthRPD & monthReal sendiri
-    const mappedWithMonthly = allMerged.map(item => {
-      if (item.level === 8) {
-        return {
-          ...item,
-          monthRPD: item.rpd || {},
-          monthReal: item.realisasi || {}
-        };
-      }
-      return item;
-    });
-
-    // Gunakan mappedWithMonthly untuk filtering selanjutnya
-    const filteredByAudit = mappedWithMonthly.filter(item => {
+    // Logika Filter Audit
+    const filteredByAudit = allMerged.filter(item => {
       if (auditFilter === 'all') return true;
       const dev = item.totalRPD > 0 ? Math.abs(((item.totalReal - item.totalRPD) / item.totalRPD) * 100) : 0;
       const hasRealNoRPD = item.totalReal > 0 && item.totalRPD === 0;
@@ -836,9 +832,7 @@ export default function App() {
       return true;
     });
 
-    if (activeTab === 'rapat') {
-        return filteredByAudit.filter(item => item.level <= rapatDepth);
-    }
+    if (activeTab === 'rapat') return filteredByAudit.filter(item => item.level <= rapatDepth);
     
     const allowed = TIM_MAPPING[activeTim] || [];
     let insideAllowed = false;
