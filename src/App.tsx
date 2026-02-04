@@ -453,7 +453,7 @@ export default function App() {
       const row = worksheet.addRow(rowData);
       if (item.level === 1) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FEF3C7' } };
     });
-    worksheet.eachRow((row: any, rowNum: number) => {
+    worksheet.eachRow((row: any) => {
       row.eachCell((cell: any) => { 
         cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }; 
       });
