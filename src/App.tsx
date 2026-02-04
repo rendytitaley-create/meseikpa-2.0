@@ -426,6 +426,80 @@ export default function App() {
     (window as any).saveAs(new Blob([buffer]), `Laporan_${activeTab}_TW${twActive}_${new Date().toLocaleDateString('id-ID')}.xlsx`);
   };
 
+  const handleExportRekapFull = async () => {
+    const ExcelJS = (window as any).ExcelJS;
+    if (!ExcelJS) { alert("Sistem Excel belum siap, tunggu sebentar..."); return; }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('REKAP_AUDIT_MESE');
+
+    // Header Utama
+    const columns = [
+      { header: 'KODE', key: 'kode', width: 15 },
+      { header: 'URAIAN', key: 'uraian', width: 50 },
+      { header: 'PAGU DIPA', key: 'pagu', width: 20 },
+    ];
+
+    // Tambahkan 12 Kolom RPD dan 12 Kolom REALISASI
+    allMonths.forEach(m => columns.push({ header: `RPD ${m.toUpperCase()}`, key: `rpd_${m}`, width: 15 }));
+    allMonths.forEach(m => columns.push({ header: `REAL ${m.toUpperCase()}`, key: `real_${m}`, width: 15 }));
+    
+    columns.push({ header: 'TOTAL RPD', key: 'totalRPD', width: 20 });
+    columns.push({ header: 'TOTAL REAL', key: 'totalReal', width: 20 });
+    columns.push({ header: 'DEVIASI (%)', key: 'deviasi', width: 15 });
+
+    worksheet.columns = columns;
+
+    // Styling Header agar terlihat profesional (Biru Gelap)
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0F172A' } };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    finalDisplay.forEach(item => {
+      const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
+      const dev = item.totalRPD > 0 ? ((item.totalReal - item.totalRPD) / item.totalRPD * 100) : 0;
+
+      const rowData: any = {
+        kode: item.kode,
+        uraian: item.uraian,
+        pagu: isInduk ? null : Number(item.pagu),
+        totalRPD: isInduk ? null : item.totalRPD,
+        totalReal: isInduk ? null : item.totalReal,
+        deviasi: isInduk ? null : Number(dev.toFixed(2))
+      };
+
+      // Loop untuk mengisi nilai tiap bulan
+      allMonths.forEach(m => {
+        rowData[`rpd_${m}`] = isInduk ? null : Number(item.monthRPD?.[m] || 0);
+        rowData[`real_${m}`] = isInduk ? null : Number(item.monthReal?.[m] || 0);
+      });
+
+      const row = worksheet.addRow(rowData);
+      
+      // Memberi warna baris berdasarkan Level (seperti di aplikasi)
+      if (item.level === 1) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FEF3C7' } };
+      if (item.level === 2) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'DBEAFE' } };
+    });
+
+    // Format Numbering dan Border Otomatis
+    worksheet.eachRow((row, rowNum) => {
+      row.eachCell((cell, colNum) => {
+        if (colNum >= 3 && rowNum > 1 && cell.value !== null) {
+          cell.numFmt = '#,##0';
+        }
+        cell.border = {
+          top: { style: 'thin' }, left: { style: 'thin' },
+          bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const timestamp = new Date().toISOString().split('T')[0];
+    (window as any).saveAs(new Blob([buffer]), `BACKUP_MESE_REKAP_${timestamp}.xlsx`);
+  };
+  
   const handleImportExcel = async (e: any) => {
     const file = e.target.files?.[0];
     const XLSX = (window as any).XLSX;
