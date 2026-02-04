@@ -772,15 +772,29 @@ export default function App() {
     const allMerged = [...calculatedNormal, ...calculatedOrphan];
     
     // LOGIKA FILTER AUDIT KHUSUS RAPAT
+    // LOGIKA FILTER AUDIT KHUSUS RAPAT (VERSI PERBAIKAN)
     const filteredByAudit = allMerged.filter(item => {
       if (auditFilter === 'all') return true;
       
       const dev = item.totalRPD > 0 ? Math.abs(((item.totalReal - item.totalRPD) / item.totalRPD) * 100) : 0;
       const hasRealNoRPD = item.totalReal > 0 && item.totalRPD === 0;
+      const adaAktivitas = item.totalRPD > 0 || item.totalReal > 0; // Pastikan bukan baris kosong
 
-      if (auditFilter === 'aman') return dev <= 5 && !hasRealNoRPD;
-      if (auditFilter === 'meleset') return dev > 5;
-      if (auditFilter === 'anomali') return hasRealNoRPD;
+      // Aman: Harus ada aktivitas, deviasi 0-5%, dan bukan anomali (Realisasi tanpa RPD)
+      if (auditFilter === 'aman') {
+        return adaAktivitas && dev <= 5 && !hasRealNoRPD && item.totalRPD > 0;
+      }
+      
+      // Meleset: Ada aktivitas dan deviasi > 5%
+      if (auditFilter === 'meleset') {
+        return adaAktivitas && dev > 5;
+      }
+      
+      // Anomali: Realisasi jalan tapi Rencana (RPD) nol
+      if (auditFilter === 'anomali') {
+        return hasRealNoRPD;
+      }
+      
       return true;
     });
 
