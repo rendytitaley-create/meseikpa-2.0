@@ -1133,6 +1133,7 @@ export default function App() {
                         <span className="text-blue-600 font-black uppercase text-[12px] tracking-widest italic">MonEv SinErgi IKPA</span>
                         <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                         <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">BPS Kab. Seram Bagian Barat</p>
+                      </div>
                   </div>
                   <div className="z-10 text-right">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Total Pagu</span>
