@@ -799,37 +799,40 @@ export default function App() {
     });
 
     const calculatedOrphan = orphan.map(item => ({
-        ...item, totalRPD: sumMapValues(item.rpd), totalReal: sumMapValues(item.realisasi),
-        monthRPD: item.rpd || {}, monthReal: item.realisasi || {},
-        level: 8, isDetail: true
+        ...item, 
+        totalRPD: sumMapValues(item.rpd), 
+        totalReal: sumMapValues(item.realisasi),
+        // PERBAIKAN: Pastikan data bulanan terisi untuk Orphan
+        monthRPD: item.rpd || {}, 
+        monthReal: item.realisasi || {},
+        level: 8, 
+        isDetail: true
     }));
 
     const allMerged = [...calculatedNormal, ...calculatedOrphan];
     
-    // LOGIKA FILTER AUDIT KHUSUS RAPAT
-    // LOGIKA FILTER AUDIT KHUSUS RAPAT (VERSI PERBAIKAN)
-    const filteredByAudit = allMerged.filter(item => {
+    // PERBAIKAN: Pastikan item Level 8 murni (detail) memiliki monthRPD & monthReal sendiri
+    const mappedWithMonthly = allMerged.map(item => {
+      if (item.level === 8) {
+        return {
+          ...item,
+          monthRPD: item.rpd || {},
+          monthReal: item.realisasi || {}
+        };
+      }
+      return item;
+    });
+
+    // Gunakan mappedWithMonthly untuk filtering selanjutnya
+    const filteredByAudit = mappedWithMonthly.filter(item => {
       if (auditFilter === 'all') return true;
-      
       const dev = item.totalRPD > 0 ? Math.abs(((item.totalReal - item.totalRPD) / item.totalRPD) * 100) : 0;
       const hasRealNoRPD = item.totalReal > 0 && item.totalRPD === 0;
-      const adaAktivitas = item.totalRPD > 0 || item.totalReal > 0; // Pastikan bukan baris kosong
+      const adaAktivitas = item.totalRPD > 0 || item.totalReal > 0;
 
-      // Aman: Harus ada aktivitas, deviasi 0-5%, dan bukan anomali (Realisasi tanpa RPD)
-      if (auditFilter === 'aman') {
-        return adaAktivitas && dev <= 5 && !hasRealNoRPD && item.totalRPD > 0;
-      }
-      
-      // Meleset: Ada aktivitas dan deviasi > 5%
-      if (auditFilter === 'meleset') {
-        return adaAktivitas && dev > 5;
-      }
-      
-      // Anomali: Realisasi jalan tapi Rencana (RPD) nol
-      if (auditFilter === 'anomali') {
-        return hasRealNoRPD;
-      }
-      
+      if (auditFilter === 'aman') return adaAktivitas && dev <= 5 && !hasRealNoRPD && item.totalRPD > 0;
+      if (auditFilter === 'meleset') return adaAktivitas && dev > 5;
+      if (auditFilter === 'anomali') return hasRealNoRPD;
       return true;
     });
 
@@ -1613,24 +1616,24 @@ export default function App() {
                               <td className="px-3 py-3 text-right border-r border-slate-100">
                                 {!isNonFinancial && (
                                   <div className="flex flex-col text-[11px] font-black leading-tight">
-                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Apr)||0) + (Number(item.monthRPD?.Mei)||0) + (Number(item.monthRPD?.Jun)||0))}</span>
-                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Apr)||0) + (Number(item.monthReal?.Mei)||0) + (Number(item.monthReal?.Jun)||0))}</span>
+                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Jan)||0) + (Number(item.monthRPD?.Feb)||0) + (Number(item.monthRPD?.Mar)||0))}</span>
+                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Jan)||0) + (Number(item.monthReal?.Feb)||0) + (Number(item.monthReal?.Mar)||0))}</span>
                                   </div>
                                 )}
                               </td>
                               <td className="px-3 py-3 text-right border-r border-slate-100">
                                 {!isNonFinancial && (
                                   <div className="flex flex-col text-[11px] font-black leading-tight">
-                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Jul)||0) + (Number(item.monthRPD?.Ags)||0) + (Number(item.monthRPD?.Sep)||0))}</span>
-                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Jul)||0) + (Number(item.monthReal?.Ags)||0) + (Number(item.monthReal?.Sep)||0))}</span>
+                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Jan)||0) + (Number(item.monthRPD?.Feb)||0) + (Number(item.monthRPD?.Mar)||0))}</span>
+                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Jan)||0) + (Number(item.monthReal?.Feb)||0) + (Number(item.monthReal?.Mar)||0))}</span>
                                   </div>
                                 )}
                               </td>
                               <td className="px-3 py-3 text-right border-r border-slate-100">
                                 {!isNonFinancial && (
                                   <div className="flex flex-col text-[11px] font-black leading-tight">
-                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Okt)||0) + (Number(item.monthRPD?.Nov)||0) + (Number(item.monthRPD?.Des)||0))}</span>
-                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Okt)||0) + (Number(item.monthReal?.Nov)||0) + (Number(item.monthReal?.Des)||0))}</span>
+                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Jan)||0) + (Number(item.monthRPD?.Feb)||0) + (Number(item.monthRPD?.Mar)||0))}</span>
+                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Jan)||0) + (Number(item.monthReal?.Feb)||0) + (Number(item.monthReal?.Mar)||0))}</span>
                                   </div>
                                 )}
                               </td>
