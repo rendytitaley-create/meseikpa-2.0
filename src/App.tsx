@@ -955,12 +955,14 @@ export default function App() {
            <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden">
               <div className="bg-[#0F172A] p-10 text-center relative overflow-hidden">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 rounded-full -mr-10 -mt-10 blur-3xl"></div>
-                 {/* Logo MESE dengan penekanan pada huruf E */}
-                 <div className="w-auto h-20 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] mx-auto flex items-center justify-center text-white font-black text-3xl mb-4 shadow-xl shadow-blue-500/30 italic">
-                   KAPATA
+                 
+                 {/* Tulisan MESE di dalam kotak Biru Gradasi */}
+                 <div className="w-auto h-20 px-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] mx-auto flex items-center justify-center text-white font-black text-4xl shadow-xl shadow-blue-500/30 italic tracking-tighter mb-4">
+                   MESE
                  </div>
-                 <h1 className="text-white text-4xl font-black italic tracking-tighter">MESE</h1>
-                 <p className="text-blue-400 text-[10px] uppercase font-black tracking-[0.3em] mt-1 leading-none">MonEv SinErgi IKPA</p>
+
+                 <h2 className="text-blue-400 text-[10px] uppercase font-black tracking-[0.3em] mt-1">MonEv SinErgi IKPA</h2>
+                 
                  <div className="mt-4 pt-4 border-t border-white/5">
                     <p className="text-slate-400 text-[9px] uppercase font-bold tracking-widest">BPS Kab. Seram Bagian Barat</p>
                  </div>
