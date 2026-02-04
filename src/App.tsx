@@ -425,7 +425,6 @@ export default function App() {
     const buffer = await workbook.xlsx.writeBuffer();
     (window as any).saveAs(new Blob([buffer]), `Laporan_${activeTab}_TW${twActive}_${new Date().toLocaleDateString('id-ID')}.xlsx`);
   };
-
   const handleExportRekapFull = async () => {
     const ExcelJS = (window as any).ExcelJS;
     if (!ExcelJS) { alert("Sistem Excel belum siap, tunggu sebentar..."); return; }
@@ -483,8 +482,8 @@ export default function App() {
     });
 
     // Format Numbering dan Border Otomatis
-    worksheet.eachRow((row, rowNum) => {
-      row.eachCell((cell, colNum) => {
+    worksheet.eachRow((row: any, rowNum: number) => {
+      row.eachCell((cell: any, colNum: number) => {
         if (colNum >= 3 && rowNum > 1 && cell.value !== null) {
           cell.numFmt = '#,##0';
         }
