@@ -840,13 +840,19 @@ export default function App() {
    const allowed = TIM_MAPPING[activeTim] || [];
     let insideAllowed = false;
     return allMerged.filter((item) => {
+      // 1. Data Orphan (Hilang) selalu tampil
       if (item.isOrphan) return true; 
       
-      // TAMBAHAN: Jika pimpinan, tampilkan semua tanpa filter TIM_MAPPING
-      if (currentUser?.role === 'pimpinan') return true;
-      
-      if (getLevel(item.kode) === 2) insideAllowed = allowed.includes(item.kode);
-      return insideAllowed || getLevel(item.kode) === 1; 
+      // 2. Level 1 (DIPA Induk) selalu tampil untuk semua role
+      if (getLevel(item.kode) === 1) return true;
+
+      // 3. Logika Filter Tim: 
+      // Jika Admin atau Pimpinan, data yang tampil harus sesuai tim yang dipilih di tombol (activeTim)
+      // Jika Ketua Tim, data otomatis terkunci ke tim mereka sendiri
+      if (getLevel(item.kode) === 2) {
+        insideAllowed = allowed.includes(item.kode);
+      }
+      return insideAllowed;
     });
   }, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth, allMonths, auditFilter]);
   
