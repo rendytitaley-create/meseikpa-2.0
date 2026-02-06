@@ -1897,16 +1897,35 @@ const realKeuPct = totalRealAuto.toFixed(1);
                   <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
                     <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
-                      <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>GG</button>
-                      <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>WA</button>
+                      <button 
+  disabled={currentUser?.role !== 'admin' && currentUser?.role !== 'pimpinan'} 
+  onClick={() => setActiveWilayah("GG")} 
+  className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}
+>
+  GG
+</button>
+<button 
+  disabled={currentUser?.role !== 'admin' && currentUser?.role !== 'pimpinan'} 
+  onClick={() => setActiveWilayah("WA")} 
+  className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}
+>
+  WA
+</button>
                     </div>
                   </div>
                   <div className="lg:col-span-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tim Pelaksana</span>
                     <div className="flex flex-wrap gap-1 p-1 bg-slate-50 rounded-lg">
                       {ALL_TEAMS.filter(t => activeWilayah === "GG" ? t !== "Umum" : t === "Umum").map(tim => (
-                        <button key={tim} disabled={currentUser?.role !== 'admin'} onClick={() => setActiveTim(tim)} className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 opacity-50'}`}>{tim}</button>
-                      ))}
+  <button 
+    key={tim} 
+    disabled={currentUser?.role !== 'admin' && currentUser?.role !== 'pimpinan'} 
+    onClick={() => setActiveTim(tim)} 
+    className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 opacity-50'}`}
+  >
+    {tim}
+  </button>
+))}
                     </div>
                   </div>
                   <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
