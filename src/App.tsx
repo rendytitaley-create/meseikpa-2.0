@@ -837,20 +837,31 @@ export default function App() {
       return filteredByAudit.filter(item => item.level <= rapatDepth);
     }
     
-   const allowed = TIM_MAPPING[activeTim] || [];
+    // Logika untuk Tab RPD dan Realisasi (Abaikan Audit Filter)
+    const allowed = TIM_MAPPING[activeTim] || [];
     let insideAllowed = false;
+
     return allMerged.filter((item) => {
-      // 1. Data Orphan (Hilang) selalu tampil
+      // 1. Data Orphan (Hilang) selalu tampil agar bisa dipantau
       if (item.isOrphan) return true; 
       
-      // 2. Level 1 (DIPA Induk) selalu tampil untuk semua role
+      // 2. Level 1 (DIPA Induk) selalu tampil sebagai kepala tabel
       if (getLevel(item.kode) === 1) return true;
 
-      // 3. Logika Filter Tim: 
-      // Jika Admin atau Pimpinan, data yang tampil harus sesuai tim yang dipilih di tombol (activeTim)
-      // Jika Ketua Tim, data otomatis terkunci ke tim mereka sendiri
+      // 3. Logika Filter untuk Admin dan Pimpinan
+      // Mereka melihat data berdasarkan tombol Tim (activeTim) yang sedang diklik
+      if (currentUser?.role === 'admin' || currentUser?.role === 'pimpinan') {
+        if (getLevel(item.kode) === 2) {
+          insideAllowed = allowed.includes(item.kode);
+        }
+        return insideAllowed;
+      }
+
+      // 4. Logika Filter untuk Ketua Tim
+      // Mereka otomatis terkunci pada tim yang terdaftar di profil mereka (currentUser.team)
+      const myTeamAllowed = TIM_MAPPING[currentUser?.team] || [];
       if (getLevel(item.kode) === 2) {
-        insideAllowed = allowed.includes(item.kode);
+        insideAllowed = myTeamAllowed.includes(item.kode);
       }
       return insideAllowed;
     });
@@ -1903,35 +1914,16 @@ const realKeuPct = totalRealAuto.toFixed(1);
                   <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
                     <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
-                      <button 
-  disabled={currentUser?.role !== 'admin' && currentUser?.role !== 'pimpinan'} 
-  onClick={() => setActiveWilayah("GG")} 
-  className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}
->
-  GG
-</button>
-<button 
-  disabled={currentUser?.role !== 'admin' && currentUser?.role !== 'pimpinan'} 
-  onClick={() => setActiveWilayah("WA")} 
-  className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}
->
-  WA
-</button>
+                      <button disabled={currentUser?.role !== 'ketua_tim'} onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>GG</button>
+                      <button disabled={currentUser?.role !== 'ketua_tim'} onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>WA</button>
                     </div>
                   </div>
                   <div className="lg:col-span-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tim Pelaksana</span>
                     <div className="flex flex-wrap gap-1 p-1 bg-slate-50 rounded-lg">
                       {ALL_TEAMS.filter(t => activeWilayah === "GG" ? t !== "Umum" : t === "Umum").map(tim => (
-  <button 
-    key={tim} 
-    disabled={currentUser?.role !== 'admin' && currentUser?.role !== 'pimpinan'} 
-    onClick={() => setActiveTim(tim)} 
-    className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 opacity-50'}`}
-  >
-    {tim}
-  </button>
-))}
+                        <button key={tim} disabled={currentUser?.role !== 'ketua_tim'} onClick={() => setActiveTim(tim)} className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 opacity-50'}`}>{tim}</button>
+                      ))}
                     </div>
                   </div>
                   <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
@@ -1961,7 +1953,10 @@ const realKeuPct = totalRealAuto.toFixed(1);
                     <tbody className="divide-y divide-slate-100">
                       {finalDisplay.map((item: any) => {
                         const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
-                        const canEdit = (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || (activeTab === 'realisasi' && currentUser?.role === 'admin');
+                        const canEdit = !isLocked && (
+  (activeTab === 'rpd' && (currentUser?.role === 'admin' || currentUser?.role === 'pimpinan' || currentUser?.role === 'ketua_tim')) || 
+  (activeTab === 'realisasi' && (currentUser?.role === 'admin' || currentUser?.role === 'pimpinan'))
+);
 
 // Perhitungan sisa otomatis
 const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
