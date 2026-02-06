@@ -1344,7 +1344,7 @@ export default function App() {
         <div key={item.id} className="flex flex-col items-center bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100 group transition-all hover:bg-white hover:shadow-xl">
             <div className="text-center mb-4">
               <span className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] block">{item.label}</span>
-              <span className="text-[9px] font-bold text-indigo-500 uppercase italic">Target KPPN TW {twActive}: Rp {formatMoney(targetKPPNKumulatif)}</span>
+              <span className="text-[12px] font-bold text-indigo-500 uppercase italic">Target KPPN TW {twActive}: Rp {formatMoney(targetKPPNKumulatif)}</span>
             </div>
             
             <div className="h-[240px] w-full relative">
