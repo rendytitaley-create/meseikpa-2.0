@@ -837,11 +837,14 @@ export default function App() {
       return filteredByAudit.filter(item => item.level <= rapatDepth);
     }
     
-    // Logika untuk Tab RPD dan Realisasi (Abaikan Audit Filter)
-    const allowed = TIM_MAPPING[activeTim] || [];
+   const allowed = TIM_MAPPING[activeTim] || [];
     let insideAllowed = false;
     return allMerged.filter((item) => {
       if (item.isOrphan) return true; 
+      
+      // TAMBAHAN: Jika pimpinan, tampilkan semua tanpa filter TIM_MAPPING
+      if (currentUser?.role === 'pimpinan') return true;
+      
       if (getLevel(item.kode) === 2) insideAllowed = allowed.includes(item.kode);
       return insideAllowed || getLevel(item.kode) === 1; 
     });
