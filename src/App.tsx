@@ -765,61 +765,30 @@ export default function App() {
   };
 
   const processedData = useMemo(() => {
-    const normal = dataTampil.filter(d => !d.isOrphan);
-    const orphan = dataTampil.filter(d => d.isOrphan);
-    const base = (activeTab === 'rapat') ? normal : normal.filter(d => d.wilayah === activeWilayah);
-    
-    const calculatedNormal = base.map((item, index) => {
-      const level = getLevel(item.kode);
-      const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
-      const isDetail = level === 8 && (Number(item.pagu) || 0) > 0 && !isInduk;
-      
-      let totalRPD = 0, totalReal = 0;
-      let mRPD: Record<string, number> = {};
-      let mReal: Record<string, number> = {};
+  const normal = dataTampil.filter(d => !d.isOrphan);
+  const orphan = dataTampil.filter(d => d.isOrphan);
+  const base = (activeTab === 'rapat') ? normal : normal.filter(d => d.wilayah === activeWilayah);
+  
+  const calculatedNormal = base.map((item, index) => {
+    // ... (Logika kalkulasi RPD/Real bulanan tetap sama seperti kode Anda) ...
+    // ... pastikan bagian return di bawah ini tetap ada ...
+    return { ...item, totalRPD, totalReal, monthRPD: mRPD, monthReal: mReal, level, isDetail };
+  });
 
-      // RESET: Pastikan semua bulan mulai dari nol
-      allMonths.forEach(m => { mRPD[m] = 0; mReal[m] = 0; });
+  const calculatedOrphan = orphan.map(item => ({
+      ...item, 
+      totalRPD: sumMapValues(item.rpd), 
+      totalReal: sumMapValues(item.realisasi),
+      monthRPD: item.rpd || {}, 
+      monthReal: item.realisasi || {},
+      level: 8, isDetail: true
+  }));
 
-      if (isDetail) {
-        // Jika level 8, ambil angka bulanan langsung dari item tersebut
-        totalRPD = sumMapValues(item.rpd);
-        totalReal = sumMapValues(item.realisasi);
-        allMonths.forEach(m => {
-          mRPD[m] = Number(item.rpd?.[m]) || 0;
-          mReal[m] = Number(item.realisasi?.[m]) || 0;
-        });
-      } else if (!isInduk) {
-        // Jika level atas, jumlahkan rincian bulanan dari semua Level 8 di bawahnya
-        for (let i = index + 1; i < base.length; i++) {
-            const next = base[i];
-            const nLevel = getLevel(next.kode);
-            if (next.kode !== "" && nLevel <= level) break;
-            if (nLevel === 8 && (Number(next.pagu) || 0) > 0) {
-                totalRPD += sumMapValues(next.rpd);
-                totalReal += sumMapValues(next.realisasi);
-                allMonths.forEach(m => {
-                    mRPD[m] += (Number(next.rpd?.[m]) || 0);
-                    mReal[m] += (Number(next.realisasi?.[m]) || 0);
-                });
-            }
-        }
-      }
-      return { ...item, totalRPD, totalReal, monthRPD: mRPD, monthReal: mReal, level, isDetail };
-    });
-
-    const calculatedOrphan = orphan.map(item => ({
-        ...item, 
-        totalRPD: sumMapValues(item.rpd), 
-        totalReal: sumMapValues(item.realisasi),
-        monthRPD: item.rpd || {}, 
-        monthReal: item.realisasi || {},
-        level: 8, isDetail: true
-    }));
-
-    const allMerged = [...calculatedNormal, ...calculatedOrphan];
-    
-    // Logika Filter Audit
+  const allMerged = [...calculatedNormal, ...calculatedOrphan];
+  
+  // --- PERBAIKAN DI SINI ---
+  if (activeTab === 'rapat') {
+    // Filter Audit HANYA bekerja di tab Rekapitulasi (rapat)
     const filteredByAudit = allMerged.filter(item => {
       if (auditFilter === 'all') return true;
       const dev = item.totalRPD > 0 ? Math.abs(((item.totalReal - item.totalRPD) / item.totalRPD) * 100) : 0;
@@ -831,18 +800,21 @@ export default function App() {
       if (auditFilter === 'anomali') return hasRealNoRPD;
       return true;
     });
-
-    if (activeTab === 'rapat') return filteredByAudit.filter(item => item.level <= rapatDepth);
     
-    const allowed = TIM_MAPPING[activeTim] || [];
-    let insideAllowed = false;
-    return filteredByAudit.filter((item) => {
-      if (item.isOrphan) return true; 
-      if (getLevel(item.kode) === 2) insideAllowed = allowed.includes(item.kode);
-      return insideAllowed || getLevel(item.kode) === 1; 
-    });
-  }, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth, allMonths, auditFilter]);
-
+    // Kembalikan data rapat dengan filter kedalaman (rapatDepth)
+    return filteredByAudit.filter(item => item.level <= rapatDepth);
+  }
+  
+  // --- UNTUK TAB RPD & REALISASI ---
+  // Gunakan allMerged langsung tanpa menyentuh auditFilter
+  const allowed = TIM_MAPPING[activeTim] || [];
+  let insideAllowed = false;
+  return allMerged.filter((item) => {
+    if (item.isOrphan) return true; 
+    if (getLevel(item.kode) === 2) insideAllowed = allowed.includes(item.kode);
+    return insideAllowed || getLevel(item.kode) === 1; 
+  });
+}, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth, allMonths, auditFilter]);
   const finalDisplay = processedData.filter((d) => 
     (d.uraian && d.uraian.toLowerCase().includes(searchTerm.toLowerCase())) || 
     (d.kode && d.kode.includes(searchTerm))
