@@ -646,9 +646,13 @@ export default function App() {
   const deviasiKPPN = useMemo(() => {
     const totalPagu = globalStats.pagu || 1;
     let akumulasiSkorBulanan = 0;
-    let jumlahBulanBerjalan = 0;
+    
+    // KUNCI: Menentukan sampai bulan apa hitungan dilakukan
+    // Kita ambil bulan saat ini (Februari = index 1)
+    const currentMonthIdx = new Date().getMonth(); 
+    const monthsToCalculate = allMonths.slice(0, currentMonthIdx + 1); 
 
-    allMonths.forEach((m) => {
+    monthsToCalculate.forEach((m) => {
       const mData = globalStats.months[m];
       const getMDev = (real: number, rpd: number, pagu: number) => {
         if (rpd <= 0) return 0;
@@ -661,12 +665,11 @@ export default function App() {
         getMDev(mData.real53, mData.rpd53, globalStats.pagu53)
       ) * 100;
 
-      if (mData.rpd51 > 0 || mData.rpd52 > 0 || mData.rpd53 > 0) {
-        akumulasiSkorBulanan += skorBulanIni;
-        jumlahBulanBerjalan++;
-      }
+      akumulasiSkorBulanan += skorBulanIni;
     });
 
+    // Pembagi hanya berdasarkan jumlah bulan yang sudah dilewati (Jan & Feb)
+    const jumlahBulanBerjalan = monthsToCalculate.length;
     return jumlahBulanBerjalan > 0 ? (akumulasiSkorBulanan / jumlahBulanBerjalan) : 0;
   }, [globalStats, allMonths]);
 
