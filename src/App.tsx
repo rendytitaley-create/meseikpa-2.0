@@ -643,6 +643,29 @@ export default function App() {
     return stats;
   }, [dataTampil, allMonths, selectedMonthGap]);
 
+  const deviasiKPPN = useMemo(() => {
+    const totalPagu = globalStats.pagu || 1;
+    let akumulasiSkorBulanan = 0;
+    let jumlahBulanBerjalan = 0;
+    allMonths.forEach((m) => {
+      const mData = globalStats.months[m];
+      const getMDev = (real: number, rpd: number, pagu: number) => {
+        if (rpd <= 0) return 0;
+        return (Math.abs(real - rpd) / rpd) * (pagu / totalPagu);
+      };
+      const skorBulanIni = (
+        getMDev(mData.real51, mData.rpd51, globalStats.pagu51) +
+        getMDev(mData.real52, mData.rpd52, globalStats.pagu52) +
+        getMDev(mData.real53, mData.rpd53, globalStats.pagu53)
+      ) * 100;
+      if (mData.rpd51 > 0 || mData.rpd52 > 0 || mData.rpd53 > 0) {
+        akumulasiSkorBulanan += skorBulanIni;
+        jumlahBulanBerjalan++;
+      }
+    });
+    return jumlahBulanBerjalan > 0 ? (akumulasiSkorBulanan / jumlahBulanBerjalan) : 0;
+  }, [globalStats, allMonths]);
+
   const handleUpdateKPPN = (category: string, period: string, value: string) => {
     const cleanValue = value.replace(/\D/g, "");
     setKppnMetrics((prev: any) => ({
@@ -1265,22 +1288,10 @@ export default function App() {
                               ) * 100;
 
                               // Merah jika di atas 5% (Ambang batas IKPA)
-                              return finalDevTotal > 5 ? 'text-rose-600' : 'text-emerald-600';
+                              return deviasiKPPN > 5 ? 'text-rose-600' : 'text-emerald-600';
                             })()
                           }`}>
-                            {(() => {
-                              const totalPagu = globalStats.pagu || 1;
-                              const getWeightedDev = (real: number, rpd: number, pagu: number) => {
-                                if (rpd <= 0) return 0;
-                                return Math.abs((real - rpd) / rpd) * (pagu / totalPagu);
-                              };
-                              const finalDevTotal = (
-                                getWeightedDev(globalStats.real51, globalStats.rpd51, globalStats.pagu51) +
-                                getWeightedDev(globalStats.real52, globalStats.rpd52, globalStats.pagu52) +
-                                getWeightedDev(globalStats.real53, globalStats.rpd53, globalStats.pagu53)
-                              ) * 100;
-                              return finalDevTotal.toFixed(2);
-                            })()}%
+                            {deviasiKPPN.toFixed(2)}%
                           </div>
                           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Rata-Rata Deviasi Kumulatif</div>
                       </div>
