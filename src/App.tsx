@@ -647,22 +647,26 @@ export default function App() {
     const totalPagu = globalStats.pagu || 1;
     let akumulasiSkorBulanan = 0;
     let jumlahBulanBerjalan = 0;
+
     allMonths.forEach((m) => {
       const mData = globalStats.months[m];
       const getMDev = (real: number, rpd: number, pagu: number) => {
         if (rpd <= 0) return 0;
         return (Math.abs(real - rpd) / rpd) * (pagu / totalPagu);
       };
+
       const skorBulanIni = (
         getMDev(mData.real51, mData.rpd51, globalStats.pagu51) +
         getMDev(mData.real52, mData.rpd52, globalStats.pagu52) +
         getMDev(mData.real53, mData.rpd53, globalStats.pagu53)
       ) * 100;
+
       if (mData.rpd51 > 0 || mData.rpd52 > 0 || mData.rpd53 > 0) {
         akumulasiSkorBulanan += skorBulanIni;
         jumlahBulanBerjalan++;
       }
     });
+
     return jumlahBulanBerjalan > 0 ? (akumulasiSkorBulanan / jumlahBulanBerjalan) : 0;
   }, [globalStats, allMonths]);
 
@@ -1260,7 +1264,7 @@ export default function App() {
                       </div>
                   </div>
 
-                  {/* KARTU DEVIASI TERTIMBANG (FIX 51, 52, 53) */}
+                  {/* KARTU DEVIASI TERTIMBANG (LOGIKA KPPN) */}
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all relative overflow-hidden">
                       <div className="flex justify-between items-start mb-8">
                           <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Target size={24}/></div>
@@ -1271,10 +1275,8 @@ export default function App() {
                       </div>
                       
                       <div className="flex flex-col items-center mb-8 text-center">
-                          <div className={`text-6xl font-black tracking-tighter italic mb-1 ${
-                           <div className={`text-6xl font-black tracking-tighter italic mb-1 ${deviasiKPPN > 5 ? 'text-rose-600' : 'text-emerald-600'}`}>
-    {deviasiKPPN.toFixed(2)}%
-</div>
+                          <div className={`text-6xl font-black tracking-tighter italic mb-1 ${deviasiKPPN > 5 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                            {deviasiKPPN.toFixed(2)}%
                           </div>
                           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Rata-Rata Deviasi Kumulatif</div>
                       </div>
@@ -1297,6 +1299,7 @@ export default function App() {
                           )}
                       </div>
                   </div>
+                  
 
                   <GapMonitoringCard isDashboard={true} />
               </div>
