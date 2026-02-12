@@ -1272,26 +1272,9 @@ export default function App() {
                       
                       <div className="flex flex-col items-center mb-8 text-center">
                           <div className={`text-6xl font-black tracking-tighter italic mb-1 ${
-                            (() => {
-                              const totalPagu = globalStats.pagu || 1;
-                              
-                              // Fungsi Hitung Deviasi Tertimbang per Akun
-                              const getWeightedDev = (real: number, rpd: number, pagu: number) => {
-                                if (rpd <= 0) return 0;
-                                return Math.abs((real - rpd) / rpd) * (pagu / totalPagu);
-                              };
-
-                              const finalDevTotal = (
-                                getWeightedDev(globalStats.real51, globalStats.rpd51, globalStats.pagu51) +
-                                getWeightedDev(globalStats.real52, globalStats.rpd52, globalStats.pagu52) +
-                                getWeightedDev(globalStats.real53, globalStats.rpd53, globalStats.pagu53)
-                              ) * 100;
-
-                              // Merah jika di atas 5% (Ambang batas IKPA)
-                              return deviasiKPPN > 5 ? 'text-rose-600' : 'text-emerald-600';
-                            })()
-                          }`}>
-                            {deviasiKPPN.toFixed(2)}%
+                           <div className={`text-6xl font-black tracking-tighter italic mb-1 ${deviasiKPPN > 5 ? 'text-rose-600' : 'text-emerald-600'}`}>
+    {deviasiKPPN.toFixed(2)}%
+</div>
                           </div>
                           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Rata-Rata Deviasi Kumulatif</div>
                       </div>
