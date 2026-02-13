@@ -920,11 +920,17 @@ export default function App() {
         suggestedReal[m] = realPct.toFixed(2);
       });
 
+      // Menghitung TOTAL Akumulasi Setahun (Bukan Rata-rata)
+      const totalTargetSetahun = allMonths.reduce((acc, m) => acc + (Number(out.targetCapaian?.[m] || out.suggestedTarget[m]) || 0), 0);
+      const totalRealSetahun = allMonths.reduce((acc, m) => acc + (Number(out.realCapaian?.[m] || out.suggestedReal[m]) || 0), 0);
+
       return {
         ...out,
         paguOutput: totalPaguOut,
-        suggestedTarget, // Data otomatis hasil hitungan
-        suggestedReal,   // Data otomatis hasil hitungan
+        suggestedTarget,
+        suggestedReal,
+        totalTargetSetahun, // Hasil penjumlahan total target
+        totalRealSetahun,   // Hasil penjumlahan total realisasi
         targetCapaian: out.targetCapaian || {}, 
         realCapaian: out.realCapaian || {}      
       };
@@ -1668,7 +1674,8 @@ export default function App() {
                          <tr>
                              <th rowSpan={2} className="sticky left-0 z-40 bg-slate-900 px-4 py-4 text-left border-r border-white/5 min-w-[300px]">Kode & Output</th>
                              <th rowSpan={2} className="sticky left-[300px] z-40 bg-slate-900 px-4 py-4 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Kumulatif Anggaran</th>
-                             {allMonths.map(m => (
+                             <th rowSpan={2} className="bg-slate-800 px-4 py-4 border-r border-white/5 text-white w-32">Total Capaian (T | R)</th>
+                           {allMonths.map(m => (
                                <th key={m} className={`px-2 py-2 border-r border-white/5 min-w-[120px] ${selectedMonthGap === m ? 'bg-indigo-600 text-white' : ''}`}>{m}</th>
                              ))}
                          </tr>
@@ -1691,6 +1698,13 @@ const realKeuPct = totalRealAuto.toFixed(1);
                                           <div className="text-slate-400 font-bold mb-1 italic">Pagu: {formatMoney(out.paguOutput)}</div>
                                           <div className="text-slate-800 font-black tracking-tighter italic">Real: {realKeuPct}%</div>
                                       </td>
+                                  <td className="bg-slate-50 px-4 py-4 border-r border-slate-100 text-center">
+    <div className="text-indigo-600 font-black text-[13px] leading-none">{(out.totalTargetSetahun || 0).toFixed(2)}%</div>
+    <div className="text-[8px] font-bold text-slate-400 my-1 uppercase tracking-tighter">Total Target</div>
+    <div className="h-px bg-slate-200 my-1 mx-auto w-8"></div>
+    <div className="text-emerald-600 font-black text-[13px] leading-none">{(out.totalRealSetahun || 0).toFixed(2)}%</div>
+    <div className="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Total Realisasi</div>
+</td>
                                       {allMonths.map(m => (
                                           <td key={m} className={`px-3 py-4 border-r border-slate-50 ${selectedMonthGap === m ? 'bg-indigo-50/30' : ''}`}>
                                             <div className="flex flex-col gap-2">
