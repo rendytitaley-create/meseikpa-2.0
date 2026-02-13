@@ -644,19 +644,27 @@ export default function App() {
   }, [dataTampil, allMonths, selectedMonthGap]);
 
   const deviasiKPPN = useMemo(() => {
+    // PROTEKSI 1: Jika stats belum siap, langsung return 0 (Cegah Layar Putih)
+    if (!globalStats || !globalStats.months) return 0;
+    
     const totalPagu = globalStats.pagu || 1;
     let akumulasiSkorBulanan = 0;
     
-    // KUNCI: Menentukan sampai bulan apa hitungan dilakukan
-    // Kita ambil bulan saat ini (Februari = index 1)
     const currentMonthIdx = new Date().getMonth(); 
     const monthsToCalculate = allMonths.slice(0, currentMonthIdx + 1); 
 
     monthsToCalculate.forEach((m) => {
+      // PROTEKSI 2: Ambil data bulan, jika tidak ada (undefined), abaikan
       const mData = globalStats.months[m];
-      const getMDev = (real: number, rpd: number, pagu: number) => {
-        if (rpd <= 0) return 0;
-        return (Math.abs(real - rpd) / rpd) * (pagu / totalPagu);
+      if (!mData) return;
+
+      const getMDev = (real, rpd, pagu) => {
+        // PROTEKSI 3: Pastikan angka valid dan RPD tidak nol
+        const r = Number(real) || 0;
+        const rd = Number(rpd) || 0;
+        const p = Number(pagu) || 0;
+        if (rd <= 0) return 0;
+        return (Math.abs(r - rd) / rd) * (p / totalPagu);
       };
 
       const skorBulanIni = (
@@ -668,7 +676,6 @@ export default function App() {
       akumulasiSkorBulanan += skorBulanIni;
     });
 
-    // Pembagi hanya berdasarkan jumlah bulan yang sudah dilewati (Jan & Feb)
     const jumlahBulanBerjalan = monthsToCalculate.length;
     return jumlahBulanBerjalan > 0 ? (akumulasiSkorBulanan / jumlahBulanBerjalan) : 0;
   }, [globalStats, allMonths]);
