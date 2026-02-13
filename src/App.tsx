@@ -658,7 +658,7 @@ export default function App() {
       const mData = globalStats.months[m];
       if (!mData) return;
 
-      const getMDev = (real, rpd, pagu) => {
+      const getMDev = (real: any, rpd: any, pagu: any) => {
         // PROTEKSI 3: Pastikan angka valid dan RPD tidak nol
         const r = Number(real) || 0;
         const rd = Number(rpd) || 0;
