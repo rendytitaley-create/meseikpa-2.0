@@ -644,27 +644,19 @@ export default function App() {
   }, [dataTampil, allMonths, selectedMonthGap]);
 
   const deviasiKPPN = useMemo(() => {
-    // PROTEKSI 1: Jika stats belum siap, langsung return 0 (Cegah Layar Putih)
-    if (!globalStats || !globalStats.months) return 0;
-    
     const totalPagu = globalStats.pagu || 1;
     let akumulasiSkorBulanan = 0;
     
+    // KUNCI: Menentukan sampai bulan apa hitungan dilakukan
+    // Kita ambil bulan saat ini (Februari = index 1)
     const currentMonthIdx = new Date().getMonth(); 
     const monthsToCalculate = allMonths.slice(0, currentMonthIdx + 1); 
 
     monthsToCalculate.forEach((m) => {
-      // PROTEKSI 2: Ambil data bulan, jika tidak ada (undefined), abaikan
       const mData = globalStats.months[m];
-      if (!mData) return;
-
-      const getMDev = (real: any, rpd: any, pagu: any) => {
-        // PROTEKSI 3: Pastikan angka valid dan RPD tidak nol
-        const r = Number(real) || 0;
-        const rd = Number(rpd) || 0;
-        const p = Number(pagu) || 0;
-        if (rd <= 0) return 0;
-        return (Math.abs(r - rd) / rd) * (p / totalPagu);
+      const getMDev = (real: number, rpd: number, pagu: number) => {
+        if (rpd <= 0) return 0;
+        return (Math.abs(real - rpd) / rpd) * (pagu / totalPagu);
       };
 
       const skorBulanIni = (
@@ -676,6 +668,7 @@ export default function App() {
       akumulasiSkorBulanan += skorBulanIni;
     });
 
+    // Pembagi hanya berdasarkan jumlah bulan yang sudah dilewati (Jan & Feb)
     const jumlahBulanBerjalan = monthsToCalculate.length;
     return jumlahBulanBerjalan > 0 ? (akumulasiSkorBulanan / jumlahBulanBerjalan) : 0;
   }, [globalStats, allMonths]);
@@ -927,17 +920,11 @@ export default function App() {
         suggestedReal[m] = realPct.toFixed(2);
       });
 
-      // Menghitung TOTAL Akumulasi Setahun (Bukan Rata-rata)
-      const totalTargetSetahun = allMonths.reduce((acc, m) => acc + (Number(out.targetCapaian?.[m] || out.suggestedTarget[m]) || 0), 0);
-      const totalRealSetahun = allMonths.reduce((acc, m) => acc + (Number(out.realCapaian?.[m] || out.suggestedReal[m]) || 0), 0);
-
       return {
         ...out,
         paguOutput: totalPaguOut,
-        suggestedTarget,
-        suggestedReal,
-        totalTargetSetahun, // Hasil penjumlahan total target
-        totalRealSetahun,   // Hasil penjumlahan total realisasi
+        suggestedTarget, // Data otomatis hasil hitungan
+        suggestedReal,   // Data otomatis hasil hitungan
         targetCapaian: out.targetCapaian || {}, 
         realCapaian: out.realCapaian || {}      
       };
@@ -1681,8 +1668,7 @@ export default function App() {
                          <tr>
                              <th rowSpan={2} className="sticky left-0 z-40 bg-slate-900 px-4 py-4 text-left border-r border-white/5 min-w-[300px]">Kode & Output</th>
                              <th rowSpan={2} className="sticky left-[300px] z-40 bg-slate-900 px-4 py-4 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Kumulatif Anggaran</th>
-                             <th rowSpan={2} className="bg-slate-800 px-4 py-4 border-r border-white/5 text-white w-32">Total Capaian (T | R)</th>
-                           {allMonths.map(m => (
+                             {allMonths.map(m => (
                                <th key={m} className={`px-2 py-2 border-r border-white/5 min-w-[120px] ${selectedMonthGap === m ? 'bg-indigo-600 text-white' : ''}`}>{m}</th>
                              ))}
                          </tr>
@@ -1693,8 +1679,17 @@ export default function App() {
                        <tbody className="divide-y divide-slate-100">
                           {capaianOutputData.map((out) => {
                              // Menghitung kumulatif realisasi dari seluruh bulan yang sudah berjalan
-const totalRealAuto = allMonths.reduce((acc, m) => acc + (Number(out.suggestedReal[m]) || 0), 0);
-const realKeuPct = totalRealAuto.toFixed(1);
+// Menghitung Total Akumulasi Setahun (T dan R)
+const totalTargetSetahun = allMonths.reduce((acc, m) => {
+  // Ambil nilai manual jika ada, jika tidak ada ambil nilai sugesti
+  const nilaiTarget = out.targetCapaian?.[m] || out.suggestedTarget?.[m] || 0;
+  return acc + (Number(nilaiTarget) || 0);
+}, 0);
+
+const totalRealSetahun = allMonths.reduce((acc, m) => {
+  const nilaiReal = out.realCapaian?.[m] || out.suggestedReal?.[m] || 0;
+  return acc + (Number(nilaiReal) || 0);
+}, 0);
                              return (
                                 <tr key={out.id} className="bg-white hover:bg-violet-50/30 transition-all">
                                       <td className="sticky left-0 z-10 bg-white px-5 py-4 border-r border-slate-50 relative">
@@ -1703,15 +1698,9 @@ const realKeuPct = totalRealAuto.toFixed(1);
                                       </td>
                                       <td className="sticky left-[300px] z-10 bg-white px-4 py-4 border-r border-slate-50 text-right shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
                                           <div className="text-slate-400 font-bold mb-1 italic">Pagu: {formatMoney(out.paguOutput)}</div>
-                                          <div className="text-slate-800 font-black tracking-tighter italic">Real: {realKeuPct}%</div>
+                                          <div className="text-indigo-600 font-black tracking-tighter italic">T: {totalTargetSetahun.toFixed(1)}%</div>
+<div className="text-emerald-600 font-black tracking-tighter italic">R: {totalRealSetahun.toFixed(1)}%</div>
                                       </td>
-                                  <td className="bg-slate-50 px-4 py-4 border-r border-slate-100 text-center">
-    <div className="text-indigo-600 font-black text-[13px] leading-none">{(out.totalTargetSetahun || 0).toFixed(2)}%</div>
-    <div className="text-[8px] font-bold text-slate-400 my-1 uppercase tracking-tighter">Total Target</div>
-    <div className="h-px bg-slate-200 my-1 mx-auto w-8"></div>
-    <div className="text-emerald-600 font-black text-[13px] leading-none">{(out.totalRealSetahun || 0).toFixed(2)}%</div>
-    <div className="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Total Realisasi</div>
-</td>
                                       {allMonths.map(m => (
                                           <td key={m} className={`px-3 py-4 border-r border-slate-50 ${selectedMonthGap === m ? 'bg-indigo-50/30' : ''}`}>
                                             <div className="flex flex-col gap-2">
