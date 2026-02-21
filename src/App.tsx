@@ -1292,6 +1292,13 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
         </div>
       </aside>
 
+      {/* Overlay untuk menutup sidebar di mobile saat terbuka */}
+{sidebarOpen && (
+  <div 
+    className="fixed inset-0 bg-black/50 z-40 md:hidden" 
+    onClick={() => setSidebarOpen(false)}
+  />
+)}
       <main className="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-hidden">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 z-30 shadow-sm">
           <div className="flex items-center gap-3">
