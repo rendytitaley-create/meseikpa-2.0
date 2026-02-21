@@ -129,14 +129,11 @@ const generateRowKey = (item: any, currentPath: string[]) => {
     return currentPath.slice(0, 7).filter(Boolean).join("|") + "||" + (cleanString(item.kode) || cleanString(item.uraian));
 };
 
-const ALL_MONTHS_CONST = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
 export default function App() {
   const [fbUser, setFbUser] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-const [rekapPeriod, setRekapPeriod] = useState<string>(ALL_MONTHS_CONST[new Date().getMonth()]);
-  const [showClearDataModal, setShowClearDataModal] = useState(false);
-  const allMonths = ALL_MONTHS_CONST; // Agar variabel 'allMonths' di kode bawah tetap jalan
+
   // --- LOGIN STATE ---
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -168,10 +165,11 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(ALL_MONTHS_CONST[new Date
   const [previewData, setPreviewData] = useState<any[]>([]); 
   const [migrationStats, setMigrationStats] = useState({ match: 0, new: 0, orphaned: 0 });
   const [isLocked, setIsLocked] = useState(false);
-  
+  const [showClearDataModal, setShowClearDataModal] = useState(false);
   
   // Fitur Rekap Bulanan State
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
+  const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getMonth()]);
 
   // Monitoring GAP Monthly Filter - Diisolasi hanya untuk Capaian Output
   const [selectedMonthGap, setSelectedMonthGap] = useState<string>("");
@@ -1431,100 +1429,227 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(ALL_MONTHS_CONST[new Date
 
           {activeTab === 'rapat' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
-              {/* PANEL ATAS: KARTU MONITORING */}
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                {/* 1. Kartu Realisasi */}
-                <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl">
-                   {/* ... (Isi Kartu Realisasi Anda) ... */}
-                   <h4 className="text-xl font-black italic">Monitoring Realisasi Anggaran</h4>
-                   {/* Pastikan isi kartu Anda ada di sini */}
-                </div>
+               <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                  <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl relative overflow-hidden">
+                    <div className="flex justify-between items-start mb-8">
+                        <div className="p-5 bg-emerald-100 text-emerald-600 rounded-[2rem]"><Activity size={32}/></div>
+                        <div className="text-right">
+                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">Realisasi Anggaran</span>
+                            <span className="text-[11px] font-black text-emerald-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={14}/> Monitoring Triwulan</span>
+                        </div>
+                    </div>
+                    <div className="p-8 bg-emerald-50/40 rounded-[3rem] border border-emerald-100 space-y-6">
+                        <div className="flex justify-between items-center border-b border-emerald-200/50 pb-4">
+                            <span className="text-sm font-black text-slate-800 uppercase tracking-widest bg-emerald-100 px-5 py-2 rounded-2xl shadow-sm">TW {twActive}</span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-5">
+                           {['51', '52', '53'].map(code => {
+                              const sCat = `real${code}`;
+                              const realSub = globalStats.tw[twActive - 1][`real${code}` as keyof typeof globalStats.tw[number]];
+                              const paguSub = globalStats[`pagu${code}` as keyof typeof globalStats] as number;
+                              const targetNominal = Number(kppnMetrics[sCat]?.[`TW${twActive}`]) || 0;
+                              const pctReal = paguSub > 0 ? (realSub / paguSub) * 100 : 0;
+                              const pctTarget = paguSub > 0 ? (targetNominal / paguSub) * 100 : 0;
+                              return (
+                                <div key={code} className="grid grid-cols-12 items-center gap-6 bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                                    <div className="col-span-4">
+                                        <span className="text-xs font-black text-slate-400 uppercase block mb-1">Belanja {code}</span>
+                                        <span className={`text-2xl font-black block tracking-tighter ${getDevColorClass(pctReal - pctTarget)}`}>{pctReal.toFixed(1)}% <span className="text-xs text-slate-300">/ {pctTarget.toFixed(1)}%</span></span>
+                                    </div>
+                                    <div className="col-span-4 text-center border-x border-slate-100 px-2">
+                                        <span className="text-[10px] font-black text-slate-300 block mb-1 uppercase">Realisasi Satker</span>
+                                        <span className="text-sm font-black text-slate-800 italic">Rp {formatMoney(realSub)}</span>
+                                    </div>
+                                    <div className="col-span-4">
+                                        <span className="text-[10px] font-black text-slate-300 block mb-1 text-right uppercase">Target KPPN (Rp)</span>
+                                        <input type="text" value={formatInputMasking(kppnMetrics[sCat]?.[`TW${twActive}`])} readOnly={currentUser.role !== 'admin'} onChange={(e) => handleUpdateKPPN(sCat, `TW${twActive}`, e.target.value)} onBlur={saveKppnGlobal} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 text-sm font-black text-right outline-none focus:ring-4 focus:ring-emerald-200/50 transition-all" placeholder="0" />
+                                    </div>
+                                </div>
+                              );
+                           })}
+                        </div>
+                    </div>
+                  </div>
 
-                {/* 2. Kartu RPD */}
-                <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl">
-                   {/* ... (Isi Kartu RPD Anda) ... */}
-                   <h4 className="text-xl font-black italic">Monitoring Deviasi RPD</h4>
-                </div>
-              </div>
+                  <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl overflow-hidden relative group">
+                    <div className="flex justify-between items-start mb-8">
+                        <div className="p-4 bg-orange-100 text-orange-600 rounded-[2rem]"><Target size={32}/></div>
+                        <div className="text-right">
+                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">Deviasi Hal III DIPA</span>
+                            <span className="text-[11px] font-black text-blue-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={14}/> Monitoring Bulanan</span>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between mb-8">
+                       <h4 className="text-xl font-black italic text-slate-800 uppercase tracking-tighter">Kesesuaian RPD</h4>
+                       <button onClick={() => setExpandedMonthlyRPD(prev => ({ ...prev, [twActive]: !prev[twActive] }))} className="flex items-center gap-3 px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl border border-slate-200 transition-all hover:bg-slate-200 font-black text-xs uppercase">
+                          <CalendarDays size={18} /> {expandedMonthlyRPD[twActive] ? 'Tutup Rincian' : 'Buka Rincian'}
+                       </button>
+                    </div>
 
-              {/* BAR FILTER */}
-              <div className="bg-white p-8 rounded-[4rem] shadow-xl border border-slate-200 flex flex-col xl:flex-row items-center gap-8">
-                <div className="flex-1 w-full">
-                  <label className="text-xs font-black text-slate-500 uppercase mb-2 block">Kedalaman Data</label>
-                  <select 
-                    value={rapatDepth} 
-                    onChange={(e) => setRapatDepth(Number(e.target.value))} 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-6 text-[13px] font-black"
-                  >
-                    <option value={1}>Level 1: DIPA Induk</option>
-                    <option value={2}>Level 2: Output RO</option>
-                    <option value={8}>Level 8: Detail Pagu</option>
-                  </select>
-                </div>
-                <button onClick={() => handleExportRekapFull()} className="bg-emerald-600 text-white px-10 py-4 rounded-[2rem] font-black text-xs uppercase">
-                  Cetak Rekap Backup
-                </button>
-              </div>
+                    <div className="space-y-5">
+                       {twMonths[twActive].map(m => {
+                         const mData = globalStats.months[m];
+                         return (
+                             <div key={m} className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-200 space-y-4">
+                                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                                   <span className="text-sm font-black text-slate-800 uppercase tracking-widest">{m}</span>
+                                   <div className="flex gap-3">
+                                      {['51', '52', '53'].map(code => {
+                                         const t = mData[`rpd${code}` as keyof typeof mData];
+                                         const r = mData[`real${code}` as keyof typeof mData];
+                                         const dev = t > 0 ? ((r - t) / t) * 100 : 0;
+                                         return <span key={code} className={`text-xs font-black px-3 py-1 rounded-xl border shadow-sm ${getDevColorClass(dev)}`}>{code}: {dev.toFixed(1)}%</span>
+                                      })}
+                                   </div>
+                                </div>
+                                {expandedMonthlyRPD[twActive] && (
+                                   <div className="space-y-3 animate-in slide-in-from-top text-xs font-bold text-slate-500 italic px-2">
+                                      {['51', '52', '53'].map(code => (
+                                         <div key={code} className="grid grid-cols-12 border-b border-slate-100/50 pb-2">
+                                            <div className="col-span-3 uppercase">Akun {code}</div>
+                                            <div className="col-span-4">RPD: Rp {formatMoney(mData[`rpd${code}` as keyof typeof mData])}</div>
+                                            <div className="col-span-5 text-right">Real: Rp {formatMoney(mData[`real${code}` as keyof typeof mData])}</div>
+                                         </div>
+                                      ))}
+                                   </div>
+                                )}
+                             </div>
+                         );
+                       })}
+                    </div>
+                  </div>
+               </div>
 
-              {/* TABEL REKAPITULASI */}
-              <div className="bg-white rounded-[4rem] shadow-2xl border border-slate-200 overflow-hidden">
-                <div className="p-6 bg-slate-50 border-b border-slate-100 flex flex-wrap gap-2 items-center">
-                  <span className="text-[10px] font-black uppercase text-slate-400 mr-2">Tampilkan Data:</span>
-                  {allMonths.map(m => (
-                    <button key={m} onClick={() => setRekapPeriod(m)} className={`px-3 py-1.5 rounded-xl text-[10px] font-black ${rekapPeriod === m ? 'bg-indigo-600 text-white' : 'bg-white text-slate-400'}`}>
-                      {m}
+               {/* BAR FILTER LENGKAP: LEVEL, AUDIT, & CETAK */}
+               <div className="bg-white p-8 rounded-[4rem] shadow-xl border border-slate-200 flex flex-col xl:flex-row items-center gap-8">
+                  <div className="p-5 bg-blue-100 text-blue-600 rounded-2xl shrink-0"><Filter size={28}/></div>
+                  
+                  {/* PILIHAN LEVEL */}
+                  <div className="flex-1 w-full">
+                    <label className="text-xs font-black text-slate-500 uppercase mb-2 block tracking-widest">Kedalaman Data</label>
+                    <select 
+                      value={rapatDepth} 
+                      onChange={(e) => setRapatDepth(Number(e.target.value))} 
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-6 text-[13px] font-black text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    >
+                        <option value={1}>Level 1: DIPA Induk</option>
+                        <option value={2}>Level 2: Output RO</option>
+                        <option value={8}>Level 8: Detail Pagu (Item)</option>
+                    </select>
+                  </div>
+
+                  {/* FILTER KONDISI AUDIT */}
+                  <div className="flex-[1.5] w-full">
+                    <label className="text-xs font-black text-slate-500 uppercase mb-2 block tracking-widest">Filter Kondisi (IKPA)</label>
+                    <div className="flex p-1 bg-slate-100 rounded-2xl gap-1">
+                      {[
+                        {id: 'all', label: 'Semua', color: 'bg-slate-800'},
+                        {id: 'aman', label: 'Aman', color: 'bg-emerald-600'},
+                        {id: 'meleset', label: 'Meleset', color: 'bg-rose-600'},
+                        {id: 'anomali', label: 'Tanpa RPD', color: 'bg-amber-600'}
+                      ].map((btn) => (
+                        <button
+                          key={btn.id}
+                          onClick={() => setAuditFilter(btn.id as any)}
+                          className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${
+                            auditFilter === btn.id 
+                            ? `${btn.color} text-white shadow-lg scale-105` 
+                            : 'text-slate-400 hover:text-slate-600'
+                          }`}
+                        >
+                          {btn.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* TOMBOL CETAK REKAP BACKUP */}
+                  <div className="w-full xl:w-auto shrink-0">
+                    <button 
+                      onClick={() => handleExportRekapFull()}
+                      className="w-full flex items-center justify-center gap-4 px-10 py-4 bg-emerald-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 active:scale-95 transition-all"
+                    >
+                      <FileUp size={20} /> Cetak Rekap Backup
                     </button>
-                  ))}
-                </div>
+                  </div>
+               </div>
+               <div className="bg-white rounded-[4rem] shadow-2xl border border-slate-200 overflow-hidden">
+                 {/* PANEL PILIHAN BULAN/TRIWULAN */}
+  <div className="p-6 bg-slate-50 border-b border-slate-100 flex flex-wrap gap-2 items-center">
+    <span className="text-[10px] font-black uppercase text-slate-400 mr-2 tracking-widest italic">Tampilkan Data:</span>
+    <div className="flex flex-wrap gap-1">
+      {allMonths.map(m => (
+        <button key={m} onClick={() => setRekapPeriod(m)} className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${rekapPeriod === m ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-400 hover:bg-slate-100'}`}>
+          {m}
+        </button>
+      ))}
+      <div className="w-px h-6 bg-slate-200 mx-2"></div>
+      {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
+        <button key={tw} onClick={() => setRekapPeriod(tw)} className={`px-4 py-1.5 rounded-xl text-[10px] font-black transition-all ${rekapPeriod === tw ? 'bg-emerald-600 text-white shadow-md' : 'bg-white text-slate-400 hover:bg-slate-100'}`}>
+          {tw}
+        </button>
+      ))}
+    </div>
+  </div>
+                  <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
+  <table className="w-full border-collapse text-[11px]">
+    <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase text-center shadow-lg">
+      <tr>
+        <th className="px-4 py-5 text-left w-24">Kode</th>
+        <th className="px-5 py-5 text-left min-w-[380px]">Uraian</th>
+        <th className="px-4 py-5 text-right w-32">Pagu DIPA</th>
+        <th className="px-6 py-5 text-center bg-indigo-900 w-40">RPD {rekapPeriod}</th>
+        <th className="px-6 py-5 text-center bg-blue-900 w-40">REAL {rekapPeriod}</th>
+        <th className="px-3 py-5 text-center bg-rose-900 w-24 tracking-tighter italic">% DEV</th>
+        <th className="px-4 py-5 text-right bg-slate-900 w-32 tracking-tighter">SISA PAGU</th>
+      </tr>
+    </thead>
+    <tbody className="divide-y divide-slate-100">
+      {finalDisplay.map((item: any) => {
+        const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
+        
+        // Logika Hitung Nilai Berdasarkan Periode (Bulan atau Triwulan)
+        let valRPD = 0; 
+        let valReal = 0;
 
-                <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
-                  <table className="w-full border-collapse text-[11px]">
-                    <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase">
-                      <tr>
-                        <th className="px-4 py-5 text-left">Kode</th>
-                        <th className="px-5 py-5 text-left">Uraian</th>
-                        <th className="px-4 py-5 text-right">Pagu</th>
-                        <th className="px-6 py-5 text-center bg-indigo-900">RPD {rekapPeriod}</th>
-                        <th className="px-6 py-5 text-center bg-blue-900">REAL {rekapPeriod}</th>
-                        <th className="px-3 py-5 text-center bg-rose-900">% DEV</th>
-                        <th className="px-4 py-5 text-right bg-slate-900">SISA</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {finalDisplay.map((item: any) => {
-                        const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
-                        let valRPD = 0; let valReal = 0;
-                        if (rekapPeriod.startsWith('TW')) {
-                          const twNum = parseInt(rekapPeriod.replace('TW', ''));
-                          twMonths[twNum].forEach(m => {
-                            valRPD += (Number(item.monthRPD?.[m]) || 0);
-                            valReal += (Number(item.monthReal?.[m]) || 0);
-                          });
-                        } else {
-                          valRPD = Number(item.monthRPD?.[rekapPeriod]) || 0;
-                          valReal = Number(item.monthReal?.[rekapPeriod]) || 0;
-                        }
-                        const devPct = valRPD > 0 ? ((valReal - valRPD) / valRPD) * 100 : 0;
-                        const sisaPagu = (Number(item.pagu) || 0) - (item.totalReal || 0);
+        if (rekapPeriod.startsWith('TW')) {
+          const twNum = parseInt(rekapPeriod.replace('TW', ''));
+          twMonths[twNum].forEach(m => {
+            valRPD += (Number(item.monthRPD?.[m]) || 0);
+            valReal += (Number(item.monthReal?.[m]) || 0);
+          });
+        } else {
+          valRPD = Number(item.monthRPD?.[rekapPeriod]) || 0;
+          valReal = Number(item.monthReal?.[rekapPeriod]) || 0;
+        }
 
-                        return (
-                          <tr key={item.id} className="hover:bg-blue-50/40">
-                            <td className="px-4 py-2 font-mono">{item.kode}</td>
-                            <td className="px-5 py-2 font-bold" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
-                            <td className="px-4 py-2 text-right">{!isNonFinancial ? formatMoney(item.pagu) : ""}</td>
-                            <td className="px-6 py-2 text-right font-black text-indigo-700">{!isNonFinancial ? formatMoney(valRPD) : ""}</td>
-                            <td className="px-6 py-2 text-right font-black text-blue-700">{!isNonFinancial ? formatMoney(valReal) : ""}</td>
-                            <td className={`px-3 py-2 text-center font-black ${getDevColorClass(devPct)}`}>{!isNonFinancial && valRPD > 0 ? `${devPct.toFixed(1)}%` : "0%"}</td>
-                            <td className="px-4 py-2 text-right font-black">{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+        const devPct = valRPD > 0 ? ((valReal - valRPD) / valRPD) * 100 : 0;
+        const sisaPagu = (Number(item.pagu) || 0) - (item.totalReal || 0);
+
+        let rowBg = "hover:bg-blue-50/40 transition-all";
+        if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
+        if (item.level === 2) rowBg = "bg-blue-100/40 font-black";
+        
+        return (
+          <tr key={item.id} className={rowBg}>
+            <td className="px-4 py-2 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
+            <td className="px-5 py-2 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
+            <td className="px-4 py-2 text-right font-black border-r border-slate-100">{!isNonFinancial ? formatMoney(item.pagu) : ""}</td>
+            <td className="px-6 py-2 text-right font-black text-indigo-700 bg-indigo-50/30 border-r border-slate-100">{!isNonFinancial ? formatMoney(valRPD) : ""}</td>
+            <td className="px-6 py-2 text-right font-black text-blue-700 bg-blue-50/30 border-r border-slate-100">{!isNonFinancial ? formatMoney(valReal) : ""}</td>
+            <td className={`px-3 py-2 text-center font-black border-r border-slate-100 ${getDevColorClass(devPct)}`}>{!isNonFinancial && valRPD > 0 ? `${devPct.toFixed(1)}%` : "0%"}</td>
+            <td className={`px-4 py-2 text-right font-black ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-800'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>
+                  </div>
+               </div>
             </div>
           )}
+
           {activeTab === 'capaian' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
                <GapMonitoringCard showDetails={true} />
