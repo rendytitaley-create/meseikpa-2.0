@@ -169,7 +169,7 @@ export default function App() {
   
   // Fitur Rekap Bulanan State
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
-  const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getMonth()]);
+  
 
   // Monitoring GAP Monthly Filter - Diisolasi hanya untuk Capaian Output
   const [selectedMonthGap, setSelectedMonthGap] = useState<string>("");
@@ -186,8 +186,7 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRPDRef = useRef<HTMLInputElement>(null);
   const allMonths = useMemo(() => ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'], []);
-  const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getMonth()]);
-
+const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getMonth()]);
   const twMonths: Record<number, string[]> = {
     1: ['Jan', 'Feb', 'Mar'], 2: ['Apr', 'Mei', 'Jun'],
     3: ['Jul', 'Ags', 'Sep'], 4: ['Okt', 'Nov', 'Des']
