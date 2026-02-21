@@ -1570,7 +1570,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                     </div>
                   </div>
 
-                  {/* KARTU DEVIASI HAL III DIPA - RINCIAN SELISIH PER AKUN */}
+                  {/* KARTU DEVIASI HAL III DIPA - DETAIL SELISIH PER AKUN */}
                 <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl overflow-hidden relative group">
                   <div className="flex justify-between items-start mb-8">
                     <div className="p-4 bg-orange-100 text-orange-600 rounded-[2rem]"><Target size={32} /></div>
@@ -1596,9 +1596,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                         const mData = globalStats.months[m];
                         return (
                           <div key={m} className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-200">
-                            <div className="flex items-center gap-3 mb-4 border-b border-slate-200 pb-2">
-                              <span className="text-sm font-black text-slate-800 uppercase tracking-widest">{m}</span>
-                            </div>
+                            <span className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4 block border-b border-slate-200 pb-2">{m}</span>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               {['51', '52', '53'].map(code => {
                                 const rpdVal = Number(mData[`rpd${code}` as keyof typeof mData]) || 0;
@@ -1641,6 +1639,9 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                     </div>
                   )}
                 </div>
+              </div> {/* PENUTUP grid-cols-2 */}
+            </div> {/* PENUTUP space-y-8 */}
+          )} {/* PENUTUP activeTab rapat */}
 
                {/* BAR FILTER LENGKAP: LEVEL, AUDIT, & CETAK */}
                <div className="bg-white p-8 rounded-[4rem] shadow-xl border border-slate-200 flex flex-col xl:flex-row items-center gap-8">
