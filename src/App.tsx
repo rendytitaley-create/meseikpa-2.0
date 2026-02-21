@@ -1601,7 +1601,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
         <th className="px-6 py-5 text-center bg-indigo-900 w-40">RPD {rekapPeriod}</th>
         <th className="px-6 py-5 text-center bg-blue-900 w-40">REAL {rekapPeriod}</th>
         <th className="px-3 py-5 text-center bg-rose-900 w-24 tracking-tighter italic">% DEV</th>
-        <th className="px-4 py-5 text-right bg-slate-900 w-32 tracking-tighter">SISA PAGU</th>
+        <th className="px-4 py-5 text-right bg-slate-900 w-32 tracking-tighter">SELISIH (Rp)</th>
       </tr>
     </thead>
     <tbody className="divide-y divide-slate-100">
@@ -1624,7 +1624,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
         }
 
         const devPct = valRPD > 0 ? ((valReal - valRPD) / valRPD) * 100 : 0;
-        const sisaPagu = (Number(item.pagu) || 0) - (item.totalReal || 0);
+        const selisihNominal = valReal - valRPD;
 
         let rowBg = "hover:bg-blue-50/40 transition-all";
         if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
@@ -1638,7 +1638,14 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
             <td className="px-6 py-2 text-right font-black text-indigo-700 bg-indigo-50/30 border-r border-slate-100">{!isNonFinancial ? formatMoney(valRPD) : ""}</td>
             <td className="px-6 py-2 text-right font-black text-blue-700 bg-blue-50/30 border-r border-slate-100">{!isNonFinancial ? formatMoney(valReal) : ""}</td>
             <td className={`px-3 py-2 text-center font-black border-r border-slate-100 ${getDevColorClass(devPct)}`}>{!isNonFinancial && valRPD > 0 ? `${devPct.toFixed(1)}%` : "0%"}</td>
-            <td className={`px-4 py-2 text-right font-black ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-800'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
+            <td className={`px-4 py-2 text-right font-black border-r border-slate-100 ${valRPD > 0 ? (selisihNominal < 0 ? 'text-rose-600 bg-rose-50' : 'text-emerald-600 bg-emerald-50') : 'text-slate-800'}`}>
+  {!isNonFinancial ? (
+    <div className="flex flex-col">
+       <span className="text-[10px] opacity-50">{selisihNominal > 0 ? '+' : ''}</span>
+       <span>{formatMoney(selisihNominal)}</span>
+    </div>
+  ) : ""}
+</td>
           </tr>
         );
       })}
