@@ -271,7 +271,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
 
   useEffect(() => {
     // Waktu tunggu: 15 menit (15 * 60 detik * 1000 milidetik)
-    const logoutTime = 10 * 1000; 
+    const logoutTime = 15 * 60 * 1000; 
 
     const resetTimer = () => {
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
