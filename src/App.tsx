@@ -186,11 +186,12 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRPDRef = useRef<HTMLInputElement>(null);
   const allMonths = useMemo(() => ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'], []);
+  const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getMonth()]);
+
   const twMonths: Record<number, string[]> = {
     1: ['Jan', 'Feb', 'Mar'], 2: ['Apr', 'Mei', 'Jun'],
     3: ['Jul', 'Ags', 'Sep'], 4: ['Okt', 'Nov', 'Des']
   };
-
   // const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
 
   // Efek Otomatis Set Tim Berdasarkan Profil User
