@@ -2112,6 +2112,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
               </div>
             </div>
           )}
+          </div>
 
         <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0 shadow-inner">
             <ShieldHalf size={14} className="text-slate-300" />
