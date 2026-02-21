@@ -610,29 +610,28 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
         }
       }
 
-      const pctAnggaran = roPagu > 0 ? (roRealKeu / roPagu * 100) : 0;
-      // 1. Inisialisasi variabel hitung kumulatif
-      let roPagu = 0, roRealKeu = 0, roRpdKeu = 0; 
-      const bIdx = dataTampil.findIndex(d => d.id === o.id);
-
-      for (let i = bIdx + 1; i < dataTampil.length; i++) {
+      // --- START: PENGGANTI BLOK OTOMATISASI ---
+      let roPaguTotal = 0; 
+      let roRealKeuKumulatif = 0; 
+      let roRpdKeuKumulatif = 0; 
+      
+      const bIdxMatch = dataTampil.findIndex(d => d.id === o.id);
+      
+      for (let i = bIdxMatch + 1; i < dataTampil.length; i++) {
         const next = dataTampil[i];
         if (next.kode !== "" && getLevel(next.kode) <= 4) break;
         if (getLevel(next.kode) === 8) {
-          roPagu += (Number(next.pagu) || 0);
+          roPaguTotal += (Number(next.pagu) || 0);
           for (let j = 0; j <= mIdx; j++) {
-            // Menjumlahkan RPD dan Realisasi dari Januari sampai bulan terpilih
-            roRpdKeu += (Number(next.rpd?.[allMonths[j]]) || 0);
-            roRealKeu += (Number(next.realisasi?.[allMonths[j]]) || 0);
+            roRpdKeuKumulatif += (Number(next.rpd?.[allMonths[j]]) || 0);
+            roRealKeuKumulatif += (Number(next.realisasi?.[allMonths[j]]) || 0);
           }
         }
       }
 
-      // 2. Tentukan nilai konversi otomatis (suggested)
-      const suggestedT = roPagu > 0 ? (roRpdKeu / roPagu * 100) : 0.5;
-      const suggestedR = roPagu > 0 ? (roRealKeu / roPagu * 100) : 0;
+      const suggestedT = roPaguTotal > 0 ? (roRpdKeuKumulatif / roPaguTotal * 100) : 0.5;
+      const suggestedR = roPaguTotal > 0 ? (roRealKeuKumulatif / roPaguTotal * 100) : 0;
 
-      // 3. Gunakan entri manual jika ada, jika kosong gunakan angka otomatis
       const pctFisik = (o.realCapaian?.[targetMonth] !== undefined && o.realCapaian?.[targetMonth] !== "") 
                        ? Number(o.realCapaian?.[targetMonth]) 
                        : suggestedR;
@@ -641,7 +640,8 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                         ? Number(o.targetCapaian?.[targetMonth]) 
                         : suggestedT;
 
-      const pctAnggaran = roPagu > 0 ? (roRealKeu / roPagu * 100) : 0;
+      const pctAnggaran = roPaguTotal > 0 ? (roRealKeuKumulatif / roPaguTotal * 100) : 0;
+      // --- END: PENGGANTI BLOK ---
 
       const gapFisikKeu = pctFisik - pctAnggaran;
       const gapFisikTarget = pctFisik - pctTarget;
