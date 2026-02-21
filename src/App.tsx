@@ -907,24 +907,6 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
 
     const allMerged = [...calculatedNormal, ...calculatedOrphan];
     
-    // --- PENERAPAN ISOLASI FILTER (Berdasarkan Aturan Kode Dasar) ---
-    if (activeTab === 'rapat') {
-      // Logika Filter Audit hanya aktif saat di tab Rekapitulasi (Rapat)
-      const filteredByAudit = allMerged.filter(item => {
-        if (auditFilter === 'all') return true;
-        const dev = item.totalRPD > 0 ? Math.abs(((item.totalReal - item.totalRPD) / item.totalRPD) * 100) : 0;
-        const hasRealNoRPD = item.totalReal > 0 && item.totalRPD === 0;
-        const adaAktivitas = item.totalRPD > 0 || item.totalReal > 0;
-
-        if (auditFilter === 'aman') return adaAktivitas && dev <= 5 && !hasRealNoRPD && item.totalRPD > 0;
-        if (auditFilter === 'meleset') return adaAktivitas && dev > 5;
-        if (auditFilter === 'anomali') return hasRealNoRPD;
-        return true;
-      });
-
-      return filteredByAudit.filter(item => item.level <= rapatDepth);
-    }
-    
     // Logika untuk Tab RPD dan Realisasi (Abaikan Audit Filter)
     const allowed = TIM_MAPPING[activeTim] || [];
     let insideAllowed = false;
