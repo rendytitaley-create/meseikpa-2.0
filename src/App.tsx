@@ -936,37 +936,48 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
     if (!searchTerm) return processedData;
 
     const term = searchTerm.toLowerCase();
-    const matchedIds = new Set();
-
-    // Langkah 1: Cari baris yang cocok dengan keyword
-    processedData.forEach(item => {
+    
+    // 1. Identifikasi mana saja yang cocok secara langsung
+    const matchedIndices = new Set<number>();
+    processedData.forEach((item, idx) => {
       const kode = String(item.kode || "").toLowerCase();
       const uraian = String(item.uraian || "").toLowerCase();
-      
       if (kode.includes(term) || uraian.includes(term)) {
-        matchedIds.add(item.id || item.tempPathKey);
+        matchedIndices.add(idx);
       }
     });
 
-    // Langkah 2: Tampilkan item yang cocok, ATAU item yang merupakan "anak/detail" dari yang cocok
+    // 2. Tentukan baris mana yang harus ditampilkan
     return processedData.filter((item, index) => {
-      const itemId = item.id || item.tempPathKey;
-      
-      // Jika baris ini sendiri cocok, tampilkan
-      if (matchedIds.has(itemId)) return true;
+      // Jika baris ini cocok langsung, tampilkan
+      if (matchedIndices.has(index)) return true;
 
-      // Jika baris ini adalah detail, cek apakah "orang tua"-nya (RO/Header) cocok
-      // Kita cek ke atas (index sebelumnya)
+      // Cek ke atas apakah baris ini adalah "anak" dari hasil pencarian
+      let isChildOfMatch = false;
       for (let i = index - 1; i >= 0; i--) {
         const parent = processedData[i];
-        if (parent.kode !== "" && getLevel(parent.kode) < getLevel(item.kode)) {
-           if (matchedIds.has(parent.id || parent.tempPathKey)) return true;
+        const parentLevel = getLevel(parent.kode);
+        const itemLevel = getLevel(item.kode);
+
+        // Jika menabrak level yang sama atau lebih tinggi (atasan kandung)
+        if (parent.kode !== "" && parentLevel < itemLevel) {
+          if (matchedIndices.has(i)) {
+            isChildOfMatch = true;
+            break; 
+          }
         }
-        // Jika ketemu level 1, berhenti mencari ke atas
-        if (getLevel(parent.kode) === 1) break;
+
+        // Berhenti mencari jika sudah menabrak level yang setara dengan atasan langsung
+        // Ini mencegah "kebocoran" ke RO setelahnya
+        if (parent.kode !== "" && parentLevel <= parentLevel && parentLevel === 2 && itemLevel > 2) {
+           // Jika kita sedang di bawah RO lain yang tidak cocok, berhenti.
+           if (parentLevel === 2 && !matchedIndices.has(i)) break;
+        }
+        
+        if (parentLevel === 1) break;
       }
 
-      return false;
+      return isChildOfMatch;
     });
   }, [processedData, searchTerm]);
 
