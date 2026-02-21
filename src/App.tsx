@@ -1570,81 +1570,73 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                     </div>
                   </div>
 
-                  <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl overflow-hidden relative group">
-                    <div className="flex justify-between items-start mb-8">
-                        <div className="p-4 bg-orange-100 text-orange-600 rounded-[2rem]"><Target size={32}/></div>
-                        <div className="text-right">
-                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">Deviasi Hal III DIPA</span>
-                            <span className="text-[11px] font-black text-blue-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={14}/> Monitoring Bulanan</span>
-                        </div>
+                  {/* KARTU DEVIASI HAL III DIPA (DETAIL SELISIH PER AKUN) */}
+                <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl overflow-hidden relative group">
+                  <div className="flex justify-between items-start mb-8">
+                    <div className="p-4 bg-orange-100 text-orange-600 rounded-[2rem]"><Target size={32} /></div>
+                    <div className="text-right">
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">Deviasi Hal III DIPA</span>
+                      <span className="text-[11px] font-black text-blue-500 uppercase tracking-widest flex items-center justify-end gap-1"><CheckCircle2 size={14} /> Monitoring Bulanan</span>
                     </div>
-                    
-                    <div className="flex items-center justify-between mb-8">
-                       <h4 className="text-xl font-black italic text-slate-800 uppercase tracking-tighter">Kesesuaian RPD per Akun</h4>
-                       <button 
-                          onClick={() => setExpandedMonthlyRPD(prev => ({ ...prev, [twActive]: !prev[twActive] }))} 
-                          className="flex items-center gap-3 px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl border border-slate-200 transition-all hover:bg-slate-200 font-black text-xs uppercase"
-                       >
-                          <CalendarDays size={18} /> {expandedMonthlyRPD[twActive] ? 'Tutup Rincian' : 'Buka Rincian Bulanan'}
-                       </button>
-                    </div>
-
-                    {expandedMonthlyRPD[twActive] && (
-                      <div className="space-y-6 animate-in slide-in-from-top duration-500">
-                         {twMonths[twActive].map(m => {
-                           const mData = globalStats.months[m];
-
-                           return (
-                               <div key={m} className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-200">
-                                  <div className="flex items-center gap-3 mb-4 border-b border-slate-200 pb-2">
-                                     <span className="text-sm font-black text-slate-800 uppercase tracking-widest">{m}</span>
-                                     <div className="h-1 w-1 rounded-full bg-slate-300"></div>
-                                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Perbandingan Selisih</span>
-                                  </div>
-
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                     {['51', '52', '53'].map(code => {
-                                         const rpdVal = Number(mData[`rpd${code}` as keyof typeof mData]) || 0;
-                                         const realVal = Number(mData[`real${code}` as keyof typeof mData]) || 0;
-                                         const diffVal = realVal - rpdVal;
-                                         const devVal = rpdVal > 0 ? (Math.abs(diffVal) / rpdVal * 100) : 0;
-
-                                         return (
-                                            <div key={code} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-2">
-                                               <div className="flex justify-between items-center">
-                                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Akun {code}</span>
-                                                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg ${getDevColorClass(devVal)}`}>
-                                                     {devVal.toFixed(1)}%
-                                                  </span>
-                                               </div>
-                                               
-                                               <div className="flex flex-col gap-1">
-                                                  <div className="flex justify-between text-[8px] text-slate-400 font-bold px-1">
-                                                     <span>RPD: {formatMoney(rpdVal)}</span>
-                                                     <span>Real: {formatMoney(realVal)}</span>
-                                                  </div>
-                                                  <div className={`text-[11px] font-black flex justify-between items-center p-2 rounded-xl ${diffVal < 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                                     <span className="text-[7px] font-black uppercase tracking-tighter">Selisih:</span>
-                                                     <span>{diffVal > 0 ? '+' : ''}{formatMoney(diffVal)}</span>
-                                                  </div>
-                                               </div>
-                                            </div>
-                                         );
-                                     })}
-                                  </div>
-                               </div>
-                           );
-                         })}
-                      </div>
-                    )}
-
-                    {!expandedMonthlyRPD[twActive] && (
-                      <div className="flex flex-col items-center justify-center py-10 bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
-                        <div className="text-slate-400 mb-2"><Info size={24}/></div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Klik "Buka Rincian Bulanan" untuk melihat detail deviasi</p>
-                      </div>
-                    )}
                   </div>
+                  
+                  <div className="flex items-center justify-between mb-8">
+                    <h4 className="text-xl font-black italic text-slate-800 uppercase tracking-tighter">Kesesuaian RPD per Akun</h4>
+                    <button 
+                      onClick={() => setExpandedMonthlyRPD(prev => ({ ...prev, [twActive]: !prev[twActive] }))} 
+                      className="flex items-center gap-3 px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl border border-slate-200 font-black text-xs uppercase"
+                    >
+                      <CalendarDays size={18} /> {expandedMonthlyRPD[twActive] ? 'Tutup Rincian' : 'Buka Rincian Bulanan'}
+                    </button>
+                  </div>
+
+                  {expandedMonthlyRPD[twActive] ? (
+                    <div className="space-y-6 animate-in slide-in-from-top duration-500">
+                      {twMonths[twActive].map(m => {
+                        const mData = globalStats.months[m];
+                        return (
+                          <div key={m} className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-200">
+                            <div className="flex items-center gap-3 mb-4 border-b border-slate-200 pb-2">
+                              <span className="text-sm font-black text-slate-800 uppercase tracking-widest">{m}</span>
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Rincian Selisih</span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              {['51', '52', '53'].map(code => {
+                                const rpdVal = Number(mData[`rpd${code}` as keyof typeof mData]) || 0;
+                                const realVal = Number(mData[`real${code}` as keyof typeof mData]) || 0;
+                                const diffVal = realVal - rpdVal;
+                                const devVal = rpdVal > 0 ? (Math.abs(diffVal) / rpdVal * 100) : 0;
+                                return (
+                                  <div key={code} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Akun {code}</span>
+                                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg ${getDevColorClass(devVal)}`}>{devVal.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex justify-between text-[8px] text-slate-400 font-bold px-1">
+                                        <span>RPD: {formatMoney(rpdVal)}</span>
+                                        <span>Real: {formatMoney(realVal)}</span>
+                                      </div>
+                                      <div className={`text-[11px] font-black flex justify-between items-center p-2 rounded-xl ${diffVal < 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                        <span className="text-[7px] font-black uppercase tracking-tighter">Selisih:</span>
+                                        <span>{diffVal > 0 ? '+' : ''}{formatMoney(diffVal)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-10 bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
+                      <div className="text-slate-400 mb-2"><Info size={24} /></div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Klik "Buka Rincian Bulanan" untuk melihat detail deviasi</p>
+                    </div>
+                  )}
+                </div>
 
                {/* BAR FILTER LENGKAP: LEVEL, AUDIT, & CETAK */}
                <div className="bg-white p-8 rounded-[4rem] shadow-xl border border-slate-200 flex flex-col xl:flex-row items-center gap-8">
