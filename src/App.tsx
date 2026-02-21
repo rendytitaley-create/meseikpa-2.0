@@ -1222,7 +1222,12 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
   // --- RENDER MAIN APP VIEW ---
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-slate-900 font-sans overflow-hidden">
-      <aside className={`bg-[#0F172A] text-slate-300 transition-all duration-300 flex flex-col z-40 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
+      <aside className={`
+  fixed inset-y-0 left-0 z-50 bg-[#0F172A] text-slate-300 transition-all duration-300 flex flex-col
+  ${sidebarOpen 
+    ? 'translate-x-0 w-64' 
+    : '-translate-x-full md:translate-x-0 md:w-20'}
+`}>
         <div className="h-16 flex items-center px-6 bg-slate-900/50 border-b border-white/5">
           <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shrink-0 shadow-lg">M</div>
           {sidebarOpen && <div className="ml-3 font-black text-white italic tracking-tighter leading-tight">MESEIKPA<br/><span className="text-[9px] uppercase tracking-[0.2em] font-bold not-italic text-blue-400">Version 2.0</span></div>}
