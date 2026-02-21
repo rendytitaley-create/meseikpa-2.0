@@ -155,7 +155,6 @@ export default function App() {
   const [activeWilayah, setActiveWilayah] = useState<string>("GG");
   const [activeTim, setActiveTim] = useState<string>("Nerwilis");
   const [rapatDepth, setRapatDepth] = useState<number>(2);
-  const [auditFilter, setAuditFilter] = useState<'all' | 'aman' | 'meleset' | 'anomali'>('all'); // State baru
   const [twActive, setTwActive] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1603,31 +1602,6 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                         <option value={2}>Level 2: Output RO</option>
                         <option value={8}>Level 8: Detail Pagu (Item)</option>
                     </select>
-                  </div>
-
-                  {/* FILTER KONDISI AUDIT */}
-                  <div className="flex-[1.5] w-full">
-                    <label className="text-xs font-black text-slate-500 uppercase mb-2 block tracking-widest">Filter Kondisi (IKPA)</label>
-                    <div className="flex p-1 bg-slate-100 rounded-2xl gap-1">
-                      {[
-                        {id: 'all', label: 'Semua', color: 'bg-slate-800'},
-                        {id: 'aman', label: 'Aman', color: 'bg-emerald-600'},
-                        {id: 'meleset', label: 'Meleset', color: 'bg-rose-600'},
-                        {id: 'anomali', label: 'Tanpa RPD', color: 'bg-amber-600'}
-                      ].map((btn) => (
-                        <button
-                          key={btn.id}
-                          onClick={() => setAuditFilter(btn.id as any)}
-                          className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${
-                            auditFilter === btn.id 
-                            ? `${btn.color} text-white shadow-lg scale-105` 
-                            : 'text-slate-400 hover:text-slate-600'
-                          }`}
-                        >
-                          {btn.label}
-                        </button>
-                      ))}
-                    </div>
                   </div>
 
                   {/* TOMBOL CETAK REKAP BACKUP */}
