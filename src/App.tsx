@@ -1609,7 +1609,6 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                   )}
                 </div>
               </div>
-               </div>
 
                {/* BAR FILTER LENGKAP: LEVEL, AUDIT, & CETAK */}
                <div className="bg-white p-8 rounded-[4rem] shadow-xl border border-slate-200 flex flex-col xl:flex-row items-center gap-8">
