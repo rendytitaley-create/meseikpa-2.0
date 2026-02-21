@@ -1952,7 +1952,6 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
 
           {(activeTab === 'rpd' || activeTab === 'realisasi') && (
             <div className="space-y-6 animate-in fade-in duration-700">
-              {/* TOOLBAR ADMIN & EXPORT */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex flex-wrap gap-4">
                   {currentUser?.role === 'admin' && (
@@ -1988,7 +1987,6 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                 )}
               </div>
 
-              {/* FILTER WILAYAH & TIM */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                   <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
@@ -2068,7 +2066,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                             <td className={`px-4 py-2 text-right font-black ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50 animate-pulse' : 'text-slate-800'}`}>{!isInduk ? formatMoney(sisaPagu) : ""}</td>
                             <td className="px-2 py-2 text-center">
                               {item.isOrphan && currentUser?.role === 'admin' && (
-                                <button onClick={async () => { if(window.confirm("Hapus?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id)); }} className="p-2 text-rose-500 hover:bg-rose-100 rounded-xl"><Trash2 size={18}/></button>
+                                <button onClick={async () => { if(window.confirm("Hapus?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id)); }} className="p-2 text-rose-500 hover:bg-rose-100 rounded-xl transition-all"><Trash2 size={18}/></button>
                               )}
                             </td>
                           </tr>
@@ -2094,7 +2092,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                       <h4 className={`text-xs leading-tight mb-4 ${item.level <= 2 ? 'font-black text-slate-800' : 'font-bold text-slate-600'}`}>{item.uraian}</h4>
                       {!isInduk && (
                         <div className="grid grid-cols-2 gap-2 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
-                          <div className="flex flex-col text-left">
+                          <div className="flex flex-col">
                             <span className="text-[7px] font-black text-slate-400 uppercase tracking-tighter">Pagu DIPA</span>
                             <span className="text-[10px] font-black text-slate-800">Rp {formatMoney(item.pagu)}</span>
                           </div>
@@ -2114,7 +2112,6 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
               </div>
             </div>
           )}
-        </div>
 
         <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0 shadow-inner">
             <ShieldHalf size={14} className="text-slate-300" />
