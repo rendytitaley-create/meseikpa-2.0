@@ -1642,9 +1642,10 @@ export default function App() {
         })}
       </tbody>
     </table>
-  </div> {/* Penutup space-y-8 */}
-      </div> {/* Penutup activeTab === 'rapat' */}
-    )}
+  </div>
+    </div>
+  </div>
+)}
 
           {activeTab === 'capaian' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
