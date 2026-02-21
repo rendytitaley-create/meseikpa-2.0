@@ -1222,12 +1222,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
   // --- RENDER MAIN APP VIEW ---
   return (
     <div className="flex h-screen bg-[#F8FAFC] text-slate-900 font-sans overflow-hidden">
-      <aside className={`
-  fixed inset-y-0 left-0 z-50 bg-[#0F172A] text-slate-300 transition-all duration-300 flex flex-col
-  ${sidebarOpen 
-    ? 'translate-x-0 w-64' 
-    : '-translate-x-full md:translate-x-0 md:w-20'}
-`}>
+      <aside className={`bg-[#0F172A] text-slate-300 transition-all duration-300 flex flex-col z-40 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
         <div className="h-16 flex items-center px-6 bg-slate-900/50 border-b border-white/5">
           <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shrink-0 shadow-lg">M</div>
           {sidebarOpen && <div className="ml-3 font-black text-white italic tracking-tighter leading-tight">MESEIKPA<br/><span className="text-[9px] uppercase tracking-[0.2em] font-bold not-italic text-blue-400">Version 2.0</span></div>}
@@ -1292,13 +1287,6 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
         </div>
       </aside>
 
-      {/* Overlay untuk menutup sidebar di mobile saat terbuka */}
-{sidebarOpen && (
-  <div 
-    className="fixed inset-0 bg-black/50 z-40 md:hidden" 
-    onClick={() => setSidebarOpen(false)}
-  />
-)}
       <main className="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-hidden">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 z-30 shadow-sm">
           <div className="flex items-center gap-3">
@@ -1953,39 +1941,44 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
           {(activeTab === 'rpd' || activeTab === 'realisasi') && (
             <div className="space-y-6 animate-in fade-in duration-700">
               <div className="flex items-center justify-between mb-4">
-                <div className="flex flex-wrap gap-4">
-                  {currentUser?.role === 'admin' && (
-                    <>
-                      <div className="flex items-center gap-3 bg-white px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
-                        <span className="text-[10px] font-black uppercase text-slate-400 italic">Kondisi DIPA:</span>
-                        <input 
-                          type="text" 
-                          value={kppnMetrics.revisiKe || ""} 
-                          onChange={(e) => setKppnMetrics((prev: any) => ({ ...prev, revisiKe: e.target.value }))}
-                          onBlur={saveKppnGlobal}
-                          className="w-48 font-black text-xs text-blue-600 outline-none bg-transparent" 
-                        />
-                      </div>
-                      <button onClick={handleToggleLock} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-xl transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
-                        {isLocked ? <Lock size={16} /> : <Unlock size={16} />} {isLocked ? 'Buka Kunci' : 'Kunci Pengisian'}
-                      </button>
-                      <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-white text-slate-600 border border-slate-200 shadow-sm"><Eraser size={16} /> Reset Nilai</button>
-                    </>
-                  )}
-                  <button onClick={handleExportExcel} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-emerald-600 text-white shadow-xl hover:bg-emerald-700 transition-all">
-                    <FileUp size={16} /> Export Excel
-                  </button>
-                  <button onClick={() => fileInputRPDRef.current?.click()} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-indigo-600 text-white shadow-xl hover:bg-indigo-700 transition-all">
-                    <FileUp size={16} /> Import Excel
-                    <input type="file" ref={fileInputRPDRef} onChange={handleImportExcel} className="hidden" accept=".xlsx, .xls" />
-                  </button>
-                </div>
-                {currentUser?.role !== 'admin' && (
-                  <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl border italic text-sm font-black ${isLocked ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-blue-50 text-blue-600 border-blue-100 shadow-sm'}`}>
-                    {isLocked ? <Lock size={18} /> : <ShieldHalf size={18} />} {isLocked ? 'Mode Terkunci' : `Aktif: Tim ${currentUser?.team}`}
-                  </div>
-                )}
-              </div>
+  <div className="flex flex-wrap gap-4">
+    {/* HANYA UNTUK ADMIN: Kondisi DIPA, Lock, dan Reset */}
+    {currentUser?.role === 'admin' && (
+      <>
+        <div className="flex items-center gap-3 bg-white px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
+          <span className="text-[10px] font-black uppercase text-slate-400 italic">Kondisi DIPA:</span>
+          <input 
+            type="text" 
+            value={kppnMetrics.revisiKe || ""} 
+            onChange={(e) => setKppnMetrics((prev: any) => ({ ...prev, revisiKe: e.target.value }))}
+            onBlur={saveKppnGlobal}
+            className="w-48 font-black text-xs text-blue-600 outline-none bg-transparent" 
+          />
+        </div>
+        <button onClick={handleToggleLock} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-xl transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
+          {isLocked ? <Lock size={16} /> : <Unlock size={16} />} {isLocked ? 'Buka Kunci' : 'Kunci Pengisian'}
+        </button>
+        <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-white text-slate-600 border border-slate-200 shadow-sm"><Eraser size={16} /> Reset Nilai</button>
+      </>
+    )}
+
+    {/* UNTUK SEMUA ROLE: Export dan Import */}
+    <button onClick={handleExportExcel} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-emerald-600 text-white shadow-xl hover:bg-emerald-700 transition-all">
+      <FileUp size={16} /> Export Excel
+    </button>
+    <button onClick={() => fileInputRPDRef.current?.click()} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-indigo-600 text-white shadow-xl hover:bg-indigo-700 transition-all">
+      <FileUp size={16} /> Import Excel
+      <input type="file" ref={fileInputRPDRef} onChange={handleImportExcel} className="hidden" accept=".xlsx, .xls" />
+    </button>
+  </div>
+
+  {/* STATUS UNTUK NON-ADMIN */}
+  {currentUser?.role !== 'admin' && (
+    <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl border italic text-sm font-black ${isLocked ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-blue-50 text-blue-600 border-blue-100 shadow-sm'}`}>
+      {isLocked ? <Lock size={18} /> : <ShieldHalf size={18} />} {isLocked ? 'Mode Terkunci' : `Aktif: Tim ${currentUser?.team}`}
+    </div>
+  )}
+</div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                   <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
@@ -2013,8 +2006,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                   </div>
               </div>
 
-              {/* TAMPILAN DESKTOP */}
-              <div className="hidden md:block bg-white shadow-2xl border border-slate-200 overflow-hidden rounded-[4rem]">
+              <div className="bg-white shadow-2xl border border-slate-200 overflow-hidden rounded-[4rem]">
                 <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
                   <table className="w-full border-collapse text-[11px]">
                     <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase text-center shadow-lg">
@@ -2031,43 +2023,56 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                     <tbody className="divide-y divide-slate-100">
                       {finalDisplay.map((item: any) => {
                         const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
-                        const isBpsSbb = currentUser?.team === "BPS SBB";
-                        const isObserver = isBpsSbb || currentUser?.role === 'pimpinan' || currentUser?.role === 'anggota';
-                        const canEdit = !isObserver && ((activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || (activeTab === 'realisasi' && currentUser?.role === 'admin'));
-                        const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
-                        const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
+                        // Tambahkan pengecekan: Jika tim BPS SBB, canEdit dipaksa false
+const isBpsSbb = currentUser?.team === "BPS SBB";
+const isObserver = isBpsSbb || currentUser?.role === 'pimpinan' || currentUser?.role === 'anggota';
+
+const canEdit = !isObserver && (
+  (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || 
+  (activeTab === 'realisasi' && currentUser?.role === 'admin')
+);
+
+// Perhitungan sisa otomatis
+const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
+const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
                         return (
                           <tr key={item.id} className={`transition-all ${item.isOrphan ? 'bg-rose-50/50 italic' : 'hover:bg-blue-50/40'}`}>
                             <td className="px-4 py-2 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
                             <td className="px-5 py-2 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
                             <td className="px-4 py-2 text-right font-black border-r border-slate-100">{!isInduk ? formatMoney(item.pagu) : ""}</td>
                             {twMonths[twActive].map((m: string) => (
-                              <td key={m} className="px-0 py-0 h-full border-r border-slate-100">
-                                {!isInduk && item.isDetail ? (
-                                  <input 
-                                    type="text" 
-                                    value={formatInputMasking(activeTab === 'rpd' ? item.rpd?.[m] : item.realisasi?.[m])} 
-                                    readOnly={!canEdit} 
-                                    onChange={async (e) => { 
-                                      if(fbUser && canEdit) { 
-                                        const f = activeTab === 'rpd' ? 'rpd' : 'realisasi'; 
-                                        const ex = activeTab === 'rpd' ? (item.rpd || {}) : (item.realisasi || {});
-                                        const rawNumber = e.target.value.replace(/\D/g, "");
-                                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id), { [f]: { ...ex, [m]: rawNumber } }); 
-                                      }
-                                    }} 
-                                    className={`w-full h-full text-right px-3 py-2.5 outline-none font-black text-xs ${!canEdit ? 'bg-slate-100 text-slate-400' : 'bg-teal-400/10 text-slate-900 focus:bg-white transition-all'}`} 
-                                    placeholder="0" 
-                                  />
-                                ) : !isInduk ? (<div className="text-right px-3 py-3 font-black italic">{formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}</div>) : null}
-                              </td>
+                                <td key={m} className="px-0 py-0 h-full border-r border-slate-100">
+                                  {!isInduk && item.isDetail ? (
+                                    <input 
+                                      type="text" 
+                                      value={formatInputMasking(activeTab === 'rpd' ? item.rpd?.[m] : item.realisasi?.[m])} 
+                                      readOnly={!canEdit} 
+                                      onChange={async (e) => { 
+                                        if(fbUser && canEdit) { 
+                                          const f = activeTab === 'rpd' ? 'rpd' : 'realisasi'; 
+                                          const ex = activeTab === 'rpd' ? (item.rpd || {}) : (item.realisasi || {});
+                                          const rawNumber = e.target.value.replace(/\D/g, "");
+                                          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id), { [f]: { ...ex, [m]: rawNumber } }); 
+                                        }
+                                      }} 
+                                      className={`w-full h-full text-right px-3 py-2.5 outline-none font-black text-xs ${!canEdit ? 'bg-slate-100 text-slate-400' : 'bg-teal-400/10 text-slate-900 focus:bg-white transition-all'}`} 
+                                      placeholder="0" 
+                                    />
+                                  ) : !isInduk ? (<div className="text-right px-3 py-3 font-black italic">{formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}</div>) : null}
+                                </td>
                             ))}
-                            <td className="px-4 py-2 text-right font-black bg-slate-100/50">{!isInduk ? formatMoney(currentTotal) : ""}</td>
-                            <td className={`px-4 py-2 text-right font-black ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50 animate-pulse' : 'text-slate-800'}`}>{!isInduk ? formatMoney(sisaPagu) : ""}</td>
+                            <td className="px-4 py-2 text-right font-black bg-slate-100/50">{!isInduk ? formatMoney(activeTab === 'rpd' ? item.totalRPD : item.totalReal) : ""}</td>
+                            <td className={`px-4 py-2 text-right font-black ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50 animate-pulse' : 'text-slate-800'}`}>
+    {!isInduk ? formatMoney(sisaPagu) : ""}
+</td>
                             <td className="px-2 py-2 text-center">
-                              {item.isOrphan && currentUser?.role === 'admin' && (
-                                <button onClick={async () => { if(window.confirm("Hapus?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id)); }} className="p-2 text-rose-500 hover:bg-rose-100 rounded-xl transition-all"><Trash2 size={18}/></button>
-                              )}
+                               {item.isOrphan && currentUser?.role === 'admin' && (
+                                 <button onClick={async () => {
+                                    if(window.confirm("Hapus data orphan ini permanen?")) {
+                                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id));
+                                    }
+                                 }} className="p-2 text-rose-500 hover:bg-rose-100 rounded-xl transition-all"><Trash2 size={18}/></button>
+                               )}
                             </td>
                           </tr>
                         );
@@ -2076,43 +2081,9 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                   </table>
                 </div>
               </div>
-
-              {/* TAMPILAN MOBILE */}
-              <div className="md:hidden space-y-4 pb-20">
-                {finalDisplay.map((item: any) => {
-                  const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
-                  const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
-                  const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
-                  return (
-                    <div key={item.id} className={`bg-white p-5 rounded-[2.5rem] border border-slate-200 shadow-sm relative ${item.level <= 2 ? 'bg-blue-50/30' : ''}`}>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[10px] font-mono text-slate-400 italic font-bold">{item.kode}</span>
-                        <span className={`px-3 py-1 rounded-xl text-[8px] font-black uppercase ${item.level <= 2 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>Level {item.level}</span>
-                      </div>
-                      <h4 className={`text-xs leading-tight mb-4 ${item.level <= 2 ? 'font-black text-slate-800' : 'font-bold text-slate-600'}`}>{item.uraian}</h4>
-                      {!isInduk && (
-                        <div className="grid grid-cols-2 gap-2 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
-                          <div className="flex flex-col">
-                            <span className="text-[7px] font-black text-slate-400 uppercase tracking-tighter">Pagu DIPA</span>
-                            <span className="text-[10px] font-black text-slate-800">Rp {formatMoney(item.pagu)}</span>
-                          </div>
-                          <div className="flex flex-col text-right">
-                            <span className="text-[7px] font-black text-slate-400 uppercase tracking-tighter">Total {activeTab.toUpperCase()}</span>
-                            <span className="text-[10px] font-black text-blue-600">Rp {formatMoney(currentTotal)}</span>
-                          </div>
-                          <div className="col-span-2 pt-2 border-t border-slate-200 flex justify-between items-center">
-                            <span className="text-[7px] font-black text-slate-400 uppercase tracking-tighter">Sisa Anggaran</span>
-                            <span className={`text-[10px] font-black ${sisaPagu < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>Rp {formatMoney(sisaPagu)}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
             </div>
           )}
-          </div>
+        </div>
 
         <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0 shadow-inner">
             <ShieldHalf size={14} className="text-slate-300" />
