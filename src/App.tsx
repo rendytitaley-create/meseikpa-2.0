@@ -70,7 +70,7 @@ const DATA_COLLECTION = 'pagu_anggaran';
 const USER_COLLECTION = 'users';
 const METRICS_COLLECTION = 'kppn_metrics';
 
-const ALL_TEAMS = ["Nerwilis", "IPDS", "Distribusi", "Produksi", "Sosial", "Umum"];
+const ALL_TEAMS = ["Nerwilis", "IPDS", "Distribusi", "Produksi", "Sosial", "Umum", "BPS SBB"];
 const TIM_MAPPING: Record<string, string[]> = {
   "Nerwilis": ["2896", "2898", "2899"],
   "IPDS": ["2897", "2900", "2901"],
@@ -827,7 +827,9 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
   const processedData = useMemo(() => {
     const normal = dataTampil.filter(d => !d.isOrphan);
     const orphan = dataTampil.filter(d => d.isOrphan);
-    const base = (activeTab === 'rapat') ? normal : normal.filter(d => d.wilayah === activeWilayah);
+    const base = (activeTab === 'rapat' || currentUser.team === "BPS SBB") 
+             ? normal 
+             : normal.filter(d => d.wilayah === activeWilayah);
     
     const calculatedNormal = base.map((item, index) => {
       const level = getLevel(item.kode);
@@ -901,10 +903,13 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
     const allowed = TIM_MAPPING[activeTim] || [];
     let insideAllowed = false;
     return allMerged.filter((item) => {
-      if (item.isOrphan) return true; 
-      if (getLevel(item.kode) === 2) insideAllowed = allowed.includes(item.kode);
-      return insideAllowed || getLevel(item.kode) === 1; 
-    });
+  if (item.isOrphan) return true; 
+  // User BPS SBB bisa melihat semua data tanpa terkunci di satu tim
+  if (currentUser.team === "BPS SBB") return true; 
+
+  if (getLevel(item.kode) === 2) insideAllowed = allowed.includes(item.kode);
+  return insideAllowed || getLevel(item.kode) === 1; 
+});
   }, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth, allMonths, auditFilter]);
   
   const finalDisplay = processedData.filter((d) => 
@@ -1806,11 +1811,12 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                      </div>
                      <div className="flex flex-col gap-3">
                        <label className="text-xs font-black uppercase text-slate-500 ml-4">Role</label>
-                       <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value as any)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 px-8 text-white text-sm outline-none appearance-none">
-                          <option value="admin" className="text-black">Admin</option>
-                          <option value="pimpinan" className="text-black">Pimpinan</option>
-                          <option value="ketua_tim" className="text-black">Ketua Tim</option>
-                       </select>
+                       <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value as any)} ...>
+  <option value="admin" className="text-black">Admin</option>
+  <option value="pimpinan" className="text-black">Pimpinan</option>
+  <option value="ketua_tim" className="text-black">Ketua Tim</option>
+  <option value="anggota" className="text-black">Anggota</option>
+</select>
                      </div>
                      <div className="lg:col-span-2 flex flex-col gap-2">
                        <label className="text-xs font-black uppercase text-slate-500 ml-4">Tim</label>
@@ -1938,15 +1944,15 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                   <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
                     <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
-                      <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>GG</button>
-                      <button disabled={currentUser?.role !== 'admin'} onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>WA</button>
+                      <button disabled={currentUser?.role !== 'admin' && currentUser.team !== 'BPS SBB'} onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>GG</button>
+                      <button disabled={currentUser?.role !== 'admin' && currentUser.team !== 'BPS SBB'} onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>WA</button>
                     </div>
                   </div>
                   <div className="lg:col-span-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tim Pelaksana</span>
                     <div className="flex flex-wrap gap-1 p-1 bg-slate-50 rounded-lg">
                       {ALL_TEAMS.filter(t => activeWilayah === "GG" ? t !== "Umum" : t === "Umum").map(tim => (
-                        <button key={tim} disabled={currentUser?.role !== 'admin'} onClick={() => setActiveTim(tim)} className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 opacity-50'}`}>{tim}</button>
+                        <button key={tim} disabled={currentUser?.role !== 'admin' && currentUser.team !== 'BPS SBB'} onClick={() => setActiveTim(tim)} className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 opacity-50'}`}>{tim}</button>
                       ))}
                     </div>
                   </div>
@@ -1977,7 +1983,13 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                     <tbody className="divide-y divide-slate-100">
                       {finalDisplay.map((item: any) => {
                         const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
-                        const canEdit = (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || (activeTab === 'realisasi' && currentUser?.role === 'admin');
+                        // Tentukan siapa yang hanya boleh melihat (Observer)
+const isObserver = currentUser.team === "BPS SBB" || currentUser.role === "pimpinan" || currentUser.role === "anggota";
+
+const canEdit = !isObserver && (
+  (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || 
+  (activeTab === 'realisasi' && currentUser?.role === 'admin')
+);
 
 // Perhitungan sisa otomatis
 const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
