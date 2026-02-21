@@ -185,6 +185,7 @@ export default function App() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRPDRef = useRef<HTMLInputElement>(null);
+  const idleTimerRef = useRef<any>(null);
   const allMonths = useMemo(() => ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'], []);
 const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getMonth()]);
   const twMonths: Record<number, string[]> = {
@@ -268,6 +269,34 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    // Waktu tunggu: 15 menit (15 * 60 detik * 1000 milidetik)
+    const logoutTime = 10 * 1000; 
+
+    const resetTimer = () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      
+      if (currentUser) {
+        idleTimerRef.current = setTimeout(() => {
+          handleLogout();
+          alert("Sesi berakhir otomatis karena tidak ada aktivitas selama 15 menit demi keamanan data.");
+        }, logoutTime);
+      }
+    };
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    
+    if (currentUser) {
+      events.forEach(evt => window.addEventListener(evt, resetTimer));
+      resetTimer(); 
+    }
+
+    return () => {
+      events.forEach(evt => window.removeEventListener(evt, resetTimer));
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, [currentUser]);
+  
   // Firestore Sync
   useEffect(() => {
     if (!fbUser || !currentUser) return;
