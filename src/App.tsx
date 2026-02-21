@@ -1266,19 +1266,20 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
         </nav>
         <div className="p-4 border-t border-white/5"> 
                   <div className="px-4 mb-2">
-                    <button
-                      onClick={() => {
-                        const linkTersimpan = localStorage.getItem('urlKertasKerja') || 'https://docs.google.com/spreadsheets/d/1tx4-XDr0VREI0s1s2iyfJ7MOQ-mu4Esixx9B_FFXEQM/edit?usp=sharing';
-                        window.open(linkTersimpan, '_blank');
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition-all rounded-xl group"
-                    >
-                      <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
-                        <Target size={20} />
-                      </div>
-                      <span className="font-medium text-sm">Kertas Kerja</span>
-                    </button>
-                  </div>
+            <button
+              onClick={() => {
+                const linkTersimpan = localStorage.getItem('urlKertasKerja') || 'https://docs.google.com/spreadsheets/d/1tx4-XDr0VREI0s1s2iyfJ7MOQ-mu4Esixx9B_FFXEQM/edit?usp=sharing';
+                window.open(linkTersimpan, '_blank');
+              }}
+              className={`w-full flex items-center transition-all rounded-xl group ${sidebarOpen ? 'px-4 py-3 gap-3' : 'justify-center py-3'}`}
+              title={!sidebarOpen ? "Kertas Kerja" : ""}
+            >
+              <div className={`p-2 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all`}>
+                <Target size={20} />
+              </div>
+              {sidebarOpen && <span className="font-medium text-sm text-gray-400 group-hover:text-white transition-colors">Kertas Kerja</span>}
+            </button>
+          </div>
           <button onClick={handleLogout} className="w-full flex items-center px-3 py-3 rounded-xl hover:bg-rose-600/20 text-rose-400 transition-all">
               <LogOut size={20} className={sidebarOpen ? 'mr-3' : ''} />
               {sidebarOpen && <span className="font-black text-xs uppercase tracking-widest">Logout Sistem</span>}
