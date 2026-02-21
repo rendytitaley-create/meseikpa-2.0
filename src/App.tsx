@@ -903,8 +903,13 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
     return allMerged.filter((item) => {
       if (item.isOrphan) return true; 
       
-      // JIKA USER BERADA DI TIM BPS SBB, TAMPILKAN SEMUA DATA (TIDAK DIFILTER)
-      if (currentUser?.team === "BPS SBB") return true; 
+      // Jika Admin atau Tim BPS SBB, biarkan filter 'allowed' (Tim Pelaksana yang dipilih) bekerja
+      const isPowerUser = currentUser?.role === 'admin' || currentUser?.team === 'BPS SBB';
+      
+      if (isPowerUser) {
+          if (getLevel(item.kode) === 2) return allowed.includes(item.kode);
+          return getLevel(item.kode) === 1; 
+      }
 
       if (getLevel(item.kode) === 2) insideAllowed = allowed.includes(item.kode);
       return insideAllowed || getLevel(item.kode) === 1; 
@@ -1984,7 +1989,12 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                         const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
                         // Tambahkan pengecekan: Jika tim BPS SBB, canEdit dipaksa false
 const isBpsSbb = currentUser?.team === "BPS SBB";
-const canEdit = !isBpsSbb && ((activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || (activeTab === 'realisasi' && currentUser?.role === 'admin'));
+const isObserver = isBpsSbb || currentUser?.role === 'pimpinan' || currentUser?.role === 'anggota';
+
+const canEdit = !isObserver && (
+  (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || 
+  (activeTab === 'realisasi' && currentUser?.role === 'admin')
+);
 
 // Perhitungan sisa otomatis
 const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
