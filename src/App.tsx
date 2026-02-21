@@ -1901,69 +1901,67 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
           {(activeTab === 'rpd' || activeTab === 'realisasi') && (
             <div className="space-y-6 animate-in fade-in duration-700">
               <div className="flex items-center justify-between mb-4">
-  <div className="flex flex-wrap gap-4">
-    {/* HANYA UNTUK ADMIN: Kondisi DIPA, Lock, dan Reset */}
-    {currentUser?.role === 'admin' && (
-      <>
-        <div className="flex items-center gap-3 bg-white px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-[10px] font-black uppercase text-slate-400 italic">Kondisi DIPA:</span>
-          <input 
-            type="text" 
-            value={kppnMetrics.revisiKe || ""} 
-            onChange={(e) => setKppnMetrics((prev: any) => ({ ...prev, revisiKe: e.target.value }))}
-            onBlur={saveKppnGlobal}
-            className="w-48 font-black text-xs text-blue-600 outline-none bg-transparent" 
-          />
-        </div>
-        <button onClick={handleToggleLock} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-xl transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
-          {isLocked ? <Lock size={16} /> : <Unlock size={16} />} {isLocked ? 'Buka Kunci' : 'Kunci Pengisian'}
-        </button>
-        <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-white text-slate-600 border border-slate-200 shadow-sm"><Eraser size={16} /> Reset Nilai</button>
-      </>
-    )}
+                <div className="flex flex-wrap gap-4">
+                  {/* HANYA UNTUK ADMIN: Kondisi DIPA, Lock, dan Reset */}
+                  {currentUser?.role === 'admin' && (
+                    <>
+                      <div className="flex items-center gap-3 bg-white px-5 py-2 rounded-2xl border border-slate-200 shadow-sm">
+                        <span className="text-[10px] font-black uppercase text-slate-400 italic">Kondisi DIPA:</span>
+                        <input 
+                          type="text" 
+                          value={kppnMetrics.revisiKe || ""} 
+                          onChange={(e) => setKppnMetrics((prev: any) => ({ ...prev, revisiKe: e.target.value }))}
+                          onBlur={saveKppnGlobal}
+                          className="w-48 font-black text-xs text-blue-600 outline-none bg-transparent" 
+                        />
+                      </div>
+                      <button onClick={handleToggleLock} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-xl transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
+                        {isLocked ? <Lock size={16} /> : <Unlock size={16} />} {isLocked ? 'Buka Kunci' : 'Kunci Pengisian'}
+                      </button>
+                      <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-white text-slate-600 border border-slate-200 shadow-sm"><Eraser size={16} /> Reset Nilai</button>
+                    </>
+                  )}
 
-    {/* UNTUK SEMUA ROLE: Export dan Import */}
-    <button onClick={handleExportExcel} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-emerald-600 text-white shadow-xl hover:bg-emerald-700 transition-all">
-      <FileUp size={16} /> Export Excel
-    </button>
-    <button onClick={() => fileInputRPDRef.current?.click()} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-indigo-600 text-white shadow-xl hover:bg-indigo-700 transition-all">
-      <FileUp size={16} /> Import Excel
-      <input type="file" ref={fileInputRPDRef} onChange={handleImportExcel} className="hidden" accept=".xlsx, .xls" />
-    </button>
-  </div>
+                  <button onClick={handleExportExcel} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-emerald-600 text-white shadow-xl hover:bg-emerald-700 transition-all">
+                    <FileUp size={16} /> Export Excel
+                  </button>
+                  <button onClick={() => fileInputRPDRef.current?.click()} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-indigo-600 text-white shadow-xl hover:bg-indigo-700 transition-all">
+                    <FileUp size={16} /> Import Excel
+                    <input type="file" ref={fileInputRPDRef} onChange={handleImportExcel} className="hidden" accept=".xlsx, .xls" />
+                  </button>
+                </div>
 
-  {/* STATUS UNTUK NON-ADMIN */}
-  {currentUser?.role !== 'admin' && (
-    <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl border italic text-sm font-black ${isLocked ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-blue-50 text-blue-600 border-blue-100 shadow-sm'}`}>
-      {isLocked ? <Lock size={18} /> : <ShieldHalf size={18} />} {isLocked ? 'Mode Terkunci' : `Aktif: Tim ${currentUser?.team}`}
-    </div>
-  )}
-</div>
+                {currentUser?.role !== 'admin' && (
+                  <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl border italic text-sm font-black ${isLocked ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-blue-50 text-blue-600 border-blue-100 shadow-sm'}`}>
+                    {isLocked ? <Lock size={18} /> : <ShieldHalf size={18} />} {isLocked ? 'Mode Terkunci' : `Aktif: Tim ${currentUser?.team}`}
+                  </div>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
-                    <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
-                      <button disabled={currentUser?.role !== 'admin' && currentUser.team !== 'BPS SBB'} onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>GG</button>
-                      <button disabled={currentUser?.role !== 'admin' && currentUser.team !== 'BPS SBB'} onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>WA</button>
-                    </div>
+                <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Wilayah</span>
+                  <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
+                    <button disabled={currentUser?.role !== 'admin' && currentUser.team !== 'BPS SBB'} onClick={() => setActiveWilayah("GG")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "GG" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>GG</button>
+                    <button disabled={currentUser?.role !== 'admin' && currentUser.team !== 'BPS SBB'} onClick={() => setActiveWilayah("WA")} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${activeWilayah === "WA" ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 opacity-50'}`}>WA</button>
                   </div>
-                  <div className="lg:col-span-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tim Pelaksana</span>
-                    <div className="flex flex-wrap gap-1 p-1 bg-slate-50 rounded-lg">
-                      {ALL_TEAMS.filter(t => activeWilayah === "GG" ? t !== "Umum" : t === "Umum").map(tim => (
-                        <button key={tim} disabled={currentUser?.role !== 'admin' && currentUser.team !== 'BPS SBB'} onClick={() => setActiveTim(tim)} className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 opacity-50'}`}>{tim}</button>
-                      ))}
-                    </div>
+                </div>
+                <div className="lg:col-span-2 bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Tim Pelaksana</span>
+                  <div className="flex flex-wrap gap-1 p-1 bg-slate-50 rounded-lg">
+                    {ALL_TEAMS.filter(t => activeWilayah === "GG" ? t !== "Umum" : t === "Umum").map(tim => (
+                      <button key={tim} disabled={currentUser?.role !== 'admin' && currentUser.team !== 'BPS SBB'} onClick={() => setActiveTim(tim)} className={`px-4 py-1.5 text-[10px] font-black rounded-md transition-all ${activeTim === tim ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 opacity-50'}`}>{tim}</button>
+                    ))}
                   </div>
-                  <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Triwulan</span>
-                    <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
-                      {[1,2,3,4].map(tw => (
-                         <button key={tw} onClick={() => setTwActive(tw)} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>TW {tw}</button>
-                      ))}
-                    </div>
+                </div>
+                <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Triwulan</span>
+                  <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
+                    {[1,2,3,4].map(tw => (
+                      <button key={tw} onClick={() => setTwActive(tw)} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>TW {tw}</button>
+                    ))}
                   </div>
+                </div>
               </div>
 
               <div className="bg-white shadow-2xl border border-slate-200 overflow-hidden rounded-[4rem]">
@@ -1983,13 +1981,59 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                     <tbody className="divide-y divide-slate-100">
                       {finalDisplay.map((item: any) => {
                         const isInduk = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
-                        // Tentukan siapa yang hanya boleh melihat (Observer)
-const isObserver = currentUser.team === "BPS SBB" || currentUser.role === "pimpinan" || currentUser.role === "anggota";
-
-const canEdit = !isObserver && (
-  (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || 
-  (activeTab === 'realisasi' && currentUser?.role === 'admin')
-);
+                        const isObserver = currentUser.team === "BPS SBB" || currentUser.role === "pimpinan" || currentUser.role === "anggota";
+                        const canEdit = !isObserver && (
+                          (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || 
+                          (activeTab === 'realisasi' && currentUser?.role === 'admin')
+                        );
+                        const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
+                        const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
+                        return (
+                          <tr key={item.id} className={`transition-all ${item.isOrphan ? 'bg-rose-50/50 italic' : 'hover:bg-blue-50/40'}`}>
+                            <td className="px-4 py-2 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
+                            <td className="px-5 py-2 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
+                            <td className="px-4 py-2 text-right font-black border-r border-slate-100">{!isInduk ? formatMoney(item.pagu) : ""}</td>
+                            {twMonths[twActive].map((m: string) => (
+                              <td key={m} className="px-0 py-0 h-full border-r border-slate-100">
+                                {!isInduk && item.isDetail ? (
+                                  <input 
+                                    type="text" 
+                                    value={formatInputMasking(activeTab === 'rpd' ? item.rpd?.[m] : item.realisasi?.[m])} 
+                                    readOnly={!canEdit} 
+                                    onChange={async (e) => { 
+                                      if(fbUser && canEdit) { 
+                                        const f = activeTab === 'rpd' ? 'rpd' : 'realisasi'; 
+                                        const ex = activeTab === 'rpd' ? (item.rpd || {}) : (item.realisasi || {});
+                                        const rawNumber = e.target.value.replace(/\D/g, "");
+                                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id), { [f]: { ...ex, [m]: rawNumber } }); 
+                                      }
+                                    }} 
+                                    className={`w-full h-full text-right px-3 py-2.5 outline-none font-black text-xs ${!canEdit ? 'bg-slate-100 text-slate-400' : 'bg-teal-400/10 text-slate-900 focus:bg-white transition-all'}`} 
+                                    placeholder="0" 
+                                  />
+                                ) : !isInduk ? (<div className="text-right px-3 py-3 font-black italic">{formatMoney(activeTab === 'rpd' ? item.monthRPD?.[m] : item.monthReal?.[m])}</div>) : null}
+                              </td>
+                            ))}
+                            <td className="px-4 py-2 text-right font-black bg-slate-100/50">{!isInduk ? formatMoney(activeTab === 'rpd' ? item.totalRPD : item.totalReal) : ""}</td>
+                            <td className={`px-4 py-2 text-right font-black ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50 animate-pulse' : 'text-slate-800'}`}>{!isInduk ? formatMoney(sisaPagu) : ""}</td>
+                            <td className="px-2 py-2 text-center">
+                              {item.isOrphan && currentUser?.role === 'admin' && (
+                                <button onClick={async () => {
+                                  if(window.confirm("Hapus data orphan ini permanen?")) {
+                                      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, item.id));
+                                  }
+                                }} className="p-2 text-rose-500 hover:bg-rose-100 rounded-xl transition-all"><Trash2 size={18}/></button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
 
 // Perhitungan sisa otomatis
 const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
