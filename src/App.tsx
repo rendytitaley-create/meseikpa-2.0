@@ -1898,7 +1898,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
             </div>
           )}
 
-          {(activeTab === 'rpd' || activeTab === 'realisasi') && (
+         {(activeTab === 'rpd' || activeTab === 'realisasi') && (
             <div className="space-y-6 animate-in fade-in duration-700">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex flex-wrap gap-4">
@@ -1918,7 +1918,9 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                       <button onClick={handleToggleLock} className={`flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-xl transition-all ${isLocked ? 'bg-rose-100 text-rose-700' : 'bg-slate-900 text-white'}`}>
                         {isLocked ? <Lock size={16} /> : <Unlock size={16} />} {isLocked ? 'Buka Kunci' : 'Kunci Pengisian'}
                       </button>
-                      <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-white text-slate-600 border border-slate-200 shadow-sm"><Eraser size={16} /> Reset Nilai</button>
+                      <button onClick={() => setShowClearDataModal(true)} className="flex items-center gap-3 px-8 py-3 rounded-2xl font-black text-xs uppercase bg-white text-slate-600 border border-slate-200 shadow-sm">
+                        <Eraser size={16} /> Reset Nilai
+                      </button>
                     </>
                   )}
 
@@ -1957,7 +1959,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                 <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2">
                   <span className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Triwulan</span>
                   <div className="flex gap-1 p-1 bg-slate-50 rounded-lg">
-                    {[1,2,3,4].map(tw => (
+                    {[1, 2, 3, 4].map(tw => (
                       <button key={tw} onClick={() => setTwActive(tw)} className={`flex-1 py-1.5 text-[10px] font-black rounded-md transition-all ${twActive === tw ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>TW {tw}</button>
                     ))}
                   </div>
@@ -2034,6 +2036,158 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
               </div>
             </div>
           )}
+
+          {activeTab === 'users' && currentUser?.role === 'admin' && (
+            <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
+              <div className="bg-slate-900 rounded-[4rem] p-16 text-white shadow-2xl relative overflow-hidden">
+                  <h3 className="text-2xl font-black uppercase italic mb-12 flex items-center gap-5">
+                      <UserPlus className="text-blue-500" /> Registrasi User Baru
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                      <div className="flex flex-col gap-3">
+                        <label className="text-xs font-black uppercase text-slate-500 ml-4">Username</label>
+                        <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 px-8 text-white text-sm outline-none focus:bg-white/10 transition-all" placeholder="Username" />
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <label className="text-xs font-black uppercase text-slate-500 ml-4">Password</label>
+                        <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 px-8 text-white text-sm outline-none focus:bg-white/10 transition-all" placeholder="Password" />
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <label className="text-xs font-black uppercase text-slate-500 ml-4">Nama Lengkap</label>
+                        <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 px-8 text-white text-sm outline-none focus:bg-white/10 transition-all" placeholder="Nama Lengkap" />
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <label className="text-xs font-black uppercase text-slate-500 ml-4">Role</label>
+                        <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value as any)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 px-8 text-white text-sm outline-none appearance-none">
+                          <option value="admin" className="text-black">Admin</option>
+                          <option value="pimpinan" className="text-black">Pimpinan</option>
+                          <option value="ketua_tim" className="text-black">Ketua Tim</option>
+                          <option value="anggota" className="text-black">Anggota</option>
+                        </select>
+                      </div>
+                      <div className="lg:col-span-2 flex flex-col gap-2">
+                        <label className="text-xs font-black uppercase text-slate-500 ml-4">Tim</label>
+                        <div className="flex flex-wrap gap-2">
+                          {ALL_TEAMS.map(tim => (
+                              <button key={tim} onClick={() => setNewUserTeam(tim)} className={`px-4 py-2 rounded-xl text-[10px] font-black border transition-all ${newUserTeam === tim ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white/5 border-white/10 text-slate-400'}`}>
+                                {tim}
+                              </button>
+                          ))}
+                        </div>
+                      </div>
+                  </div>
+                  <button onClick={handleAddUser} className="mt-16 px-20 py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl hover:scale-105 transition-all">Simpan Database User</button>
+              </div>
+              <div className="bg-white rounded-[4rem] border border-slate-200 overflow-hidden shadow-sm">
+                  <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black text-slate-400">
+                        <tr>
+                            <th className="px-8 py-4">Nama</th>
+                            <th className="px-4 py-4">Username</th>
+                            <th className="px-4 py-4">Password</th>
+                            <th className="px-4 py-4 text-center">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {allUsers.map((u) => (
+                            <tr key={u.id}>
+                              <td className="px-8 py-5 font-bold text-slate-800">
+                                  <div>{u.name}</div>
+                                  <div className="text-[9px] text-blue-500 uppercase tracking-widest">{u.role} • {u.team}</div>
+                              </td>
+                              <td className="px-4 py-5 font-mono text-slate-500 italic">@{u.username}</td>
+                              <td className="px-4 py-5 font-mono">
+                                 <div className="flex items-center gap-2">
+                                    <input 
+                                       type={showPasswordMap[u.id] ? "text" : "password"} 
+                                       defaultValue={u.password}
+                                       onBlur={(e) => handleChangeUserPassword(u.id, e.target.value)}
+                                       className="bg-slate-100 border-none rounded-lg px-2 py-1 w-24 text-[11px]" 
+                                    />
+                                    <button onClick={() => setShowPasswordMap(prev => ({ ...prev, [u.id]: !prev[u.id] }))} className="text-slate-400 hover:text-blue-500">
+                                       {showPasswordMap[u.id] ? <EyeOff size={14}/> : <Eye size={14}/>}
+                                    </button>
+                                 </div>
+                              </td>
+                              <td className="px-4 py-5 text-center">
+                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, u.id))} className="p-2 text-rose-400 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
+                              </td>
+                            </tr>
+                        ))}
+                      </tbody>
+                  </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'migrasi' && currentUser?.role === 'admin' && (
+            <div className="max-w-4xl mx-auto py-6 animate-in slide-in-from-bottom duration-700">
+               <div className="bg-white rounded-[4rem] shadow-2xl border border-slate-200 overflow-hidden">
+                  <div className="bg-slate-900 p-10 text-white relative">
+                    <h3 className="text-2xl font-black uppercase tracking-widest italic text-white">Migrasi POK</h3>
+                  </div>
+                  <div className="p-16 space-y-12 text-center">
+                    <div className="border-4 border-dashed border-slate-100 rounded-[3rem] p-24 hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all" onClick={() => fileInputRef.current?.click()}>
+                      <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileAnalyze} disabled={isProcessing} className="hidden" />
+                      <FileUp size={64} className="mx-auto mb-8 text-slate-200" />
+                      <span className="text-sm font-black uppercase text-slate-400 italic block">Upload File Excel SAKTI (.xlsx)</span>
+                    </div>
+                    {previewData.length > 0 && (
+                      <div className="grid grid-cols-3 gap-6 animate-in zoom-in">
+                        <div className="p-6 bg-slate-50 rounded-3xl shadow-sm text-slate-600"><span className="text-[10px] uppercase font-black text-slate-400 block mb-1">Total Baris</span><span className="text-3xl font-black">{previewData.length}</span></div>
+                        <div className="p-6 bg-emerald-50 rounded-3xl shadow-sm text-emerald-600"><span className="text-[10px] uppercase font-black text-emerald-400 block mb-1">Data Match</span><span className="text-3xl font-black">{migrationStats.match}</span></div>
+                        <div className="p-6 bg-rose-50 rounded-3xl shadow-sm text-rose-600"><span className="text-[10px] uppercase font-black text-rose-400 block mb-1">Data Orphan</span><span className="text-3xl font-black">{migrationStats.orphaned}</span></div>
+                        <button onClick={executeMigration} disabled={isProcessing} className="col-span-3 py-6 bg-blue-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl hover:bg-blue-700 active:scale-[0.98] transition-all">Sinkronisasi & Update Database</button>
+                      </div>
+                    )}
+                  </div>
+               </div>
+            </div>
+          )}
+        </div>
+
+        <footer className="bg-white border-t border-slate-200 py-3 px-8 text-center flex items-center justify-center gap-3 shrink-0 shadow-inner">
+            <ShieldHalf size={14} className="text-slate-300" />
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">© 2026 BPS Kab. Seram Bagian Barat - Internal Secure Server Access</p>
+        </footer>
+      </main>
+
+      {showClearDataModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
+           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-sm p-10 text-center border border-slate-200 animate-in zoom-in duration-200">
+              <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-6"><AlertTriangle size={32} /></div>
+              <h3 className="text-xl font-black text-slate-800 mb-2 italic uppercase">Konfirmasi Reset</h3>
+              <p className="text-[11px] text-slate-500 mb-10 leading-relaxed italic">Hapus seluruh input data <b>{activeTab.toUpperCase()}</b> pada tim <b>{activeTim}</b> secara permanen?</p>
+              <div className="flex flex-col gap-3">
+                 <button onClick={async () => { 
+                   if (!fbUser || currentUser?.role !== 'admin') return;
+                   setIsProcessing(true); 
+                   const snap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION));
+                   let batch = writeBatch(db); 
+                   const fieldToClear = activeTab === 'rpd' ? 'rpd' : 'realisasi';
+                   snap.docs.forEach(d => batch.update(d.ref, { [fieldToClear]: {} }));
+                   await batch.commit(); 
+                   setIsProcessing(false); setShowClearDataModal(false); 
+                 }} className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:bg-rose-700 active:scale-95 transition-all">Ya, Kosongkan Data</button>
+                 <button onClick={() => setShowClearDataModal(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase hover:bg-slate-200 transition-all">Batalkan</button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 12px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .no-spinner::-webkit-outer-spin-button, .no-spinner::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .no-spinner { -moz-appearance: textfield; }
+        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fade-in 0.5s ease-out forwards; }
+      `}} />
+    </div>
+  );
+}
 
 // Perhitungan sisa otomatis
 const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
