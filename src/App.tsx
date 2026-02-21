@@ -907,6 +907,12 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
 
     const allMerged = [...calculatedNormal, ...calculatedOrphan];
     
+    // --- PENERAPAN ISOLASI FILTER ---
+    if (activeTab === 'rapat') {
+      // Langsung filter berdasarkan kedalaman (level) tanpa filter audit
+      return allMerged.filter(item => item.level <= rapatDepth);
+    }
+    
     // Logika untuk Tab RPD dan Realisasi (Abaikan Audit Filter)
     const allowed = TIM_MAPPING[activeTim] || [];
     let insideAllowed = false;
