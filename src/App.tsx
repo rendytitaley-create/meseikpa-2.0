@@ -611,18 +611,37 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
       }
 
       const pctAnggaran = roPagu > 0 ? (roRealKeu / roPagu * 100) : 0;
-      // Hitung angka sugesti berdasarkan realisasi anggaran & RPD
-const suggestedT = roPagu > 0 ? (roRpdKeu / roPagu * 100) : 0.5;
-const suggestedR = roPagu > 0 ? (roRealKeu / roPagu * 100) : 0;
+      // 1. Inisialisasi variabel hitung kumulatif
+      let roPagu = 0, roRealKeu = 0, roRpdKeu = 0; 
+      const bIdx = dataTampil.findIndex(d => d.id === o.id);
 
-// Gunakan angka manual jika ada, jika kosong gunakan angka sugesti otomatis
-const pctFisik = Number(o.realCapaian?.[targetMonth]) !== undefined && o.realCapaian?.[targetMonth] !== "" 
-                 ? Number(o.realCapaian?.[targetMonth]) 
-                 : suggestedR;
+      for (let i = bIdx + 1; i < dataTampil.length; i++) {
+        const next = dataTampil[i];
+        if (next.kode !== "" && getLevel(next.kode) <= 4) break;
+        if (getLevel(next.kode) === 8) {
+          roPagu += (Number(next.pagu) || 0);
+          for (let j = 0; j <= mIdx; j++) {
+            // Menjumlahkan RPD dan Realisasi dari Januari sampai bulan terpilih
+            roRpdKeu += (Number(next.rpd?.[allMonths[j]]) || 0);
+            roRealKeu += (Number(next.realisasi?.[allMonths[j]]) || 0);
+          }
+        }
+      }
 
-const pctTarget = Number(o.targetCapaian?.[targetMonth]) !== undefined && o.targetCapaian?.[targetMonth] !== "" 
-                  ? Number(o.targetCapaian?.[targetMonth]) 
-                  : suggestedT;
+      // 2. Tentukan nilai konversi otomatis (suggested)
+      const suggestedT = roPagu > 0 ? (roRpdKeu / roPagu * 100) : 0.5;
+      const suggestedR = roPagu > 0 ? (roRealKeu / roPagu * 100) : 0;
+
+      // 3. Gunakan entri manual jika ada, jika kosong gunakan angka otomatis
+      const pctFisik = (o.realCapaian?.[targetMonth] !== undefined && o.realCapaian?.[targetMonth] !== "") 
+                       ? Number(o.realCapaian?.[targetMonth]) 
+                       : suggestedR;
+
+      const pctTarget = (o.targetCapaian?.[targetMonth] !== undefined && o.targetCapaian?.[targetMonth] !== "") 
+                        ? Number(o.targetCapaian?.[targetMonth]) 
+                        : suggestedT;
+
+      const pctAnggaran = roPagu > 0 ? (roRealKeu / roPagu * 100) : 0;
 
       const gapFisikKeu = pctFisik - pctAnggaran;
       const gapFisikTarget = pctFisik - pctTarget;
