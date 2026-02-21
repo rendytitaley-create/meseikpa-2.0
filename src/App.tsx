@@ -900,19 +900,19 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
     // Logika untuk Tab RPD dan Realisasi (Abaikan Audit Filter)
     const allowed = TIM_MAPPING[activeTim] || [];
     let insideAllowed = false;
+
     return allMerged.filter((item) => {
       if (item.isOrphan) return true; 
-      
-      // Jika Admin atau Tim BPS SBB, biarkan filter 'allowed' (Tim Pelaksana yang dipilih) bekerja
-      const isPowerUser = currentUser?.role === 'admin' || currentUser?.team === 'BPS SBB';
-      
-      if (isPowerUser) {
-          if (getLevel(item.kode) === 2) return allowed.includes(item.kode);
-          return getLevel(item.kode) === 1; 
-      }
 
-      if (getLevel(item.kode) === 2) insideAllowed = allowed.includes(item.kode);
-      return insideAllowed || getLevel(item.kode) === 1; 
+      // LOGIKA PERBAIKAN:
+      // Jika user adalah Admin atau Tim BPS SBB, kita tentukan 'insideAllowed' 
+      // berdasarkan Tim Pelaksana yang sedang diklik (activeTim).
+      if (getLevel(item.kode) === 2) {
+        insideAllowed = allowed.includes(item.kode);
+      }
+      
+      // Kembalikan data jika dia level 1 (Header) ATAU dia berada di dalam tim yang diizinkan
+      return getLevel(item.kode) === 1 || insideAllowed;
     });
   }, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth, allMonths, auditFilter]);
   
