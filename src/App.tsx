@@ -165,7 +165,7 @@ export default function App() {
   const [previewData, setPreviewData] = useState<any[]>([]); 
   const [migrationStats, setMigrationStats] = useState({ match: 0, new: 0, orphaned: 0 });
   const [isLocked, setIsLocked] = useState(false);
-  const [showClearDataModal, setShowClearDataModal] = useState(false);
+  const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getMonth()]);
   
   // Fitur Rekap Bulanan State
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
@@ -1573,79 +1573,78 @@ export default function App() {
                   </div>
                </div>
                <div className="bg-white rounded-[4rem] shadow-2xl border border-slate-200 overflow-hidden">
-                  <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
-                    <table className="w-full border-collapse text-[11px]">
-                      <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase text-center shadow-lg">
-                        <tr>
-                          <th className="px-4 py-5 text-left w-24">Kode</th>
-                          <th className="px-5 py-5 text-left min-w-[380px]">Uraian</th>
-                          <th className="px-4 py-5 text-right w-32">Pagu DIPA</th>
-                          {['I','II','III','IV'].map((tw, idx) => (
-                            <th key={idx} className="px-2 py-5 text-right w-36 bg-emerald-900/40 border-r border-white/5">TW {tw}</th>
-                          ))}
-                          <th className="px-3 py-5 text-right bg-orange-900 w-32 tracking-tighter">TOTAL RPD</th>
-                          <th className="px-3 py-5 text-right bg-rose-900 w-24 tracking-tighter italic">% DEV</th>
-                          <th className="px-3 py-5 text-right bg-blue-900 w-32 tracking-tighter">TOTAL REAL</th>
-                          <th className="px-4 py-5 text-right bg-slate-900 w-32 tracking-tighter">SISA PAGU</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {finalDisplay.map((item: any) => {
-                          const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
-                          const sisaPagu = (Number(item.pagu) || 0) - (item.totalReal || 0);
-                          const devPctFinal = item.totalRPD > 0 ? ((item.totalReal - item.totalRPD) / item.totalRPD) * 100 : 0;
-                          let rowBg = "hover:bg-blue-50/40 transition-all";
-                          if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
-                          if (item.level === 2) rowBg = "bg-blue-100/40 font-black";
-                          if (item.level === 7) rowBg = "bg-slate-100 font-black";
-                          return (
-                            <tr key={item.id} className={rowBg}>
-                              <td className="px-4 py-2 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
-                              <td className="px-5 py-2 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
-                              <td className="px-4 py-2 text-right font-black border-r border-slate-100">{!isNonFinancial ? formatMoney(item.pagu) : ""}</td>
-                              <td className="px-3 py-3 text-right border-r border-slate-100">
-                                {!isNonFinancial && (
-                                  <div className="flex flex-col text-[11px] font-black leading-tight">
-                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Jan)||0) + (Number(item.monthRPD?.Feb)||0) + (Number(item.monthRPD?.Mar)||0))}</span>
-                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Jan)||0) + (Number(item.monthReal?.Feb)||0) + (Number(item.monthReal?.Mar)||0))}</span>
-                                  </div>
-                                )}
-                              </td>
-                              <td className="px-3 py-3 text-right border-r border-slate-100">
-                                {!isNonFinancial && (
-                                  <div className="flex flex-col text-[11px] font-black leading-tight">
-                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Apr)||0) + (Number(item.monthRPD?.Mei)||0) + (Number(item.monthRPD?.Jun)||0))}</span>
-                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Apr)||0) + (Number(item.monthReal?.Mei)||0) + (Number(item.monthReal?.Jun)||0))}</span>
-                                  </div>
-                                )}
-                              </td>
-                              <td className="px-3 py-3 text-right border-r border-slate-100">
-                                {!isNonFinancial && (
-                                  <div className="flex flex-col text-[11px] font-black leading-tight">
-                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Jul)||0) + (Number(item.monthRPD?.Ags)||0) + (Number(item.monthRPD?.Sep)||0))}</span>
-                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Jul)||0) + (Number(item.monthReal?.Ags)||0) + (Number(item.monthReal?.Sep)||0))}</span>
-                                  </div>
-                                )}
-                              </td>
-                              <td className="px-3 py-3 text-right border-r border-slate-100">
-                                {!isNonFinancial && (
-                                  <div className="flex flex-col text-[11px] font-black leading-tight">
-                                    <span className="text-orange-600">{formatMoney((Number(item.monthRPD?.Okt)||0) + (Number(item.monthRPD?.Nov)||0) + (Number(item.monthRPD?.Des)||0))}</span>
-                                    <span className="text-blue-600">{formatMoney((Number(item.monthReal?.Okt)||0) + (Number(item.monthReal?.Nov)||0) + (Number(item.monthReal?.Des)||0))}</span>
-                                  </div>
-                                )}
-                              </td>
-                              <td className="px-3 py-2 text-right font-black text-orange-800 border-r border-slate-100 bg-orange-50/30">{!isNonFinancial ? formatMoney(item.totalRPD) : ""}</td>
-                              <td className={`px-3 py-2 text-right font-black border-r border-slate-100 ${getDevColorClass(devPctFinal)}`}>
-                                  {(!isNonFinancial && item.totalRPD > 0) ? `${devPctFinal.toFixed(1)}%` : "0%"}
-                              </td>
-                              <td className="px-3 py-2 text-right font-black text-blue-800 bg-blue-50/30">{!isNonFinancial ? formatMoney(item.totalReal) : ""}</td>
-                              <td className={`px-4 py-2 text-right font-black border-r border-slate-100 ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-800'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+  {/* PANEL PILIHAN BULAN/TRIWULAN */}
+  <div className="p-6 bg-slate-50 border-b border-slate-100 flex flex-wrap gap-2 items-center">
+    <span className="text-[10px] font-black uppercase text-slate-400 mr-2 tracking-widest italic">Tampilkan Data:</span>
+    <div className="flex flex-wrap gap-1">
+      {allMonths.map(m => (
+        <button key={m} onClick={() => setRekapPeriod(m)} className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${rekapPeriod === m ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-400 hover:bg-slate-100'}`}>
+          {m}
+        </button>
+      ))}
+      <div className="w-px h-6 bg-slate-200 mx-2"></div>
+      {['TW1', 'TW2', 'TW3', 'TW4'].map(tw => (
+        <button key={tw} onClick={() => setRekapPeriod(tw)} className={`px-4 py-1.5 rounded-xl text-[10px] font-black transition-all ${rekapPeriod === tw ? 'bg-emerald-600 text-white shadow-md' : 'bg-white text-slate-400 hover:bg-slate-100'}`}>
+          {tw}
+        </button>
+      ))}
+    </div>
+  </div>
+
+  <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
+    <table className="w-full border-collapse text-[11px]">
+      <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase text-center shadow-lg">
+        <tr>
+          <th className="px-4 py-5 text-left w-24">Kode</th>
+          <th className="px-5 py-5 text-left min-w-[380px]">Uraian</th>
+          <th className="px-4 py-5 text-right w-32">Pagu DIPA</th>
+          <th className="px-6 py-5 text-center bg-indigo-900 w-40">RPD {rekapPeriod}</th>
+          <th className="px-6 py-5 text-center bg-blue-900 w-40">REAL {rekapPeriod}</th>
+          <th className="px-3 py-5 text-center bg-rose-900 w-24 tracking-tighter italic">% DEV</th>
+          <th className="px-4 py-5 text-right bg-slate-900 w-32 tracking-tighter">SISA PAGU</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100">
+        {finalDisplay.map((item: any) => {
+          const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
+          
+          // Hitung Nilai Berdasarkan Periode
+          let valRPD = 0; let valReal = 0;
+          if (rekapPeriod.startsWith('TW')) {
+            const twNum = parseInt(rekapPeriod.replace('TW', ''));
+            twMonths[twNum].forEach(m => {
+              valRPD += (Number(item.monthRPD?.[m]) || 0);
+              valReal += (Number(item.monthReal?.[m]) || 0);
+            });
+          } else {
+            valRPD = Number(item.monthRPD?.[rekapPeriod]) || 0;
+            valReal = Number(item.monthReal?.[rekapPeriod]) || 0;
+          }
+
+          const devPct = valRPD > 0 ? ((valReal - valRPD) / valRPD) * 100 : 0;
+          const sisaPagu = (Number(item.pagu) || 0) - (item.totalReal || 0);
+
+          let rowBg = "hover:bg-blue-50/40 transition-all";
+          if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
+          if (item.level === 2) rowBg = "bg-blue-100/40 font-black";
+          
+          return (
+            <tr key={item.id} className={rowBg}>
+              <td className="px-4 py-2 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
+              <td className="px-5 py-2 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
+              <td className="px-4 py-2 text-right font-black border-r border-slate-100">{!isNonFinancial ? formatMoney(item.pagu) : ""}</td>
+              <td className="px-6 py-2 text-right font-black text-indigo-700 bg-indigo-50/30 border-r border-slate-100">{!isNonFinancial ? formatMoney(valRPD) : ""}</td>
+              <td className="px-6 py-2 text-right font-black text-blue-700 bg-blue-50/30 border-r border-slate-100">{!isNonFinancial ? formatMoney(valReal) : ""}</td>
+              <td className={`px-3 py-2 text-center font-black border-r border-slate-100 ${getDevColorClass(devPct)}`}>{!isNonFinancial && valRPD > 0 ? `${devPct.toFixed(1)}%` : "0%"}</td>
+              <td className={`px-4 py-2 text-right font-black ${sisaPagu < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-800'}`}>{!isNonFinancial ? formatMoney(sisaPagu) : ""}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+</div>
+                               
                   </div>
                </div>
             </div>
