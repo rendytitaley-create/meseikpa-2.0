@@ -611,8 +611,18 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
       }
 
       const pctAnggaran = roPagu > 0 ? (roRealKeu / roPagu * 100) : 0;
-      const pctFisik = Number(o.realCapaian?.[targetMonth]) || 0;
-      const pctTarget = Number(o.targetCapaian?.[targetMonth]) || 0;
+      // Hitung angka sugesti berdasarkan realisasi anggaran & RPD
+const suggestedT = roPagu > 0 ? (roRpdKeu / roPagu * 100) : 0.5;
+const suggestedR = roPagu > 0 ? (roRealKeu / roPagu * 100) : 0;
+
+// Gunakan angka manual jika ada, jika kosong gunakan angka sugesti otomatis
+const pctFisik = Number(o.realCapaian?.[targetMonth]) !== undefined && o.realCapaian?.[targetMonth] !== "" 
+                 ? Number(o.realCapaian?.[targetMonth]) 
+                 : suggestedR;
+
+const pctTarget = Number(o.targetCapaian?.[targetMonth]) !== undefined && o.targetCapaian?.[targetMonth] !== "" 
+                  ? Number(o.targetCapaian?.[targetMonth]) 
+                  : suggestedT;
 
       const gapFisikKeu = pctFisik - pctAnggaran;
       const gapFisikTarget = pctFisik - pctTarget;
