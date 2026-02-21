@@ -924,7 +924,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
       // Kembalikan data jika dia level 1 (Header) ATAU dia berada di dalam tim yang diizinkan
       return getLevel(item.kode) === 1 || insideAllowed;
     });
-  }, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth, allMonths, auditFilter]);
+  }, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth, allMonths]);
   
   const finalDisplay = processedData.filter((d) => 
     (d.uraian && d.uraian.toLowerCase().includes(searchTerm.toLowerCase())) || 
