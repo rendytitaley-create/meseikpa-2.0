@@ -279,7 +279,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
       if (currentUser) {
         idleTimerRef.current = setTimeout(() => {
           handleLogout();
-          alert("Sesi berakhir otomatis karena tidak ada aktivitas selama 15 menit demi keamanan data.");
+          alert("Sesi berakhir.");
         }, logoutTime);
       }
     };
