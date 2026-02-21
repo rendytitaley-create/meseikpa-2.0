@@ -932,10 +932,43 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
     });
   }, [dataTampil, activeWilayah, activeTim, activeTab, rapatDepth, allMonths]);
   
-  const finalDisplay = processedData.filter((d) => 
-    (d.uraian && d.uraian.toLowerCase().includes(searchTerm.toLowerCase())) || 
-    (d.kode && d.kode.includes(searchTerm))
-  );
+  const finalDisplay = useMemo(() => {
+    if (!searchTerm) return processedData;
+
+    const term = searchTerm.toLowerCase();
+    const matchedIds = new Set();
+
+    // Langkah 1: Cari baris yang cocok dengan keyword
+    processedData.forEach(item => {
+      const kode = String(item.kode || "").toLowerCase();
+      const uraian = String(item.uraian || "").toLowerCase();
+      
+      if (kode.includes(term) || uraian.includes(term)) {
+        matchedIds.add(item.id || item.tempPathKey);
+      }
+    });
+
+    // Langkah 2: Tampilkan item yang cocok, ATAU item yang merupakan "anak/detail" dari yang cocok
+    return processedData.filter((item, index) => {
+      const itemId = item.id || item.tempPathKey;
+      
+      // Jika baris ini sendiri cocok, tampilkan
+      if (matchedIds.has(itemId)) return true;
+
+      // Jika baris ini adalah detail, cek apakah "orang tua"-nya (RO/Header) cocok
+      // Kita cek ke atas (index sebelumnya)
+      for (let i = index - 1; i >= 0; i--) {
+        const parent = processedData[i];
+        if (parent.kode !== "" && getLevel(parent.kode) < getLevel(item.kode)) {
+           if (matchedIds.has(parent.id || parent.tempPathKey)) return true;
+        }
+        // Jika ketemu level 1, berhenti mencari ke atas
+        if (getLevel(parent.kode) === 1) break;
+      }
+
+      return false;
+    });
+  }, [processedData, searchTerm]);
 
   const capaianOutputData = useMemo(() => {
     const outputItems = dataTampil.filter(d => getLevel(d.kode) === 4);
