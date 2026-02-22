@@ -1615,7 +1615,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
               Akun Belanja {code}
             </span>
             <span className={`text-[11px] font-black px-3 py-1 rounded-full ${selisih < 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
-              {selisih < 0 ? 'Kurang Serap' : 'Terlampaui'}
+              {selisih < 0 ? 'Deviasi' : 'Sesuai'}
             </span>
           </div>
           
