@@ -1602,16 +1602,38 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                                    </div>
                                 </div>
                                 {expandedMonthlyRPD[twActive] && (
-                                   <div className="space-y-3 animate-in slide-in-from-top text-xs font-bold text-slate-500 italic px-2">
-                                      {['51', '52', '53'].map(code => (
-                                         <div key={code} className="grid grid-cols-12 border-b border-slate-100/50 pb-2">
-                                            <div className="col-span-3 uppercase">Akun {code}</div>
-                                            <div className="col-span-4">RPD: Rp {formatMoney(mData[`rpd${code}` as keyof typeof mData])}</div>
-                                            <div className="col-span-5 text-right">Real: Rp {formatMoney(mData[`real${code}` as keyof typeof mData])}</div>
-                                         </div>
-                                      ))}
-                                   </div>
-                                )}
+  <div className="mt-4 space-y-4 animate-in slide-in-from-top px-2">
+    {['51', '52', '53'].map(code => {
+      const valRPD = Number(mData[`rpd${code}` as keyof typeof mData]) || 0;
+      const valReal = Number(mData[`real${code}` as keyof typeof mData]) || 0;
+      const selisih = valReal - valRPD;
+
+      return (
+        <div key={code} className="bg-white/50 p-3 rounded-2xl border border-slate-100">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Akun Belanja {code}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-[10px] font-bold">
+            <div className="flex flex-col">
+              <span className="text-slate-400 uppercase text-[8px]">RPD</span>
+              <span className="text-slate-700">Rp {formatMoney(valRPD)}</span>
+            </div>
+            <div className="flex flex-col border-x border-slate-100 px-2">
+              <span className="text-slate-400 uppercase text-[8px]">Realisasi</span>
+              <span className="text-slate-700">Rp {formatMoney(valReal)}</span>
+            </div>
+            <div className="flex flex-col text-right">
+              <span className="text-slate-400 uppercase text-[8px]">Selisih</span>
+              <span className={`font-black italic ${selisih < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                {selisih > 0 ? '+' : ''}{formatMoney(selisih)}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+)}
                              </div>
                          );
                        })}
