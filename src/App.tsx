@@ -1677,7 +1677,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                     </button>
                   </div>
                </div>
-               <div className="bg-white rounded-[4rem] shadow-2xl border border-slate-200 overflow-hidden">
+               <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
                  {/* PANEL PILIHAN BULAN/TRIWULAN */}
   <div className="p-6 bg-slate-50 border-b border-slate-100 flex flex-wrap gap-2 items-center">
     <span className="text-[10px] font-black uppercase text-slate-400 mr-2 tracking-widest italic">Tampilkan Data:</span>
@@ -1763,7 +1763,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
           {activeTab === 'capaian' && (
             <div className="space-y-8 animate-in fade-in duration-700 pb-20">
                <GapMonitoringCard showDetails={true} />
-               <div className="bg-white p-10 rounded-[4rem] shadow-2xl border border-slate-200 overflow-hidden">
+               <div className="bg-white p-10 rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
                  <div className="flex items-center gap-5 mb-10">
                     <div className="p-4 bg-violet-100 text-violet-600 rounded-2xl"><TrendingUp size={28}/></div>
                     <div>
@@ -2036,7 +2036,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                   </div>
               </div>
 
-              <div className="bg-white shadow-2xl border border-slate-200 overflow-hidden rounded-[4rem]">
+              <div className="bg-white shadow-2xl border border-slate-200 overflow-hidden rounded-3xl">
                 <div className="overflow-x-auto custom-scrollbar max-h-[72vh]">
                   <table className="w-full border-collapse text-[11px]">
                     <thead className="sticky top-0 z-20 bg-slate-950 text-white font-bold uppercase text-center shadow-lg">
