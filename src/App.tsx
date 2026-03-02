@@ -1913,36 +1913,44 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
     <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
       <h2 className="font-black text-slate-800 uppercase italic mb-6">Rekapitulasi Transaksi LS & GU</h2>
       <div className="overflow-x-auto">
-        <table className="w-full text-xs text-left">
+        <table className="w-full text-xs text-left border-collapse">
           <thead className="bg-slate-900 text-white uppercase font-black text-[9px]">
             <tr>
-              <th className="p-4">Uraian</th>
-              <th className="p-4 text-right">RPD (Bulan Ini)</th>
+              <th className="p-4 border-r border-slate-700">Hierarki (RO/Komponen/Akun)</th>
+              <th className="p-4">Uraian Detail</th>
+              <th className="p-4 text-right">RPD {rekapPeriod}</th>
               <th className="p-4 text-right">Total LS</th>
               <th className="p-4 text-right">Total GU</th>
               <th className="p-4 text-center">Aksi</th>
             </tr>
           </thead>
-         <tbody className="divide-y divide-slate-100">
-  {processedData.filter(i => i.isDetail).map((item) => {
-    // Hitung total dari array transaksiLSGU
-   const transList = item.transaksiLSGU || [];
-    const totalLS = transList.filter((t: any) => t.jenis === 'LS').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
-    const totalGU = transList.filter((t: any) => t.jenis === 'GU').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
+          <tbody className="divide-y divide-slate-100">
+            {processedData.filter(i => i.isDetail).map((item) => {
+              // Mencari Hierarki: Kita telusuri ke atas dari item ini (level 8)
+              // Logika ini mengasumsikan item tertata urut di dataTampil
+              const transList = item.transaksiLSGU || [];
+              const totalLS = transList.filter((t: any) => t.jenis === 'LS').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
+              const totalGU = transList.filter((t: any) => t.jenis === 'GU').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
 
-    return (
-      <tr key={item.id} className="hover:bg-slate-50">
-        <td className="p-4 font-bold">{item.uraian}</td>
-        <td className="p-4 text-right">{formatMoney(item.monthRPD?.[rekapPeriod] || 0)}</td>
-        <td className="p-4 text-right font-black text-blue-600">{formatMoney(totalLS)}</td>
-        <td className="p-4 text-right font-black text-orange-600">{formatMoney(totalGU)}</td>
-        <td className="p-4 text-center">
-          <button onClick={() => setSelectedItemForTrans(item)} className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-black">+</button>
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
+              return (
+                <tr key={item.id} className="hover:bg-slate-50">
+                  <td className="p-4 font-mono text-[9px] text-slate-500 bg-slate-50 border-r border-slate-100 italic">
+                    {/* Menampilkan path dari tempPathKey untuk konteks RO/Komponen */}
+                    {item.tempPathKey.split('||')[0].replace(/\|/g, ' > ')}
+                  </td>
+                  <td className="p-4 font-bold text-slate-800">{item.uraian}</td>
+                  <td className="p-4 text-right font-black text-indigo-600 bg-indigo-50/30">
+                    {formatMoney(item.monthRPD?.[rekapPeriod] || 0)}
+                  </td>
+                  <td className="p-4 text-right font-black text-blue-600">{formatMoney(totalLS)}</td>
+                  <td className="p-4 text-right font-black text-orange-600">{formatMoney(totalGU)}</td>
+                  <td className="p-4 text-center">
+                    <button onClick={() => setSelectedItemForTrans(item)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-black hover:bg-indigo-700 transition-all">+</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
         </table>
       </div>
     </div>
