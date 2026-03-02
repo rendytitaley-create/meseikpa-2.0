@@ -211,7 +211,7 @@ export default function App() {
   
   // Fitur Rekap Bulanan State
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
-  const [selectedItemForTrans, setSelectedItemForTrans] = useState(null);
+  const [selectedItemForTrans, setSelectedItemForTrans] = useState<any>(null);
   
 
   // Monitoring GAP Monthly Filter - Diisolasi hanya untuk Capaian Output
@@ -2234,26 +2234,30 @@ const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
         </div>
       )}
 
-     {selectedItemForTrans && (
+    {selectedItemForTrans && (
   <TransaksiModal 
     item={selectedItemForTrans} 
     onClose={() => setSelectedItemForTrans(null)}
     onSave={async (transaksi: any) => {
       setIsProcessing(true);
       try {
+        // Pastikan selectedItemForTrans memiliki id yang valid
+        if (!selectedItemForTrans?.id) {
+            throw new Error("Data transaksi tidak valid: ID hilang");
+        }
+        
         const docRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, selectedItemForTrans.id);
         
-        // Memastikan data yang disimpan memiliki struktur yang jelas
         const newTransaksi: Transaksi = {
-            id: crypto.randomUUID(),
-            jenis: transaksi.jenis,
-            nominal: Number(transaksi.nominal),
-            tanggal: transaksi.tanggal,
-            timestamp: new Date()
+          id: crypto.randomUUID(),
+          jenis: transaksi.jenis,
+          nominal: Number(transaksi.nominal),
+          tanggal: transaksi.tanggal,
+          timestamp: new Date()
         };
 
         await updateDoc(docRef, {
-            transaksiLSGU: arrayUnion(newTransaksi)
+          transaksiLSGU: arrayUnion(newTransaksi)
         });
         
         setSelectedItemForTrans(null);
