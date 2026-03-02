@@ -14,7 +14,8 @@ import {
   getDocs, 
   deleteDoc,
   where,
-  limit
+  limit,
+  arrayUnion
 } from 'firebase/firestore';
 import { 
   getAuth, 
@@ -129,6 +130,30 @@ const generateRowKey = (item: any, currentPath: string[]) => {
     return currentPath.slice(0, 7).filter(Boolean).join("|") + "||" + (cleanString(item.kode) || cleanString(item.uraian));
 };
 
+const TransaksiModal = ({ item, onClose, onSave }: any) => {
+  const [transaksi, setTransaksi] = useState({ jenis: 'LS', nominal: '', tanggal: '' });
+  
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl">
+        <h3 className="font-black text-slate-800 mb-4 uppercase text-sm italic">Tambah Transaksi: {item.uraian}</h3>
+        <div className="space-y-4">
+          <select className="w-full bg-slate-50 p-3 rounded-xl font-bold text-xs" onChange={(e) => setTransaksi({...transaksi, jenis: e.target.value})}>
+            <option value="LS">LS (Langsung)</option>
+            <option value="GU">GU (Ganti Uang)</option>
+          </select>
+          <input type="number" placeholder="Nominal (Rp)" className="w-full bg-slate-50 p-3 rounded-xl font-bold text-xs" onChange={(e) => setTransaksi({...transaksi, nominal: e.target.value})} />
+          <input type="date" className="w-full bg-slate-50 p-3 rounded-xl font-bold text-xs" onChange={(e) => setTransaksi({...transaksi, tanggal: e.target.value})} />
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose} className="flex-1 py-3 rounded-xl bg-slate-100 text-xs font-black">Batal</button>
+          <button onClick={() => onSave(transaksi)} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white text-xs font-black">Simpan</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [fbUser, setFbUser] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -151,7 +176,7 @@ export default function App() {
   const [allUsers, setAllUsers] = useState<any[]>([]);
 
   // --- UI STATE ---
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users' | 'capaian'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users' | 'capaian' | 'lsgu'>('dashboard');
   const [activeWilayah, setActiveWilayah] = useState<string>("GG");
   const [activeTim, setActiveTim] = useState<string>("Nerwilis");
   const [rapatDepth, setRapatDepth] = useState<number>(2);
@@ -168,6 +193,7 @@ export default function App() {
   
   // Fitur Rekap Bulanan State
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
+  const [selectedItemForTrans, setSelectedItemForTrans] = useState(null);
   
 
   // Monitoring GAP Monthly Filter - Diisolasi hanya untuk Capaian Output
@@ -1245,6 +1271,11 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
             <TrendingUp size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Capaian Output</span>}
           </button>
+          // Tambahkan kode ini di bawah tombol "Capaian Output"
+<button onClick={() => setActiveTab('lsgu')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'lsgu' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
+  <ShieldHalf size={20} className={sidebarOpen ? 'mr-3' : ''} />
+  {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Data LS & GU</span>}
+</button>
           <div className="py-2"><div className="h-px bg-white/10 w-full opacity-30"></div></div>
           <button onClick={() => setActiveTab('rapat')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'rapat' ? 'bg-emerald-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
             <PieIcon size={20} className={sidebarOpen ? 'mr-3' : ''} />
@@ -1860,6 +1891,47 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
             </div>
           )}
 
+          {activeTab === 'lsgu' && (
+  <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+    <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+      <h2 className="font-black text-slate-800 uppercase italic mb-6">Rekapitulasi Transaksi LS & GU</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs text-left">
+          <thead className="bg-slate-900 text-white uppercase font-black text-[9px]">
+            <tr>
+              <th className="p-4">Uraian</th>
+              <th className="p-4 text-right">RPD (Bulan Ini)</th>
+              <th className="p-4 text-right">Total LS</th>
+              <th className="p-4 text-right">Total GU</th>
+              <th className="p-4 text-center">Aksi</th>
+            </tr>
+          </thead>
+         <tbody className="divide-y divide-slate-100">
+  {processedData.filter(i => i.isDetail).map((item) => {
+    // Hitung total dari array transaksiLSGU
+    const transList = item.transaksiLSGU || [];
+    const totalLS = transList.filter((t: any) => t.jenis === 'LS').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
+    const totalGU = transList.filter((t: any) => t.jenis === 'GU').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
+
+    return (
+      <tr key={item.id} className="hover:bg-slate-50">
+        <td className="p-4 font-bold">{item.uraian}</td>
+        <td className="p-4 text-right">{formatMoney(item.monthRPD?.[rekapPeriod] || 0)}</td>
+        <td className="p-4 text-right font-black text-blue-600">{formatMoney(totalLS)}</td>
+        <td className="p-4 text-right font-black text-orange-600">{formatMoney(totalGU)}</td>
+        <td className="p-4 text-center">
+          <button onClick={() => setSelectedItemForTrans(item)} className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg font-black">+</button>
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+)}
+          
           {activeTab === 'users' && currentUser?.role === 'admin' && (
             <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
                <div className="bg-slate-900 rounded-[4rem] p-16 text-white shadow-2xl relative overflow-hidden">
@@ -2144,6 +2216,39 @@ const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
         </div>
       )}
 
+     {selectedItemForTrans && (
+  <TransaksiModal 
+    item={selectedItemForTrans} 
+    onClose={() => setSelectedItemForTrans(null)}
+    onSave={async (transaksi: any) => {
+      setIsProcessing(true);
+      try {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, selectedItemForTrans.id);
+        
+        // Menambahkan transaksi baru ke dalam array 'transaksiLSGU'
+        // Jika field 'transaksiLSGU' belum ada, Firebase akan membuatnya otomatis.
+        await updateDoc(docRef, {
+            transaksiLSGU: arrayUnion({
+                id: crypto.randomUUID(), // ID unik untuk setiap transaksi
+                jenis: transaksi.jenis,
+                nominal: Number(transaksi.nominal),
+                tanggal: transaksi.tanggal,
+                timestamp: new Date()
+            })
+        });
+        
+        setSelectedItemForTrans(null);
+        alert("Transaksi berhasil disimpan!");
+      } catch (err) {
+        console.error("Gagal menyimpan transaksi:", err);
+        alert("Gagal menyimpan transaksi.");
+      } finally {
+        setIsProcessing(false);
+      }
+    }}
+  />
+)}
+      
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
