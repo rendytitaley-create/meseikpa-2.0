@@ -1924,49 +1924,54 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
               <th className="p-4 text-center">Aksi</th>
             </tr>
           </thead>
-        <tbody className="divide-y divide-slate-100">
-  {processedData.map((item) => {
-    // Membaca data RPD langsung dari sumber asli (item.rpd)
-    const rawData = item.rpd || {};
-    
-    // Mengambil nilai Maret (Mar)
-    const valMaret = Number(rawData['Mar'] || rawData['03'] || 0);
+       <tbody className="divide-y divide-slate-100">
+  {processedData
+    .filter((item) => {
+      // Filter 1: Hanya level detail (biasanya level 8 di sistem ini)
+      const isDetail = item.level === 8;
+      
+      // Filter 2: Pastikan ada nilai RPD di bulan berjalan (rekapPeriod)
+      const nilaiRPD = Number(item.monthRPD?.[rekapPeriod] || item.rpd?.[rekapPeriod] || 0);
+      
+      // Hanya tampilkan jika detail DAN punya nilai RPD
+      return isDetail && nilaiRPD > 0;
+    })
+    .map((item) => {
+      const transList = item.transaksiLSGU || [];
+      const totalLS = transList.filter((t: any) => t.jenis === 'LS').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
+      const totalGU = transList.filter((t: any) => t.jenis === 'GU').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
+      const valRPD = Number(item.monthRPD?.[rekapPeriod] || item.rpd?.[rekapPeriod] || 0);
 
-    // Menghitung transaksi
-    const transList = item.transaksiLSGU || [];
-    const totalLS = transList.filter((t: any) => t.jenis === 'LS').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
-    const totalGU = transList.filter((t: any) => t.jenis === 'GU').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
-
-    return (
-      <tr key={item.id} className="hover:bg-slate-50 transition-colors border-b border-slate-100">
-        {/* Hierarki */}
-        <td className="p-4 font-mono text-[11px] font-black text-indigo-900 bg-slate-50">
-          {item.tempPathKey ? item.tempPathKey.split('||')[0].replace(/\|/g, ' ❯ ') : "Data Path Kosong"}
-        </td>
-        
-        {/* Uraian */}
-        <td className="p-4 font-bold text-slate-800 text-[12px]">{item.uraian || "Tanpa Uraian"}</td>
-        
-        {/* RPD Maret */}
-        <td className="p-4 text-right font-black text-[13px] text-emerald-700 bg-emerald-50">
-          {formatMoney(valMaret)}
-        </td>
-        
-        {/* Total LS & GU */}
-        <td className="p-4 text-right font-black text-blue-600 text-[13px]">{formatMoney(totalLS)}</td>
-        <td className="p-4 text-right font-black text-orange-600 text-[13px]">{formatMoney(totalGU)}</td>
-        
-        <td className="p-4 text-center">
-          <button 
-            onClick={() => setSelectedItemForTrans(item)} 
-            className="bg-indigo-600 text-white px-5 py-2 rounded-lg font-black text-[11px] hover:bg-indigo-700 shadow-md"
-          >
-            + Transaksi
-          </button>
-        </td>
-      </tr>
-    );
-  })}
+      return (
+        <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+          {/* Hierarki yang lebih rapi */}
+          <td className="p-4 border-r border-slate-100">
+            <div className="font-mono text-[11px] font-bold text-indigo-800 leading-tight">
+              {item.tempPathKey.split('||')[0].replace(/\|/g, ' ❯ ')}
+            </div>
+          </td>
+          
+          <td className="p-4 font-bold text-slate-800 text-[12px]">{item.uraian}</td>
+          
+          {/* RPD yang muncul sesuai filter */}
+          <td className="p-4 text-right font-black text-emerald-700 bg-emerald-50 text-[13px]">
+            {formatMoney(valRPD)}
+          </td>
+          
+          <td className="p-4 text-right font-black text-blue-600 text-[13px]">{formatMoney(totalLS)}</td>
+          <td className="p-4 text-right font-black text-orange-600 text-[13px]">{formatMoney(totalGU)}</td>
+          
+          <td className="p-4 text-center">
+            <button 
+              onClick={() => setSelectedItemForTrans(item)} 
+              className="bg-indigo-600 text-white px-5 py-2 rounded-lg font-black text-[11px] hover:bg-indigo-700 transition-all shadow-md"
+            >
+              + Transaksi
+            </button>
+          </td>
+        </tr>
+      );
+    })}
 </tbody>
         </table>
       </div>
