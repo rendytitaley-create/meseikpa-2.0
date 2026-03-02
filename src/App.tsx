@@ -1289,7 +1289,6 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
             <TrendingUp size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Capaian Output</span>}
           </button>
-          // Tambahkan kode ini di bawah tombol "Capaian Output"
 <button onClick={() => setActiveTab('lsgu')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'lsgu' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
   <ShieldHalf size={20} className={sidebarOpen ? 'mr-3' : ''} />
   {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Data LS & GU</span>}
