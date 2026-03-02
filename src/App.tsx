@@ -879,8 +879,8 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
   };
 
   const processedData = useMemo(() => {
-    const normal = dataTampil.filter(d => !d.isOrphan);
-    const orphan = dataTampil.filter(d => d.isOrphan);
+    const normal = dataTampil.filter(d => !d.isOrphan) as any[];
+    const orphan = dataTampil.filter(d => d.isOrphan) as any[];
     const base = (activeTab === 'rapat') ? normal : normal.filter(d => d.wilayah === activeWilayah);
     
     const calculatedNormal = base.map((item, index) => {
@@ -1909,7 +1909,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
          <tbody className="divide-y divide-slate-100">
   {processedData.filter(i => i.isDetail).map((item) => {
     // Hitung total dari array transaksiLSGU
-    const transList = item.transaksiLSGU || [];
+   const transList = item.transaksiLSGU || [];
     const totalLS = transList.filter((t: any) => t.jenis === 'LS').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
     const totalGU = transList.filter((t: any) => t.jenis === 'GU').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
 
