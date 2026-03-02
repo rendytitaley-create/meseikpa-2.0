@@ -130,6 +130,24 @@ const generateRowKey = (item: any, currentPath: string[]) => {
     return currentPath.slice(0, 7).filter(Boolean).join("|") + "||" + (cleanString(item.kode) || cleanString(item.uraian));
 };
 
+// Definisi struktur data transaksi agar sistem mengenali 'id'
+interface Transaksi {
+  id: string;
+  jenis: string;
+  nominal: number;
+  tanggal: string;
+  timestamp: Date;
+}
+
+// Definisi struktur data transaksi agar sistem mengenali 'id'
+interface Transaksi {
+  id: string;
+  jenis: string;
+  nominal: number;
+  tanggal: string;
+  timestamp: Date;
+}
+
 const TransaksiModal = ({ item, onClose, onSave }: any) => {
   const [transaksi, setTransaksi] = useState({ jenis: 'LS', nominal: '', tanggal: '' });
   
@@ -2225,16 +2243,17 @@ const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
       try {
         const docRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, selectedItemForTrans.id);
         
-        // Menambahkan transaksi baru ke dalam array 'transaksiLSGU'
-        // Jika field 'transaksiLSGU' belum ada, Firebase akan membuatnya otomatis.
+        // Memastikan data yang disimpan memiliki struktur yang jelas
+        const newTransaksi: Transaksi = {
+            id: crypto.randomUUID(),
+            jenis: transaksi.jenis,
+            nominal: Number(transaksi.nominal),
+            tanggal: transaksi.tanggal,
+            timestamp: new Date()
+        };
+
         await updateDoc(docRef, {
-            transaksiLSGU: arrayUnion({
-                id: crypto.randomUUID(), // ID unik untuk setiap transaksi
-                jenis: transaksi.jenis,
-                nominal: Number(transaksi.nominal),
-                tanggal: transaksi.tanggal,
-                timestamp: new Date()
-            })
+            transaksiLSGU: arrayUnion(newTransaksi)
         });
         
         setSelectedItemForTrans(null);
