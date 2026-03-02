@@ -1924,45 +1924,44 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
               <th className="p-4 text-center">Aksi</th>
             </tr>
           </thead>
-         <tbody className="divide-y divide-slate-100">
-  {processedData.filter(i => i.isDetail).map((item) => {
-    const transList = item.transaksiLSGU || [];
-    const totalLS = transList.filter((t: any) => t.jenis === 'LS').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
-    const totalGU = transList.filter((t: any) => t.jenis === 'GU').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
-    
-    // --- PERBAIKAN TOTAL: Mengambil langsung dari sumber data mentah ---
-    // Kita cek 'item.rpd' (data mentah dari database) 
-    // Kita juga perhatikan kunci bulan, mungkin sistem butuh 'Mar' atau 'Maret'
-    const dataMentahRPD = item.rpd || {};
-    const nilaiRPD = Number(dataMentahRPD['Mar'] || dataMentahRPD['Maret'] || dataMentahRPD[rekapPeriod] || 0);
+        <tbody className="divide-y divide-slate-100">
+  {processedData
+    .filter(i => {
+      // LOGIKA BARU: Hanya tampilkan item jika ia detail (level 8) 
+      // DAN memiliki nilai RPD > 0 pada rekapPeriod yang dipilih
+      const nilaiRPD = Number(i.monthRPD?.[rekapPeriod] || i.rpd?.[rekapPeriod] || 0);
+      return i.isDetail && nilaiRPD > 0;
+    })
+    .map((item) => {
+      const transList = item.transaksiLSGU || [];
+      const totalLS = transList.filter((t: any) => t.jenis === 'LS').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
+      const totalGU = transList.filter((t: any) => t.jenis === 'GU').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
+      const valRPD = Number(item.monthRPD?.[rekapPeriod] || item.rpd?.[rekapPeriod] || 0);
 
-    return (
-      <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-        <td className="p-4 border-r border-slate-100">
-           <div className="font-mono text-[13px] font-black text-indigo-800 leading-tight">
-             {item.tempPathKey.split('||')[0].replace(/\|/g, ' ❯ ')}
-           </div>
-        </td>
-        <td className="p-4 font-bold text-slate-800 text-[13px]">{item.uraian}</td>
-        
-        {/* KOLOM RPD: Menampilkan nilai dari perhitungan langsung */}
-        <td className="p-4 text-right font-black text-emerald-700 bg-emerald-50 text-[13px]">
-          {formatMoney(nilaiRPD)}
-        </td>
-        
-        <td className="p-4 text-right font-black text-blue-600 text-[13px]">{formatMoney(totalLS)}</td>
-        <td className="p-4 text-right font-black text-orange-600 text-[13px]">{formatMoney(totalGU)}</td>
-        <td className="p-4 text-center">
-          <button 
-            onClick={() => setSelectedItemForTrans(item)} 
-            className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-black hover:bg-indigo-700 transition-all shadow-md"
-          >
-            +
-          </button>
-        </td>
-      </tr>
-    );
-  })}
+      return (
+        <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+          <td className="p-4 border-r border-slate-100">
+            <div className="font-mono text-[13px] font-black text-indigo-800 leading-tight">
+              {item.tempPathKey.split('||')[0].replace(/\|/g, ' ❯ ')}
+            </div>
+          </td>
+          <td className="p-4 font-bold text-slate-800 text-[13px]">{item.uraian}</td>
+          <td className="p-4 text-right font-black text-emerald-700 bg-emerald-50 text-[13px]">
+            {formatMoney(valRPD)}
+          </td>
+          <td className="p-4 text-right font-black text-blue-600 text-[13px]">{formatMoney(totalLS)}</td>
+          <td className="p-4 text-right font-black text-orange-600 text-[13px]">{formatMoney(totalGU)}</td>
+          <td className="p-4 text-center">
+            <button 
+              onClick={() => setSelectedItemForTrans(item)} 
+              className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-black hover:bg-indigo-700 transition-all shadow-md"
+            >
+              +
+            </button>
+          </td>
+        </tr>
+      );
+    })}
 </tbody>
         </table>
       </div>
