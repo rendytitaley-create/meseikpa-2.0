@@ -1930,29 +1930,32 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
     const totalLS = transList.filter((t: any) => t.jenis === 'LS').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
     const totalGU = transList.filter((t: any) => t.jenis === 'GU').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
     
-    // DEBUG: Kita ambil nilai RPD secara paksa dari objek item
-    // Kita cetak JSON agar Anda bisa melihat kuncinya
-    const dataRPD = item.rpd || {}; 
-    const nilaiMaret = dataRPD['Mar'] || dataRPD['03'] || 0;
+    // --- PERBAIKAN PENGAMBILAN NILAI RPD ---
+    // Kita cek objek monthRPD dan juga data RPD mentah dari item
+    const valRPD = (item.monthRPD && item.monthRPD[rekapPeriod]) 
+                 ? item.monthRPD[rekapPeriod] 
+                 : (item.rpd && item.rpd[rekapPeriod] ? item.rpd[rekapPeriod] : 0);
 
     return (
       <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-        <td className="p-4 font-mono text-[10px] text-indigo-700 bg-slate-50 border-r border-slate-100">
-          {item.tempPathKey.split('||')[0].replace(/\|/g, ' ❯ ')}
-        </td>
-        <td className="p-4 font-bold text-slate-800 text-[11px]">{item.uraian}</td>
-        
-        {/* KOLOM RPD DEBUG */}
-        <td className="p-4 text-right font-black text-emerald-600 bg-emerald-50/50">
-           {/* Menampilkan nilai langsung dari variabel debug */}
-           {formatMoney(nilaiMaret)}
-           <div className="text-[8px] text-slate-400 font-normal">Kunci: {rekapPeriod}</div>
+        {/* Hierarki diperbesar dan lebih jelas */}
+        <td className="p-4 border-r border-slate-100">
+           <div className="font-mono text-[13px] font-black text-indigo-800 leading-tight">
+             {item.tempPathKey.split('||')[0].replace(/\|/g, ' ❯ ')}
+           </div>
         </td>
         
-        <td className="p-4 text-right font-black text-blue-600">{formatMoney(totalLS)}</td>
-        <td className="p-4 text-right font-black text-orange-600">{formatMoney(totalGU)}</td>
+        <td className="p-4 font-bold text-slate-800 text-[13px]">{item.uraian}</td>
+        
+        {/* Nilai RPD yang sekarang akan mengambil dari sumber yang benar */}
+        <td className="p-4 text-right font-black text-emerald-700 bg-emerald-50 text-[13px]">
+          {formatMoney(valRPD)}
+        </td>
+        
+        <td className="p-4 text-right font-black text-blue-600 text-[13px]">{formatMoney(totalLS)}</td>
+        <td className="p-4 text-right font-black text-orange-600 text-[13px]">{formatMoney(totalGU)}</td>
         <td className="p-4 text-center">
-          <button onClick={() => setSelectedItemForTrans(item)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-black">+</button>
+          <button onClick={() => setSelectedItemForTrans(item)} className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-black hover:bg-indigo-700 transition-all shadow-md">+</button>
         </td>
       </tr>
     );
