@@ -1883,11 +1883,11 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
     <th className="p-4 text-center">Aksi</th>
   </tr>
 </thead>
-        <tbody className="divide-y divide-slate-100">
+       <tbody className="divide-y divide-slate-100">
   {dataTampil
     .filter(d => getLevel(d.kode) === 4) 
     .map((ro: any) => {
-      // 1. FILTER: Abaikan jika Uraian mengandung kata "KPPN"
+      // 1. FILTER: Mengabaikan jika Uraian mengandung kata 'kppn' (huruf kecil/besar)
       if (ro.uraian.toLowerCase().includes('kppn')) return null;
 
       const details = dataTampil.filter(d => 
@@ -1903,7 +1903,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
         <React.Fragment key={ro.id}>
           {/* BARIS HEADER RO */}
           <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
-            <td className="p-4 font-black text-slate-800" colSpan={6}>
+            <td className="p-4 font-black text-slate-800" colSpan={7}>
               {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
             </td>
           </tr>
@@ -1911,18 +1911,14 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
           {/* BARIS DETAIL */}
           {isExpanded && details.map((item: any) => (
             <tr key={item.id} className="bg-white hover:bg-blue-50/30">
-              {/* KOLOM KODE */}
               <td className="p-3 pl-10 border-r text-[10px] font-mono italic">{item.kode}</td>
-              
-              {/* KOLOM AKUN (Mengambil 6 digit terakhir dari kode jika ada) */}
               <td className="p-3 border-r text-[10px] font-black text-indigo-800 bg-indigo-50/50">
                 {item.kode.slice(-6)}
               </td>
-
-              {/* KOLOM URAIAN DETAIL */}
-              <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
-
-              {/* KOLOM NILAI */}
+              {/* KOLOM URAIAN - Pastikan item.uraian tidak kosong */}
+              <td className="p-3 border-r text-[10px] font-bold text-slate-700">
+                {item.uraian || "Uraian tidak tersedia"}
+              </td>
               <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
               <td className="p-3 text-right text-blue-600 font-bold">0</td>
               <td className="p-3 text-right text-amber-600 font-bold">0</td>
