@@ -14,8 +14,7 @@ import {
   getDocs, 
   deleteDoc,
   where,
-  limit,
-  arrayUnion
+  limit
 } from 'firebase/firestore';
 import { 
   getAuth, 
@@ -130,48 +129,6 @@ const generateRowKey = (item: any, currentPath: string[]) => {
     return currentPath.slice(0, 7).filter(Boolean).join("|") + "||" + (cleanString(item.kode) || cleanString(item.uraian));
 };
 
-// Definisi struktur data transaksi agar sistem mengenali 'id'
-interface Transaksi {
-  id: string;
-  jenis: string;
-  nominal: number;
-  tanggal: string;
-  timestamp: Date;
-}
-
-// Definisi struktur data transaksi agar sistem mengenali 'id'
-interface Transaksi {
-  id: string;
-  jenis: string;
-  nominal: number;
-  tanggal: string;
-  timestamp: Date;
-}
-
-const TransaksiModal = ({ item, onClose, onSave }: any) => {
-  const [transaksi, setTransaksi] = useState({ jenis: 'LS', nominal: '', tanggal: '' });
-  
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl">
-        <h3 className="font-black text-slate-800 mb-4 uppercase text-sm italic">Tambah Transaksi: {item.uraian}</h3>
-        <div className="space-y-4">
-          <select className="w-full bg-slate-50 p-3 rounded-xl font-bold text-xs" onChange={(e) => setTransaksi({...transaksi, jenis: e.target.value})}>
-            <option value="LS">LS (Langsung)</option>
-            <option value="GU">GU (Ganti Uang)</option>
-          </select>
-          <input type="number" placeholder="Nominal (Rp)" className="w-full bg-slate-50 p-3 rounded-xl font-bold text-xs" onChange={(e) => setTransaksi({...transaksi, nominal: e.target.value})} />
-          <input type="date" className="w-full bg-slate-50 p-3 rounded-xl font-bold text-xs" onChange={(e) => setTransaksi({...transaksi, tanggal: e.target.value})} />
-        </div>
-        <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 py-3 rounded-xl bg-slate-100 text-xs font-black">Batal</button>
-          <button onClick={() => onSave(transaksi)} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white text-xs font-black">Simpan</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default function App() {
   const [fbUser, setFbUser] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -194,7 +151,7 @@ export default function App() {
   const [allUsers, setAllUsers] = useState<any[]>([]);
 
   // --- UI STATE ---
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users' | 'capaian' | 'lsgu'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users' | 'capaian'>('dashboard');
   const [activeWilayah, setActiveWilayah] = useState<string>("GG");
   const [activeTim, setActiveTim] = useState<string>("Nerwilis");
   const [rapatDepth, setRapatDepth] = useState<number>(2);
@@ -211,7 +168,6 @@ export default function App() {
   
   // Fitur Rekap Bulanan State
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
-  const [selectedItemForTrans, setSelectedItemForTrans] = useState<any>(null);
   
 
   // Monitoring GAP Monthly Filter - Diisolasi hanya untuk Capaian Output
@@ -897,8 +853,8 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
   };
 
   const processedData = useMemo(() => {
-    const normal = dataTampil.filter(d => !d.isOrphan) as any[];
-    const orphan = dataTampil.filter(d => d.isOrphan) as any[];
+    const normal = dataTampil.filter(d => !d.isOrphan);
+    const orphan = dataTampil.filter(d => d.isOrphan);
     const base = (activeTab === 'rapat') ? normal : normal.filter(d => d.wilayah === activeWilayah);
     
     const calculatedNormal = base.map((item, index) => {
@@ -1289,10 +1245,6 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
             <TrendingUp size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Capaian Output</span>}
           </button>
-<button onClick={() => setActiveTab('lsgu')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'lsgu' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
-  <ShieldHalf size={20} className={sidebarOpen ? 'mr-3' : ''} />
-  {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Data LS & GU</span>}
-</button>
           <div className="py-2"><div className="h-px bg-white/10 w-full opacity-30"></div></div>
           <button onClick={() => setActiveTab('rapat')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'rapat' ? 'bg-emerald-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
             <PieIcon size={20} className={sidebarOpen ? 'mr-3' : ''} />
@@ -1757,42 +1709,51 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
       </tr>
     </thead>
     <tbody className="divide-y divide-slate-100">
-  {processedData.filter(i => i.isDetail).map((item) => {
-    const transList = item.transaksiLSGU || [];
-    const totalLS = transList.filter((t: any) => t.jenis === 'LS').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
-    const totalGU = transList.filter((t: any) => t.jenis === 'GU').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
-    
-    // --- PERBAIKAN PENGAMBILAN NILAI RPD ---
-    // Kita cek objek monthRPD dan juga data RPD mentah dari item
-    const valRPD = (item.monthRPD && item.monthRPD[rekapPeriod]) 
-                 ? item.monthRPD[rekapPeriod] 
-                 : (item.rpd && item.rpd[rekapPeriod] ? item.rpd[rekapPeriod] : 0);
+      {finalDisplay.map((item: any) => {
+        const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
+        
+        // Logika Hitung Nilai Berdasarkan Periode (Bulan atau Triwulan)
+        let valRPD = 0; 
+        let valReal = 0;
 
-    return (
-      <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-        {/* Hierarki diperbesar dan lebih jelas */}
-        <td className="p-4 border-r border-slate-100">
-           <div className="font-mono text-[13px] font-black text-indigo-800 leading-tight">
-             {item.tempPathKey.split('||')[0].replace(/\|/g, ' ❯ ')}
-           </div>
-        </td>
+        if (rekapPeriod.startsWith('TW')) {
+          const twNum = parseInt(rekapPeriod.replace('TW', ''));
+          twMonths[twNum].forEach(m => {
+            valRPD += (Number(item.monthRPD?.[m]) || 0);
+            valReal += (Number(item.monthReal?.[m]) || 0);
+          });
+        } else {
+          valRPD = Number(item.monthRPD?.[rekapPeriod]) || 0;
+          valReal = Number(item.monthReal?.[rekapPeriod]) || 0;
+        }
+
+        const devPct = valRPD > 0 ? ((valReal - valRPD) / valRPD) * 100 : 0;
+        const selisihNominal = valReal - valRPD;
+
+        let rowBg = "hover:bg-blue-50/40 transition-all";
+        if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
+        if (item.level === 2) rowBg = "bg-blue-100/40 font-black";
         
-        <td className="p-4 font-bold text-slate-800 text-[13px]">{item.uraian}</td>
-        
-        {/* Nilai RPD yang sekarang akan mengambil dari sumber yang benar */}
-        <td className="p-4 text-right font-black text-emerald-700 bg-emerald-50 text-[13px]">
-          {formatMoney(valRPD)}
-        </td>
-        
-        <td className="p-4 text-right font-black text-blue-600 text-[13px]">{formatMoney(totalLS)}</td>
-        <td className="p-4 text-right font-black text-orange-600 text-[13px]">{formatMoney(totalGU)}</td>
-        <td className="p-4 text-center">
-          <button onClick={() => setSelectedItemForTrans(item)} className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-black hover:bg-indigo-700 transition-all shadow-md">+</button>
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
+        return (
+          <tr key={item.id} className={rowBg}>
+            <td className="px-4 py-2 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
+            <td className="px-5 py-2 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
+            <td className="px-4 py-2 text-right font-black border-r border-slate-100">{!isNonFinancial ? formatMoney(item.pagu) : ""}</td>
+            <td className="px-6 py-2 text-right font-black text-indigo-700 bg-indigo-50/30 border-r border-slate-100">{!isNonFinancial ? formatMoney(valRPD) : ""}</td>
+            <td className="px-6 py-2 text-right font-black text-blue-700 bg-blue-50/30 border-r border-slate-100">{!isNonFinancial ? formatMoney(valReal) : ""}</td>
+            <td className={`px-3 py-2 text-center font-black border-r border-slate-100 ${getDevColorClass(devPct)}`}>{!isNonFinancial && valRPD > 0 ? `${devPct.toFixed(1)}%` : "0%"}</td>
+            <td className={`px-4 py-2 text-right font-black border-r border-slate-100 ${valRPD > 0 ? (selisihNominal < 0 ? 'text-rose-600 bg-rose-50' : 'text-emerald-600 bg-emerald-50') : 'text-slate-800'}`}>
+  {!isNonFinancial ? (
+    <div className="flex flex-col">
+       <span className="text-[10px] opacity-50">{selisihNominal > 0 ? '+' : ''}</span>
+       <span>{formatMoney(selisihNominal)}</span>
+    </div>
+  ) : ""}
+</td>
+          </tr>
+        );
+      })}
+    </tbody>
   </table>
                   </div>
                </div>
@@ -1899,77 +1860,6 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
             </div>
           )}
 
-          {activeTab === 'lsgu' && (
-  <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-    <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-      <h2 className="font-black text-slate-800 uppercase italic mb-6">Rekapitulasi Transaksi LS & GU</h2>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs text-left border-collapse">
-          <thead className="bg-slate-900 text-white uppercase font-black text-[9px]">
-            <tr>
-              <th className="p-4 border-r border-slate-700 w-1/3">Hierarki (RO/Komponen/Akun)</th>
-              <th className="p-4">Uraian Detail</th>
-              <th className="p-4 text-right bg-emerald-900">RPD {rekapPeriod}</th>
-              <th className="p-4 text-right">Total LS</th>
-              <th className="p-4 text-right">Total GU</th>
-              <th className="p-4 text-center">Aksi</th>
-            </tr>
-          </thead>
-       <tbody className="divide-y divide-slate-100">
-  {processedData
-    .filter((item) => {
-      // Filter 1: Hanya level detail (biasanya level 8 di sistem ini)
-      const isDetail = item.level === 8;
-      
-      // Filter 2: Pastikan ada nilai RPD di bulan berjalan (rekapPeriod)
-      const nilaiRPD = Number(item.monthRPD?.[rekapPeriod] || item.rpd?.[rekapPeriod] || 0);
-      
-      // Hanya tampilkan jika detail DAN punya nilai RPD
-      return isDetail && nilaiRPD > 0;
-    })
-    .map((item) => {
-      const transList = item.transaksiLSGU || [];
-      const totalLS = transList.filter((t: any) => t.jenis === 'LS').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
-      const totalGU = transList.filter((t: any) => t.jenis === 'GU').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
-      const valRPD = Number(item.monthRPD?.[rekapPeriod] || item.rpd?.[rekapPeriod] || 0);
-
-      return (
-        <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-          {/* Hierarki yang lebih rapi */}
-          <td className="p-4 border-r border-slate-100">
-            <div className="font-mono text-[11px] font-bold text-indigo-800 leading-tight">
-              {item.tempPathKey.split('||')[0].replace(/\|/g, ' ❯ ')}
-            </div>
-          </td>
-          
-          <td className="p-4 font-bold text-slate-800 text-[12px]">{item.uraian}</td>
-          
-          {/* RPD yang muncul sesuai filter */}
-          <td className="p-4 text-right font-black text-emerald-700 bg-emerald-50 text-[13px]">
-            {formatMoney(valRPD)}
-          </td>
-          
-          <td className="p-4 text-right font-black text-blue-600 text-[13px]">{formatMoney(totalLS)}</td>
-          <td className="p-4 text-right font-black text-orange-600 text-[13px]">{formatMoney(totalGU)}</td>
-          
-          <td className="p-4 text-center">
-            <button 
-              onClick={() => setSelectedItemForTrans(item)} 
-              className="bg-indigo-600 text-white px-5 py-2 rounded-lg font-black text-[11px] hover:bg-indigo-700 transition-all shadow-md"
-            >
-              + Transaksi
-            </button>
-          </td>
-        </tr>
-      );
-    })}
-</tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-)}
-          
           {activeTab === 'users' && currentUser?.role === 'admin' && (
             <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
                <div className="bg-slate-900 rounded-[4rem] p-16 text-white shadow-2xl relative overflow-hidden">
@@ -2254,44 +2144,6 @@ const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
         </div>
       )}
 
-    {selectedItemForTrans && (
-  <TransaksiModal 
-    item={selectedItemForTrans} 
-    onClose={() => setSelectedItemForTrans(null)}
-    onSave={async (transaksi: any) => {
-      setIsProcessing(true);
-      try {
-        // Pastikan selectedItemForTrans memiliki id yang valid
-        if (!selectedItemForTrans?.id) {
-            throw new Error("Data transaksi tidak valid: ID hilang");
-        }
-        
-        const docRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, selectedItemForTrans.id);
-        
-        const newTransaksi: Transaksi = {
-          id: crypto.randomUUID(),
-          jenis: transaksi.jenis,
-          nominal: Number(transaksi.nominal),
-          tanggal: transaksi.tanggal,
-          timestamp: new Date()
-        };
-
-        await updateDoc(docRef, {
-          transaksiLSGU: arrayUnion(newTransaksi)
-        });
-        
-        setSelectedItemForTrans(null);
-        alert("Transaksi berhasil disimpan!");
-      } catch (err) {
-        console.error("Gagal menyimpan transaksi:", err);
-        alert("Gagal menyimpan transaksi.");
-      } finally {
-        setIsProcessing(false);
-      }
-    }}
-  />
-)}
-      
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
