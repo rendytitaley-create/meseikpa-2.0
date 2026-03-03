@@ -1908,34 +1908,32 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
   </td>
 </tr>
           
-          {/* BARIS DETAIL */}
-{isExpanded && details
-  .filter(item => !item.uraian.includes('KPPN')) // Filter KPPN di level detail
-  .map((item: any) => {
-    // Mencoba mengambil akun dari potongan kode atau default ke string kosong
-    const parts = item.kode.split('.');
-    const akun = parts.length > 3 ? parts[parts.length - 1] : ""; 
+      {isExpanded && details.map((item: any) => {
+  const kodeRaw = String(item.kode || "");
+  const akun = kodeRaw.slice(-6).replace(/[^0-9]/g, ''); 
 
-    return (
-      <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
-        <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
-        {/* Kolom AKUN */}
-        <td className="p-3 border-r text-[10px] font-black text-indigo-800 bg-indigo-50">
-          {akun}
-        </td>
-        {/* Kolom URAIAN */}
-        <td className="p-3 border-r text-[10px] font-bold text-slate-700">
-          {item.uraian.replace(/\(KPPN.*?\)/gi, '')} {/* Membersihkan teks KPPN jika muncul */}
-        </td>
-        <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
-        <td className="p-3 text-right text-blue-600 font-bold">0</td>
-        <td className="p-3 text-right text-amber-600 font-bold">0</td>
-        <td className="p-3 text-center">
-           <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
-        </td>
-      </tr>
-    );
-  })}
+  return (
+    <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
+      <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
+      
+      {/* KOLOM AKUN: Sekarang akan mencoba mengambil 6 digit terakhir */}
+      <td className="p-3 border-r text-[10px] font-black text-indigo-800 bg-indigo-50">
+        {akun.length === 6 ? akun : "-"}
+      </td>
+      
+      <td className="p-3 border-r text-[10px] font-bold text-slate-700">
+        {item.uraian}
+      </td>
+      
+      <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
+      <td className="p-3 text-right text-blue-600 font-bold">0</td>
+      <td className="p-3 text-right text-amber-600 font-bold">0</td>
+      <td className="p-3 text-center">
+         <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
+      </td>
+    </tr>
+  );
+})}
         </React.Fragment>
       );
     })}
