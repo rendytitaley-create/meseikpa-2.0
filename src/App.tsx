@@ -151,7 +151,7 @@ export default function App() {
   const [allUsers, setAllUsers] = useState<any[]>([]);
 
   // --- UI STATE ---
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users' | 'capaian'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users' | 'capaian' | 'lsgu'>('dashboard');
   const [activeWilayah, setActiveWilayah] = useState<string>("GG");
   const [activeTim, setActiveTim] = useState<string>("Nerwilis");
   const [rapatDepth, setRapatDepth] = useState<number>(2);
@@ -166,7 +166,7 @@ export default function App() {
   const [isLocked, setIsLocked] = useState(false);
   const [showClearDataModal, setShowClearDataModal] = useState(false);
   // State untuk Modal LS/GU
-const [showLsGuModal, setShowLsGuModal] = useState<any>(null);
+const [_showLsGuModal, _setShowLsGuModal] = useState<any>(null);
   
   // Fitur Rekap Bulanan State
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
