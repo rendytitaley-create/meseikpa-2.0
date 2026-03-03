@@ -155,6 +155,7 @@ export default function App() {
   const [activeWilayah, setActiveWilayah] = useState<string>("GG");
   const [activeTim, setActiveTim] = useState<string>("Nerwilis");
   const [rapatDepth, setRapatDepth] = useState<number>(2);
+const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [twActive, setTwActive] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1880,27 +1881,47 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
             <th className="p-4">Aksi</th>
           </tr>
         </thead>
-        <tbody>
-          {/* GANTI BAGIAN FINALDISPLAY.MAP MENJADI INI */}
-{dataTampil
-  .filter(d => !d.isOrphan && getLevel(d.kode) === 8) // Mengambil semua detail level 8
-  .map((item: any) => {
-    // 1. Menghitung RPD Bulan Maret (Bulan 3) secara manual agar tidak bergantung pada filter tim
-    const valRPD = Number(item.rpd?.['Mar']) || 0; 
-    
-    return (
-      <tr key={item.id} className="border-b">
-        <td className="p-3" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
-        <td className="p-3 text-right">{formatMoney(valRPD)}</td>
-        <td className="p-3 text-right">0</td>
-        <td className="p-3 text-right">0</td>
-        <td className="p-3 text-center">
-            <button onClick={() => _setShowLsGuModal(item)} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg font-bold">Kelola</button>
-        </td>
-      </tr>
-    );
-  })}
-        </tbody>
+        <tbody className="divide-y divide-slate-100">
+  {dataTampil
+    .filter(d => getLevel(d.kode) === 4) // Ambil header RO saja
+    .map((ro: any) => {
+      // Ambil detail di bawah RO ini (Level 8) yang punya nilai RPD > 0
+      const details = dataTampil.filter(d => 
+        getLevel(d.kode) === 8 && 
+        d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) && 
+        Number(d.rpd?.['Mar'] || 0) > 0
+      );
+
+      // Jika tidak ada detail dengan RPD, jangan tampilkan header RO ini
+      if (details.length === 0) return null;
+
+      const isExpanded = expandedRows[ro.id];
+
+      return (
+        <React.Fragment key={ro.id}>
+          {/* BARIS HEADER RO */}
+          <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
+            <td className="p-4 font-black text-slate-800" colSpan={5}>
+              {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
+            </td>
+          </tr>
+          
+          {/* BARIS DETAIL (Hanya muncul jika isExpanded true) */}
+          {isExpanded && details.map((item: any) => (
+            <tr key={item.id} className="bg-white hover:bg-blue-50/30">
+              <td className="p-3 pl-10 border-r text-[10px] font-mono italic">{item.kode}</td>
+              <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
+              <td className="p-3 text-right">0</td> {/* Total LS akan diisi nanti */}
+              <td className="p-3 text-right">0</td> {/* Total GU akan diisi nanti */}
+              <td className="p-3 text-center">
+                 <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
+              </td>
+            </tr>
+          ))}
+        </React.Fragment>
+      );
+    })}
+</tbody>
       </table>
     </div>
   </div>
