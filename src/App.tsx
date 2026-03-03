@@ -1875,10 +1875,11 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
         <thead className="bg-slate-900 text-white text-[10px] uppercase font-black">
   <tr>
     <th className="p-4 text-left">Kode</th>
-    <th className="p-4 text-left">Uraian Detail</th> 
+    <th className="p-4 text-left">Akun</th>
+    <th className="p-4 text-left">Uraian Detail</th>
     <th className="p-4 text-right">RPD (Mar)</th>
-    <th className="p-4 text-right">Total LS</th>
-    <th className="p-4 text-right">Total GU</th>
+    <th className="p-4 text-right">LS</th>
+    <th className="p-4 text-right">GU</th>
     <th className="p-4 text-center">Aksi</th>
   </tr>
 </thead>
