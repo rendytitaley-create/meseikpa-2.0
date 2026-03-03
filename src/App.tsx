@@ -165,6 +165,8 @@ export default function App() {
   const [migrationStats, setMigrationStats] = useState({ match: 0, new: 0, orphaned: 0 });
   const [isLocked, setIsLocked] = useState(false);
   const [showClearDataModal, setShowClearDataModal] = useState(false);
+  // State untuk Modal LS/GU
+const [showLsGuModal, setShowLsGuModal] = useState<any>(null);
   
   // Fitur Rekap Bulanan State
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
@@ -1245,6 +1247,11 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
             <TrendingUp size={20} className={sidebarOpen ? 'mr-3' : ''} />
             {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">Capaian Output</span>}
           </button>
+          {/* Tambahan Menu LS&GU */}
+<button onClick={() => setActiveTab('lsgu')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'lsgu' ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
+  <ShieldHalf size={20} className={sidebarOpen ? 'mr-3' : ''} />
+  {sidebarOpen && <span className="font-semibold text-xs uppercase tracking-wider">LS & GU</span>}
+</button>
           <div className="py-2"><div className="h-px bg-white/10 w-full opacity-30"></div></div>
           <button onClick={() => setActiveTab('rapat')} className={`w-full flex items-center px-3 py-3 rounded-xl transition-all ${activeTab === 'rapat' ? 'bg-emerald-600 text-white shadow-lg' : 'hover:bg-white/5'}`}>
             <PieIcon size={20} className={sidebarOpen ? 'mr-3' : ''} />
@@ -1859,7 +1866,39 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                </div>
             </div>
           )}
-
+{activeTab === 'lsgu' && (
+  <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
+    <h3 className="text-xl font-black italic uppercase tracking-tighter mb-6">Monitoring Realisasi LS & GU</h3>
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead className="bg-slate-900 text-white">
+          <tr>
+            <th className="p-4">Kode/Uraian</th>
+            <th className="p-4">RPD (Total)</th>
+            <th className="p-4">Total LS</th>
+            <th className="p-4">Total GU</th>
+            <th className="p-4">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {finalDisplay.map((item: any) => (
+            <tr key={item.id} className="border-b">
+              <td className="p-3" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
+              <td className="p-3 text-right">{formatMoney(item.totalRPD)}</td>
+              <td className="p-3 text-right font-bold text-blue-600">0</td> {/* Nanti dihitung dari Firestore */}
+              <td className="p-3 text-right font-bold text-amber-600">0</td>
+              <td className="p-3 text-center">
+                {item.level === 8 && (
+                   <button onClick={() => setShowLsGuModal(item)} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg font-bold">Kelola</button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
           {activeTab === 'users' && currentUser?.role === 'admin' && (
             <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
                <div className="bg-slate-900 rounded-[4rem] p-16 text-white shadow-2xl relative overflow-hidden">
