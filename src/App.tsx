@@ -1889,7 +1889,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
               <td className="p-3 text-right font-bold text-amber-600">0</td>
               <td className="p-3 text-center">
                 {item.level === 8 && (
-                   <button onClick={() => setShowLsGuModal(item)} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg font-bold">Kelola</button>
+                   <button onClick={() => _setShowLsGuModal(item)} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg font-bold">Kelola</button>
                 )}
               </td>
             </tr>
