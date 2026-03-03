@@ -1902,40 +1902,40 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
       return (
         <React.Fragment key={ro.id}>
           {/* BARIS HEADER RO */}
-          <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
-            <td className="p-4 font-black text-slate-800" colSpan={7}>
-              {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
-            </td>
-          </tr>
+<tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
+  <td className="p-4 font-black text-slate-800" colSpan={7}>
+    {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian.replace(/\(KPPN.*?\)/gi, '')}
+  </td>
+</tr>
           
           {/* BARIS DETAIL */}
-          {isExpanded && details.map((item: any) => {
-            // Logika ekstraksi akun: Mengambil bagian terakhir dari string kode (misal: 524113)
-            // Kita pisahkan berdasarkan titik (.) jika kode Anda menggunakan format titik
-            const parts = item.kode.split('.');
-            const akun = parts[parts.length - 1]; 
+{isExpanded && details
+  .filter(item => !item.uraian.includes('KPPN')) // Filter KPPN di level detail
+  .map((item: any) => {
+    // Mencoba mengambil akun dari potongan kode atau default ke string kosong
+    const parts = item.kode.split('.');
+    const akun = parts.length > 3 ? parts[parts.length - 1] : ""; 
 
-            return (
-              <tr key={item.id} className="bg-white hover:bg-blue-50/30">
-                <td className="p-3 pl-10 border-r text-[10px] font-mono italic">{item.kode}</td>
-                
-                {/* KOLOM AKUN: Menampilkan 524113 dll */}
-                <td className="p-3 border-r text-[10px] font-black text-indigo-800 bg-indigo-50/50">
-                  {akun}
-                </td>
-                
-                <td className="p-3 border-r text-[10px] font-bold text-slate-700">
-                  {item.uraian}
-                </td>
-                <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
-                <td className="p-3 text-right text-blue-600 font-bold">0</td>
-                <td className="p-3 text-right text-amber-600 font-bold">0</td>
-                <td className="p-3 text-center">
-                   <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
-                </td>
-              </tr>
-            );
-          })}
+    return (
+      <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
+        <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
+        {/* Kolom AKUN */}
+        <td className="p-3 border-r text-[10px] font-black text-indigo-800 bg-indigo-50">
+          {akun}
+        </td>
+        {/* Kolom URAIAN */}
+        <td className="p-3 border-r text-[10px] font-bold text-slate-700">
+          {item.uraian.replace(/\(KPPN.*?\)/gi, '')} {/* Membersihkan teks KPPN jika muncul */}
+        </td>
+        <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
+        <td className="p-3 text-right text-blue-600 font-bold">0</td>
+        <td className="p-3 text-right text-amber-600 font-bold">0</td>
+        <td className="p-3 text-center">
+           <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
+        </td>
+      </tr>
+    );
+  })}
         </React.Fragment>
       );
     })}
