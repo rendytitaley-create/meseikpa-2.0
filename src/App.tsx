@@ -1887,7 +1887,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
   {dataTampil
     .filter(d => getLevel(d.kode) === 4) 
     .map((ro: any) => {
-      // 1. FILTER: Mengabaikan jika Uraian mengandung kata 'kppn' (huruf kecil/besar)
+      // 1. FILTER LEBIH KETAT: Memastikan kata "KPPN" diabaikan (case-insensitive)
       if (ro.uraian.toLowerCase().includes('kppn')) return null;
 
       const details = dataTampil.filter(d => 
@@ -1909,24 +1909,33 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
           </tr>
           
           {/* BARIS DETAIL */}
-          {isExpanded && details.map((item: any) => (
-            <tr key={item.id} className="bg-white hover:bg-blue-50/30">
-              <td className="p-3 pl-10 border-r text-[10px] font-mono italic">{item.kode}</td>
-              <td className="p-3 border-r text-[10px] font-black text-indigo-800 bg-indigo-50/50">
-                {item.kode.slice(-6)}
-              </td>
-              {/* KOLOM URAIAN - Pastikan item.uraian tidak kosong */}
-              <td className="p-3 border-r text-[10px] font-bold text-slate-700">
-                {item.uraian || "Uraian tidak tersedia"}
-              </td>
-              <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
-              <td className="p-3 text-right text-blue-600 font-bold">0</td>
-              <td className="p-3 text-right text-amber-600 font-bold">0</td>
-              <td className="p-3 text-center">
-                 <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
-              </td>
-            </tr>
-          ))}
+          {isExpanded && details.map((item: any) => {
+            // Logika ekstraksi akun: Mengambil bagian terakhir dari string kode (misal: 524113)
+            // Kita pisahkan berdasarkan titik (.) jika kode Anda menggunakan format titik
+            const parts = item.kode.split('.');
+            const akun = parts[parts.length - 1]; 
+
+            return (
+              <tr key={item.id} className="bg-white hover:bg-blue-50/30">
+                <td className="p-3 pl-10 border-r text-[10px] font-mono italic">{item.kode}</td>
+                
+                {/* KOLOM AKUN: Menampilkan 524113 dll */}
+                <td className="p-3 border-r text-[10px] font-black text-indigo-800 bg-indigo-50/50">
+                  {akun}
+                </td>
+                
+                <td className="p-3 border-r text-[10px] font-bold text-slate-700">
+                  {item.uraian}
+                </td>
+                <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
+                <td className="p-3 text-right text-blue-600 font-bold">0</td>
+                <td className="p-3 text-right text-amber-600 font-bold">0</td>
+                <td className="p-3 text-center">
+                   <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
+                </td>
+              </tr>
+            );
+          })}
         </React.Fragment>
       );
     })}
