@@ -1881,19 +1881,25 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
           </tr>
         </thead>
         <tbody>
-          {finalDisplay.map((item: any) => (
-            <tr key={item.id} className="border-b">
-              <td className="p-3" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
-              <td className="p-3 text-right">{formatMoney(item.totalRPD)}</td>
-              <td className="p-3 text-right font-bold text-blue-600">0</td> {/* Nanti dihitung dari Firestore */}
-              <td className="p-3 text-right font-bold text-amber-600">0</td>
-              <td className="p-3 text-center">
-                {item.level === 8 && (
-                   <button onClick={() => _setShowLsGuModal(item)} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg font-bold">Kelola</button>
-                )}
-              </td>
-            </tr>
-          ))}
+          {/* GANTI BAGIAN FINALDISPLAY.MAP MENJADI INI */}
+{dataTampil
+  .filter(d => !d.isOrphan && getLevel(d.kode) === 8) // Mengambil semua detail level 8
+  .map((item: any) => {
+    // 1. Menghitung RPD Bulan Maret (Bulan 3) secara manual agar tidak bergantung pada filter tim
+    const valRPD = Number(item.rpd?.['Mar']) || 0; 
+    
+    return (
+      <tr key={item.id} className="border-b">
+        <td className="p-3" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
+        <td className="p-3 text-right">{formatMoney(valRPD)}</td>
+        <td className="p-3 text-right">0</td>
+        <td className="p-3 text-right">0</td>
+        <td className="p-3 text-center">
+            <button onClick={() => _setShowLsGuModal(item)} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg font-bold">Kelola</button>
+        </td>
+      </tr>
+    );
+  })}
         </tbody>
       </table>
     </div>
