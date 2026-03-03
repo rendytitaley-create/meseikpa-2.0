@@ -1757,51 +1757,42 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
       </tr>
     </thead>
     <tbody className="divide-y divide-slate-100">
-      {finalDisplay.map((item: any) => {
-        const isNonFinancial = item.uraian?.toLowerCase().includes('kppn') || item.uraian?.toLowerCase().includes('lokasi');
+  {processedData.filter(i => i.isDetail).map((item) => {
+    const transList = item.transaksiLSGU || [];
+    const totalLS = transList.filter((t: any) => t.jenis === 'LS').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
+    const totalGU = transList.filter((t: any) => t.jenis === 'GU').reduce((sum: number, t: any) => sum + Number(t.nominal), 0);
+    
+    // --- PERBAIKAN PENGAMBILAN NILAI RPD ---
+    // Kita cek objek monthRPD dan juga data RPD mentah dari item
+    const valRPD = (item.monthRPD && item.monthRPD[rekapPeriod]) 
+                 ? item.monthRPD[rekapPeriod] 
+                 : (item.rpd && item.rpd[rekapPeriod] ? item.rpd[rekapPeriod] : 0);
+
+    return (
+      <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+        {/* Hierarki diperbesar dan lebih jelas */}
+        <td className="p-4 border-r border-slate-100">
+           <div className="font-mono text-[13px] font-black text-indigo-800 leading-tight">
+             {item.tempPathKey.split('||')[0].replace(/\|/g, ' ❯ ')}
+           </div>
+        </td>
         
-        // Logika Hitung Nilai Berdasarkan Periode (Bulan atau Triwulan)
-        let valRPD = 0; 
-        let valReal = 0;
-
-        if (rekapPeriod.startsWith('TW')) {
-          const twNum = parseInt(rekapPeriod.replace('TW', ''));
-          twMonths[twNum].forEach(m => {
-            valRPD += (Number(item.monthRPD?.[m]) || 0);
-            valReal += (Number(item.monthReal?.[m]) || 0);
-          });
-        } else {
-          valRPD = Number(item.monthRPD?.[rekapPeriod]) || 0;
-          valReal = Number(item.monthReal?.[rekapPeriod]) || 0;
-        }
-
-        const devPct = valRPD > 0 ? ((valReal - valRPD) / valRPD) * 100 : 0;
-        const selisihNominal = valReal - valRPD;
-
-        let rowBg = "hover:bg-blue-50/40 transition-all";
-        if (item.level === 1) rowBg = "bg-amber-100/60 font-black";
-        if (item.level === 2) rowBg = "bg-blue-100/40 font-black";
+        <td className="p-4 font-bold text-slate-800 text-[13px]">{item.uraian}</td>
         
-        return (
-          <tr key={item.id} className={rowBg}>
-            <td className="px-4 py-2 border-r border-slate-100 text-slate-400 font-mono italic">{item.kode}</td>
-            <td className="px-5 py-2 border-r border-slate-100 font-bold text-slate-800" style={{ paddingLeft: `${(item.level * 10)}px` }}>{item.uraian}</td>
-            <td className="px-4 py-2 text-right font-black border-r border-slate-100">{!isNonFinancial ? formatMoney(item.pagu) : ""}</td>
-            <td className="px-6 py-2 text-right font-black text-indigo-700 bg-indigo-50/30 border-r border-slate-100">{!isNonFinancial ? formatMoney(valRPD) : ""}</td>
-            <td className="px-6 py-2 text-right font-black text-blue-700 bg-blue-50/30 border-r border-slate-100">{!isNonFinancial ? formatMoney(valReal) : ""}</td>
-            <td className={`px-3 py-2 text-center font-black border-r border-slate-100 ${getDevColorClass(devPct)}`}>{!isNonFinancial && valRPD > 0 ? `${devPct.toFixed(1)}%` : "0%"}</td>
-            <td className={`px-4 py-2 text-right font-black border-r border-slate-100 ${valRPD > 0 ? (selisihNominal < 0 ? 'text-rose-600 bg-rose-50' : 'text-emerald-600 bg-emerald-50') : 'text-slate-800'}`}>
-  {!isNonFinancial ? (
-    <div className="flex flex-col">
-       <span className="text-[10px] opacity-50">{selisihNominal > 0 ? '+' : ''}</span>
-       <span>{formatMoney(selisihNominal)}</span>
-    </div>
-  ) : ""}
-</td>
-          </tr>
-        );
-      })}
-    </tbody>
+        {/* Nilai RPD yang sekarang akan mengambil dari sumber yang benar */}
+        <td className="p-4 text-right font-black text-emerald-700 bg-emerald-50 text-[13px]">
+          {formatMoney(valRPD)}
+        </td>
+        
+        <td className="p-4 text-right font-black text-blue-600 text-[13px]">{formatMoney(totalLS)}</td>
+        <td className="p-4 text-right font-black text-orange-600 text-[13px]">{formatMoney(totalGU)}</td>
+        <td className="p-4 text-center">
+          <button onClick={() => setSelectedItemForTrans(item)} className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-black hover:bg-indigo-700 transition-all shadow-md">+</button>
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
   </table>
                   </div>
                </div>
