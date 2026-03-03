@@ -1875,7 +1875,6 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
         <thead className="bg-slate-900 text-white text-[10px] uppercase font-black">
   <tr>
     <th className="p-4 text-left">Kode</th>
-    <th className="p-4 text-left">Akun</th>
     <th className="p-4 text-left">Uraian Detail</th>
     <th className="p-4 text-right">RPD (Mar)</th>
     <th className="p-4 text-right">LS</th>
@@ -1887,12 +1886,14 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
   {dataTampil
     .filter(d => getLevel(d.kode) === 4) 
     .map((ro: any) => {
-      // 1. FILTER LEBIH KETAT: Memastikan kata "KPPN" diabaikan (case-insensitive)
-      if (ro.uraian.toLowerCase().includes('kppn')) return null;
+      // 1. FILTER: Abaikan Header jika mengandung kata KPPN
+      if (ro.uraian.toUpperCase().includes('KPPN')) return null;
 
       const details = dataTampil.filter(d => 
         getLevel(d.kode) === 8 && 
-        d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0])
+        d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
+        !d.uraian.toUpperCase().includes('KPPN') && // 2. FILTER: Abaikan Detail jika mengandung KPPN
+        d.uraian.trim() !== "" // 3. FILTER: Abaikan detail kosong
       );
 
       if (details.length === 0) return null;
@@ -1902,46 +1903,25 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
       return (
         <React.Fragment key={ro.id}>
           {/* BARIS HEADER RO */}
-<tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
-  <td className="p-4 font-black text-slate-800" colSpan={7}>
-    {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian.replace(/\(KPPN.*?\)/gi, '')}
-  </td>
-</tr>
+          <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
+            <td className="p-4 font-black text-slate-800" colSpan={6}>
+              {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
+            </td>
+          </tr>
           
-      {isExpanded && details
-  .filter(item => 
-    !item.uraian.toUpperCase().includes('KPPN') && 
-    !item.kode.toLowerCase().includes('kppn') &&
-    item.uraian.trim() !== "-" &&
-    item.uraian.trim() !== ""
-  )
-  .map((item: any) => {
-    const match = item.kode.match(/(\d{6})$/); 
-    const akun = match ? match[1] : "N/A"; // Jika ketemu 6 digit di akhir, ambil itu
-
-    return (
-      <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
-        <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
-        
-        {/* KOLOM AKUN */}
-        <td className="p-3 border-r text-[10px] font-black text-indigo-800 bg-indigo-50">
-          {akun}
-        </td>
-        
-        {/* KOLOM URAIAN */}
-        <td className="p-3 border-r text-[10px] font-bold text-slate-700">
-          {item.uraian}
-        </td>
-        
-        <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
-        <td className="p-3 text-right text-blue-600 font-bold">0</td>
-        <td className="p-3 text-right text-amber-600 font-bold">0</td>
-        <td className="p-3 text-center">
-           <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
-        </td>
-      </tr>
-    );
-  })}
+          {/* BARIS DETAIL */}
+          {isExpanded && details.map((item: any) => (
+            <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
+              <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
+              <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
+              <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
+              <td className="p-3 text-right text-blue-600 font-bold">0</td>
+              <td className="p-3 text-right text-amber-600 font-bold">0</td>
+              <td className="p-3 text-center">
+                 <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
+              </td>
+            </tr>
+          ))}
         </React.Fragment>
       );
     })}
