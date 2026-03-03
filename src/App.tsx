@@ -1886,7 +1886,9 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
   {dataTampil
     .filter(d => getLevel(d.kode) === 4) 
     .map((ro: any) => {
-      // Ambil SEMUA detail level 8 di bawah RO ini (TANPA FILTER RPD)
+      // 1. FILTER: Abaikan jika Uraian mengandung kata "KPPN"
+      if (ro.uraian.toLowerCase().includes('kppn')) return null;
+
       const details = dataTampil.filter(d => 
         getLevel(d.kode) === 8 && 
         d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0])
@@ -1898,18 +1900,28 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
 
       return (
         <React.Fragment key={ro.id}>
-          {/* HEADER RO */}
+          {/* BARIS HEADER RO */}
           <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
             <td className="p-4 font-black text-slate-800" colSpan={6}>
               {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
             </td>
           </tr>
           
-          {/* DETAIL ITEM */}
+          {/* BARIS DETAIL */}
           {isExpanded && details.map((item: any) => (
             <tr key={item.id} className="bg-white hover:bg-blue-50/30">
+              {/* KOLOM KODE */}
               <td className="p-3 pl-10 border-r text-[10px] font-mono italic">{item.kode}</td>
-              <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td> {/* Kolom Uraian ditambahkan */}
+              
+              {/* KOLOM AKUN (Mengambil 6 digit terakhir dari kode jika ada) */}
+              <td className="p-3 border-r text-[10px] font-black text-indigo-800 bg-indigo-50/50">
+                {item.kode.slice(-6)}
+              </td>
+
+              {/* KOLOM URAIAN DETAIL */}
+              <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
+
+              {/* KOLOM NILAI */}
               <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
               <td className="p-3 text-right text-blue-600 font-bold">0</td>
               <td className="p-3 text-right text-amber-600 font-bold">0</td>
