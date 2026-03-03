@@ -1908,32 +1908,40 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
   </td>
 </tr>
           
-      {isExpanded && details.map((item: any) => {
-  const kodeRaw = String(item.kode || "");
-  const akun = kodeRaw.slice(-6).replace(/[^0-9]/g, ''); 
+      {isExpanded && details
+  .filter(item => 
+    !item.uraian.toUpperCase().includes('KPPN') && 
+    !item.kode.toLowerCase().includes('kppn') &&
+    item.uraian.trim() !== "-" &&
+    item.uraian.trim() !== ""
+  )
+  .map((item: any) => {
+    const match = item.kode.match(/(\d{6})$/); 
+    const akun = match ? match[1] : "N/A"; // Jika ketemu 6 digit di akhir, ambil itu
 
-  return (
-    <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
-      <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
-      
-      {/* KOLOM AKUN: Sekarang akan mencoba mengambil 6 digit terakhir */}
-      <td className="p-3 border-r text-[10px] font-black text-indigo-800 bg-indigo-50">
-        {akun.length === 6 ? akun : "-"}
-      </td>
-      
-      <td className="p-3 border-r text-[10px] font-bold text-slate-700">
-        {item.uraian}
-      </td>
-      
-      <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
-      <td className="p-3 text-right text-blue-600 font-bold">0</td>
-      <td className="p-3 text-right text-amber-600 font-bold">0</td>
-      <td className="p-3 text-center">
-         <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
-      </td>
-    </tr>
-  );
-})}
+    return (
+      <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
+        <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
+        
+        {/* KOLOM AKUN */}
+        <td className="p-3 border-r text-[10px] font-black text-indigo-800 bg-indigo-50">
+          {akun}
+        </td>
+        
+        {/* KOLOM URAIAN */}
+        <td className="p-3 border-r text-[10px] font-bold text-slate-700">
+          {item.uraian}
+        </td>
+        
+        <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
+        <td className="p-3 text-right text-blue-600 font-bold">0</td>
+        <td className="p-3 text-right text-amber-600 font-bold">0</td>
+        <td className="p-3 text-center">
+           <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
+        </td>
+      </tr>
+    );
+  })}
         </React.Fragment>
       );
     })}
