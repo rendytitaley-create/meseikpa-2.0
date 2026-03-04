@@ -2245,25 +2245,22 @@ function ModalLsGu({ item, onClose, appId, db }: any) {
   const [nilai, setNilai] = useState("");
   const [jenis, setJenis] = useState("LS"); 
 
-  const handleSimpan = async () => {
+  // Di dalam ModalLsGu
+const handleSimpan = async () => {
   if (!nilai || !tanggal) return;
   
   try {
-    // 1. Dapatkan referensi dokumen spesifik
+    // Gunakan DATA_COLLECTION agar sinkron dengan yang dipantau onSnapshot
     const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
     
-    // 2. Tentukan field berdasarkan jenis (LS atau GU)
     const fieldName = jenis === 'LS' ? 'ls_total' : 'gu_total';
-    
-    // 3. Ambil nilai lama, lalu tambah dengan nilai baru
     const currentVal = Number(item[fieldName] || 0);
     
-    // 4. Update langsung ke dokumen tersebut
     await updateDoc(docRef, {
       [fieldName]: currentVal + Number(nilai)
     });
     
-    alert("Data berhasil disimpan!");
+    alert("Berhasil disimpan!");
     onClose();
   } catch (e) {
     console.error("Gagal simpan:", e);
