@@ -2244,18 +2244,23 @@ const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
 function ModalLsGu({ item, onClose, appId, db }: any) {
   const [nilai, setNilai] = useState("");
   const [jenis, setJenis] = useState("LS"); 
+  // Kembalikan state tanggal agar bisa diinput
+  const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
 
   const handleSimpan = async () => {
-    if (!nilai) return;
+    if (!nilai || !tanggal) return;
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
       const fieldName = jenis === 'LS' ? 'ls_total' : 'gu_total';
       
+      // Jika Anda ingin menyimpan tanggal juga di Firestore, 
+      // Anda bisa menambahkannya ke objek updateDoc ini:
       await updateDoc(docRef, {
-        [fieldName]: Number(nilai)
+        [fieldName]: Number(nilai),
+        [`${fieldName}_tanggal`]: tanggal // Menyimpan tanggal spesifik untuk field tersebut
       });
       
-      alert("Data berhasil diperbarui!");
+      alert("Data (" + jenis + ") pada tanggal " + tanggal + " berhasil disimpan!");
       onClose();
     } catch (e) {
       console.error("Gagal:", e);
@@ -2264,13 +2269,14 @@ function ModalLsGu({ item, onClose, appId, db }: any) {
   };
 
   const handleHapus = async () => {
-    if (!confirm("Hapus data " + jenis + "?")) return;
+    if (!confirm("Hapus data " + jenis + " ini?")) return;
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
       const fieldName = jenis === 'LS' ? 'ls_total' : 'gu_total';
       
       await updateDoc(docRef, {
-        [fieldName]: deleteField()
+        [fieldName]: deleteField(),
+        [`${fieldName}_tanggal`]: deleteField() // Menghapus tanggalnya juga
       });
       
       alert("Data berhasil dihapus!");
@@ -2287,16 +2293,26 @@ function ModalLsGu({ item, onClose, appId, db }: any) {
         <h3 className="text-sm font-black uppercase tracking-widest mb-6">Kelola: {item.uraian}</h3>
         
         <div className="space-y-4">
+          <div className="text-[10px] font-bold text-slate-500 uppercase">Tanggal Realisasi</div>
+          <input 
+            type="date" 
+            value={tanggal} 
+            onChange={(e) => setTanggal(e.target.value)} 
+            className="w-full p-3 border rounded-xl font-bold" 
+          />
+
+          <div className="text-[10px] font-bold text-slate-500 uppercase">Jenis Realisasi</div>
           <select value={jenis} onChange={(e) => setJenis(e.target.value)} className="w-full p-3 border rounded-xl font-bold">
             <option value="LS">LS</option>
             <option value="GU">GU</option>
           </select>
 
+          <div className="text-[10px] font-bold text-slate-500 uppercase">Nominal</div>
           <input 
             type="number" 
             value={nilai} 
             onChange={(e) => setNilai(e.target.value)} 
-            placeholder="Nominal Baru..." 
+            placeholder="Masukkan nominal..." 
             className="w-full p-3 border rounded-xl font-bold" 
           />
           
