@@ -14,7 +14,8 @@ import {
   getDocs, 
   deleteDoc,
   where,
-  limit
+  limit,
+  deleteField
 } from 'firebase/firestore';
 import { 
   getAuth, 
