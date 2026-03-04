@@ -151,20 +151,25 @@ export default function App() {
   });
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const rekapPerTanggal = useMemo(() => {
-  const rekap: Record<string, { LS: number, GU: number }> = {};
+  const rekap: Record<string, { LS: number, GU: number, details: any[] }> = {};
   
   dataTampil.forEach(item => {
-    // Rekap LS berdasarkan tanggal
+    // Kumpulkan LS
     if (item.ls_total && item.ls_total_tanggal) {
-      if (!rekap[item.ls_total_tanggal]) rekap[item.ls_total_tanggal] = { LS: 0, GU: 0 };
+      if (!rekap[item.ls_total_tanggal]) rekap[item.ls_total_tanggal] = { LS: 0, GU: 0, details: [] };
       rekap[item.ls_total_tanggal].LS += Number(item.ls_total);
+      rekap[item.ls_total_tanggal].details.push({ uraian: item.uraian, nilai: item.ls_total, jenis: 'LS' });
     }
-    // Rekap GU berdasarkan tanggal
+    // Kumpulkan GU
     if (item.gu_total && item.gu_total_tanggal) {
-      if (!rekap[item.gu_total_tanggal]) rekap[item.gu_total_tanggal] = { LS: 0, GU: 0 };
+      if (!rekap[item.gu_total_tanggal]) rekap[item.gu_total_tanggal] = { LS: 0, GU: 0, details: [] };
       rekap[item.gu_total_tanggal].GU += Number(item.gu_total);
+      rekap[item.gu_total_tanggal].details.push({ uraian: item.uraian, nilai: item.gu_total, jenis: 'GU' });
     }
   });
+  
+  return Object.entries(rekap).sort((a, b) => b[0].localeCompare(a[0]));
+}, [dataTampil]);
   
   return Object.entries(rekap).sort((a, b) => a[0].localeCompare(b[0]));
 }, [dataTampil]);
@@ -1939,21 +1944,33 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
               </div>
 
               {/* REKAP LS & GU */}
-              <div className="mt-10 p-6 bg-slate-50 rounded-3xl border border-slate-200">
-                <h4 className="text-sm font-black uppercase tracking-widest mb-4 italic">Rekapitulasi LS & GU per Tanggal</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {rekapPerTanggal.map(([tanggal, total]: any) => (
-                    <div key={tanggal} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
-                      <div>
-                        <div className="text-[10px] font-black text-slate-400 uppercase">{tanggal}</div>
-                        <div className="text-xs font-black text-slate-800">
-                          LS: <span className="text-blue-600">{formatMoney(total.LS)}</span> | GU: <span className="text-amber-600">{formatMoney(total.GU)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <div className="mt-10">
+  <h4 className="text-[11px] font-black uppercase tracking-widest mb-6 text-slate-500 italic">Laporan Harian Realisasi (LS & GU)</h4>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {rekapPerTanggal.map(([tanggal, data]: any) => (
+      <div key={tanggal} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+        <div className="bg-slate-900 px-6 py-4 flex justify-between items-center">
+          <span className="text-[10px] font-black text-white tracking-widest uppercase">{tanggal}</span>
+          <div className="flex gap-4">
+             <span className="text-[9px] font-black text-blue-400">LS: {formatMoney(data.LS)}</span>
+             <span className="text-[9px] font-black text-amber-400">GU: {formatMoney(data.GU)}</span>
+          </div>
+        </div>
+        <div className="p-2">
+          {data.details.map((d: any, idx: number) => (
+            <div key={idx} className="flex justify-between items-center px-4 py-3 hover:bg-slate-50 rounded-2xl border-b border-slate-50 last:border-0">
+               <div className="flex items-center gap-3">
+                 <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg ${d.jenis === 'LS' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{d.jenis}</span>
+                 <span className="text-[11px] font-bold text-slate-700 truncate max-w-[200px]">{d.uraian}</span>
+               </div>
+               <span className="text-[11px] font-black text-slate-900">{formatMoney(d.nilai)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
 
               {_showLsGuModal && (
                 <ModalLsGu 
