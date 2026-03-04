@@ -2241,18 +2241,15 @@ const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
 }
 
 function ModalLsGu({ item, onClose, appId, db }: any) {
-  const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [nilai, setNilai] = useState("");
   const [jenis, setJenis] = useState("LS"); 
 
-  // FUNGSI SIMPAN/EDIT (Langsung menimpa nilai lama dengan nilai baru)
   const handleSimpan = async () => {
     if (!nilai) return;
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
       const fieldName = jenis === 'LS' ? 'ls_total' : 'gu_total';
       
-      // Update langsung (Overwrite)
       await updateDoc(docRef, {
         [fieldName]: Number(nilai)
       });
@@ -2265,9 +2262,8 @@ function ModalLsGu({ item, onClose, appId, db }: any) {
     }
   };
 
-  // FUNGSI HAPUS (Menghapus field dari Firestore)
   const handleHapus = async () => {
-    if (!confirm("Apakah Anda yakin ingin menghapus data " + jenis + " ini?")) return;
+    if (!confirm("Hapus data " + jenis + "?")) return;
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
       const fieldName = jenis === 'LS' ? 'ls_total' : 'gu_total';
@@ -2287,21 +2283,19 @@ function ModalLsGu({ item, onClose, appId, db }: any) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/50 backdrop-blur-sm">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 border border-slate-200">
-        <h3 className="text-sm font-black uppercase tracking-widest mb-6">Kelola Realisasi: {item.uraian}</h3>
+        <h3 className="text-sm font-black uppercase tracking-widest mb-6">Kelola: {item.uraian}</h3>
         
         <div className="space-y-4">
-          <div className="text-[10px] font-bold text-slate-500 uppercase">Jenis Realisasi</div>
           <select value={jenis} onChange={(e) => setJenis(e.target.value)} className="w-full p-3 border rounded-xl font-bold">
             <option value="LS">LS</option>
             <option value="GU">GU</option>
           </select>
 
-          <div className="text-[10px] font-bold text-slate-500 uppercase">Nominal Baru (Overwrite)</div>
           <input 
             type="number" 
             value={nilai} 
             onChange={(e) => setNilai(e.target.value)} 
-            placeholder="Masukkan angka baru..." 
+            placeholder="Nominal Baru..." 
             className="w-full p-3 border rounded-xl font-bold" 
           />
           
