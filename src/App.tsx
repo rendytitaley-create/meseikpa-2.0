@@ -2240,33 +2240,51 @@ const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
   );
 }
 
+import React, { useState } from 'react'; // Sesuaikan jika Anda punya import React
+import { doc, updateDoc, deleteField } from 'firebase/firestore';
 function ModalLsGu({ item, onClose, appId, db }: any) {
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [nilai, setNilai] = useState("");
   const [jenis, setJenis] = useState("LS"); 
 
-  // Di dalam ModalLsGu
-const handleSimpan = async () => {
-  if (!nilai || !tanggal) return;
-  
-  try {
-    // Gunakan DATA_COLLECTION agar sinkron dengan yang dipantau onSnapshot
-    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
-    
-    const fieldName = jenis === 'LS' ? 'ls_total' : 'gu_total';
-    const currentVal = Number(item[fieldName] || 0);
-    
-    await updateDoc(docRef, {
-      [fieldName]: currentVal + Number(nilai)
-    });
-    
-    alert("Berhasil disimpan!");
-    onClose();
-  } catch (e) {
-    console.error("Gagal simpan:", e);
-    alert("Gagal menyimpan data.");
-  }
-};
+  // FUNGSI SIMPAN/EDIT (Langsung menimpa nilai lama dengan nilai baru)
+  const handleSimpan = async () => {
+    if (!nilai) return;
+    try {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
+      const fieldName = jenis === 'LS' ? 'ls_total' : 'gu_total';
+      
+      // Update langsung (Overwrite)
+      await updateDoc(docRef, {
+        [fieldName]: Number(nilai)
+      });
+      
+      alert("Data berhasil diperbarui!");
+      onClose();
+    } catch (e) {
+      console.error("Gagal:", e);
+      alert("Gagal menyimpan.");
+    }
+  };
+
+  // FUNGSI HAPUS (Menghapus field dari Firestore)
+  const handleHapus = async () => {
+    if (!confirm("Apakah Anda yakin ingin menghapus data " + jenis + " ini?")) return;
+    try {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
+      const fieldName = jenis === 'LS' ? 'ls_total' : 'gu_total';
+      
+      await updateDoc(docRef, {
+        [fieldName]: deleteField()
+      });
+      
+      alert("Data berhasil dihapus!");
+      onClose();
+    } catch (e) {
+      console.error("Gagal:", e);
+      alert("Gagal menghapus.");
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/50 backdrop-blur-sm">
@@ -2274,15 +2292,26 @@ const handleSimpan = async () => {
         <h3 className="text-sm font-black uppercase tracking-widest mb-6">Kelola Realisasi: {item.uraian}</h3>
         
         <div className="space-y-4">
-          <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className="w-full p-3 border rounded-xl" />
-          <select value={jenis} onChange={(e) => setJenis(e.target.value)} className="w-full p-3 border rounded-xl">
+          <div className="text-[10px] font-bold text-slate-500 uppercase">Jenis Realisasi</div>
+          <select value={jenis} onChange={(e) => setJenis(e.target.value)} className="w-full p-3 border rounded-xl font-bold">
             <option value="LS">LS</option>
             <option value="GU">GU</option>
           </select>
-          <input type="number" value={nilai} onChange={(e) => setNilai(e.target.value)} placeholder="Nominal" className="w-full p-3 border rounded-xl" />
+
+          <div className="text-[10px] font-bold text-slate-500 uppercase">Nominal Baru (Overwrite)</div>
+          <input 
+            type="number" 
+            value={nilai} 
+            onChange={(e) => setNilai(e.target.value)} 
+            placeholder="Masukkan angka baru..." 
+            className="w-full p-3 border rounded-xl font-bold" 
+          />
           
-          <button onClick={handleSimpan} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold">Simpan Realisasi</button>
-          <button onClick={onClose} className="w-full py-2 text-slate-400 font-bold">Tutup</button>
+          <div className="pt-4 space-y-2">
+            <button onClick={handleSimpan} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase">Simpan / Edit</button>
+            <button onClick={handleHapus} className="w-full py-4 bg-rose-500 text-white rounded-xl font-black text-xs uppercase">Hapus Data</button>
+            <button onClick={onClose} className="w-full py-2 text-slate-400 font-bold text-xs uppercase">Tutup</button>
+          </div>
         </div>
       </div>
     </div>
