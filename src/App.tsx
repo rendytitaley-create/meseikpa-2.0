@@ -1887,94 +1887,85 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
             </div>
           )}
 {activeTab === 'lsgu' && (
-  <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
-    <h3 className="text-xl font-black italic uppercase tracking-tighter mb-6">Monitoring Realisasi LS & GU</h3>
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs">
-        <thead className="bg-slate-900 text-white text-[10px] uppercase font-black">
-  <tr>
-    <th className="p-4 text-left">Kode</th>
-    <th className="p-4 text-left">Uraian Detail</th>
-    <th className="p-4 text-right">RPD (Mar)</th>
-    <th className="p-4 text-right">LS</th>
-    <th className="p-4 text-right">GU</th>
-    <th className="p-4 text-center">Aksi</th>
-  </tr>
-</thead>
-       <tbody className="divide-y divide-slate-100">
-  {dataTampil
-    .filter(d => getLevel(d.kode) === 4) 
-    .map((ro: any) => {
-      // 1. FILTER: Abaikan Header jika mengandung kata KPPN
-      if (ro.uraian.toUpperCase().includes('KPPN')) return null;
+            <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
+              <h3 className="text-xl font-black italic uppercase tracking-tighter mb-6">Monitoring Realisasi LS & GU</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-900 text-white text-[10px] uppercase font-black">
+                    <tr>
+                      <th className="p-4 text-left">Kode</th>
+                      <th className="p-4 text-left">Uraian Detail</th>
+                      <th className="p-4 text-right">RPD (Mar)</th>
+                      <th className="p-4 text-right">LS</th>
+                      <th className="p-4 text-right">GU</th>
+                      <th className="p-4 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
+                      if (ro.uraian.toUpperCase().includes('KPPN')) return null;
+                      const details = dataTampil.filter(d => 
+                        getLevel(d.kode) === 8 && 
+                        d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
+                        !d.uraian.toUpperCase().includes('KPPN') && 
+                        d.uraian.trim() !== ""
+                      );
+                      if (details.length === 0) return null;
+                      const isExpanded = expandedRows[ro.id];
+                      return (
+                        <React.Fragment key={ro.id}>
+                          <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
+                            <td className="p-4 font-black text-slate-800" colSpan={6}>
+                              {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
+                            </td>
+                          </tr>
+                          {isExpanded && details.map((item: any) => (
+                            <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
+                              <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
+                              <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
+                              <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
+                              <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
+                              <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
+                              <td className="p-3 text-center">
+                                <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-      const details = dataTampil.filter(d => 
-        getLevel(d.kode) === 8 && 
-        d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
-        !d.uraian.toUpperCase().includes('KPPN') && // 2. FILTER: Abaikan Detail jika mengandung KPPN
-        d.uraian.trim() !== "" // 3. FILTER: Abaikan detail kosong
-      );
-
-      if (details.length === 0) return null;
-
-      const isExpanded = expandedRows[ro.id];
-
-      return (
-        <React.Fragment key={ro.id}>
-          {/* BARIS HEADER RO */}
-          <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
-            <td className="p-4 font-black text-slate-800" colSpan={6}>
-              {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
-            </td>
-          </tr>
-          
-          {/* BARIS DETAIL */}
-          {isExpanded && details.map((item: any) => (
-            <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
-              <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
-              <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
-              <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
-<td className="p-3 text-right text-blue-600 font-bold">
-  {formatMoney(Number(item.ls_total || 0))}
-</td>
-<td className="p-3 text-right text-amber-600 font-bold">
-  {formatMoney(Number(item.gu_total || 0))}
-</td>
-              <td className="p-3 text-center">
-                 <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
-              </td>
-            </tr>
-          ))}
-        </React.Fragment>
-      );
-    })}
-</tbody>
-      </table>
-      <div className="mt-10 p-6 bg-slate-50 rounded-3xl border border-slate-200">
-        <h4 className="text-sm font-black uppercase tracking-widest mb-4 italic">Rekapitulasi LS & GU per Tanggal</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rekapPerTanggal.map(([tanggal, total]) => (
-            <div key={tanggal} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
-              <div>
-                <div className="text-[10px] font-black text-slate-400 uppercase">{tanggal}</div>
-                <div className="text-xs font-black text-slate-800">
-                  LS: <span className="text-blue-600">{formatMoney(total.LS)}</span> | 
-                  GU: <span className="text-amber-600">{formatMoney(total.GU)}</span>
+              {/* REKAP LS & GU */}
+              <div className="mt-10 p-6 bg-slate-50 rounded-3xl border border-slate-200">
+                <h4 className="text-sm font-black uppercase tracking-widest mb-4 italic">Rekapitulasi LS & GU per Tanggal</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {rekapPerTanggal.map(([tanggal, total]: any) => (
+                    <div key={tanggal} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+                      <div>
+                        <div className="text-[10px] font-black text-slate-400 uppercase">{tanggal}</div>
+                        <div className="text-xs font-black text-slate-800">
+                          LS: <span className="text-blue-600">{formatMoney(total.LS)}</span> | GU: <span className="text-amber-600">{formatMoney(total.GU)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
+
+              {_showLsGuModal && (
+                <ModalLsGu 
+                  item={_showLsGuModal} 
+                  onClose={() => _setShowLsGuModal(null)} 
+                  appId={appId} 
+                  db={db} 
+                />
+              )}
             </div>
-          ))}
-    </div>
-    {_showLsGuModal && (
-      <ModalLsGu 
-        item={_showLsGuModal} 
-        onClose={() => _setShowLsGuModal(null)} 
-        appId={appId} 
-        db={db} 
-      />
-    )}
-</div>
-)}
+          )}
+          
           {activeTab === 'users' && currentUser?.role === 'admin' && (
             <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
                <div className="bg-slate-900 rounded-[4rem] p-16 text-white shadow-2xl relative overflow-hidden">
