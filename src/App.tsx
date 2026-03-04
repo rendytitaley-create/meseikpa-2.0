@@ -1928,7 +1928,15 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
 </tbody>
       </table>
     </div>
-  </div>
+    {_showLsGuModal && (
+      <ModalLsGu 
+        item={_showLsGuModal} 
+        onClose={() => _setShowLsGuModal(null)} 
+        appId={appId} 
+        db={db} 
+      />
+    )}
+</div>
 )}
           {activeTab === 'users' && currentUser?.role === 'admin' && (
             <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
@@ -2227,4 +2235,30 @@ const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
     </div>
   );
 }
-// === SELESAI: SELURUH KODE UTUH TERKIRIM ===
+// --- TEMPEL DI BAWAH PENUTUP FUNGSI APP() ---
+
+function ModalLsGu({ item, onClose, appId, db }: any) {
+  const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
+  const [nilai, setNilai] = useState("");
+  const [jenis, setJenis] = useState("LS"); 
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/50 backdrop-blur-sm">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 border border-slate-200">
+        <h3 className="text-sm font-black uppercase tracking-widest mb-6">Kelola Realisasi: {item.uraian}</h3>
+        
+        <div className="space-y-4">
+          <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className="w-full p-3 border rounded-xl" />
+          <select value={jenis} onChange={(e) => setJenis(e.target.value)} className="w-full p-3 border rounded-xl">
+            <option value="LS">LS</option>
+            <option value="GU">GU</option>
+          </select>
+          <input type="number" value={nilai} onChange={(e) => setNilai(e.target.value)} placeholder="Nominal" className="w-full p-3 border rounded-xl" />
+          
+          <button onClick={() => alert("Simpan ke Firestore: " + item.id)} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold">Simpan Realisasi</button>
+          <button onClick={onClose} className="w-full py-2 text-slate-400 font-bold">Tutup</button>
+        </div>
+      </div>
+    </div>
+  );
+}
