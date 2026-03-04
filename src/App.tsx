@@ -150,6 +150,24 @@ export default function App() {
     revisiKe: "DIPA AWAL"
   });
   const [allUsers, setAllUsers] = useState<any[]>([]);
+  const rekapPerTanggal = useMemo(() => {
+  const rekap: Record<string, { LS: number, GU: number }> = {};
+  
+  dataTampil.forEach(item => {
+    // Rekap LS berdasarkan tanggal
+    if (item.ls_total && item.ls_total_tanggal) {
+      if (!rekap[item.ls_total_tanggal]) rekap[item.ls_total_tanggal] = { LS: 0, GU: 0 };
+      rekap[item.ls_total_tanggal].LS += Number(item.ls_total);
+    }
+    // Rekap GU berdasarkan tanggal
+    if (item.gu_total && item.gu_total_tanggal) {
+      if (!rekap[item.gu_total_tanggal]) rekap[item.gu_total_tanggal] = { LS: 0, GU: 0 };
+      rekap[item.gu_total_tanggal].GU += Number(item.gu_total);
+    }
+  });
+  
+  return Object.entries(rekap).sort((a, b) => a[0].localeCompare(b[0]));
+}, [dataTampil]);
 
   // --- UI STATE ---
   const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users' | 'capaian' | 'lsgu'>('dashboard');
@@ -1932,6 +1950,20 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
     })}
 </tbody>
       </table>
+      <div className="mt-10 p-6 bg-slate-50 rounded-3xl border border-slate-200">
+        <h4 className="text-sm font-black uppercase tracking-widest mb-4 italic">Rekapitulasi LS & GU per Tanggal</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {rekapPerTanggal.map(([tanggal, total]) => (
+            <div key={tanggal} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+              <div>
+                <div className="text-[10px] font-black text-slate-400 uppercase">{tanggal}</div>
+                <div className="text-xs font-black text-slate-800">
+                  LS: <span className="text-blue-600">{formatMoney(total.LS)}</span> | 
+                  GU: <span className="text-amber-600">{formatMoney(total.GU)}</span>
+                </div>
+              </div>
+            </div>
+          ))}
     </div>
     {_showLsGuModal && (
       <ModalLsGu 
