@@ -1916,8 +1916,12 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
               <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
               <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
               <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
-              <td className="p-3 text-right text-blue-600 font-bold">0</td>
-              <td className="p-3 text-right text-amber-600 font-bold">0</td>
+              <td className="p-3 text-right text-blue-600 font-bold">
+  {formatMoney(Number(item.ls_total || 0))}
+</td>
+<td className="p-3 text-right text-amber-600 font-bold">
+  {formatMoney(Number(item.gu_total || 0))}
+</td>
               <td className="p-3 text-center">
                  <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
               </td>
@@ -2243,24 +2247,30 @@ function ModalLsGu({ item, onClose, appId, db }: any) {
   const [jenis, setJenis] = useState("LS"); 
 
   const handleSimpan = async () => {
-    if (!nilai || !tanggal) return;
+  if (!nilai || !tanggal) return;
+  
+  try {
+    // 1. Dapatkan referensi dokumen spesifik
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
     
-    try {
-      // Kita gunakan 'collection' yang sudah di-import di atas
-      const realisasiRef = collection(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id, 'realisasi_lsgu');
-      await addDoc(realisasiRef, {
-        tanggal: tanggal,
-        jenis: jenis,
-        nilai: Number(nilai),
-        timestamp: new Date()
-      });
-      alert("Data berhasil disimpan!");
-      onClose();
-    } catch (e) {
-      console.error("Gagal simpan:", e);
-      alert("Gagal menyimpan data.");
-    }
-  };
+    // 2. Tentukan field berdasarkan jenis (LS atau GU)
+    const fieldName = jenis === 'LS' ? 'ls_total' : 'gu_total';
+    
+    // 3. Ambil nilai lama, lalu tambah dengan nilai baru
+    const currentVal = Number(item[fieldName] || 0);
+    
+    // 4. Update langsung ke dokumen tersebut
+    await updateDoc(docRef, {
+      [fieldName]: currentVal + Number(nilai)
+    });
+    
+    alert("Data berhasil disimpan!");
+    onClose();
+  } catch (e) {
+    console.error("Gagal simpan:", e);
+    alert("Gagal menyimpan data.");
+  }
+};
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/50 backdrop-blur-sm">
