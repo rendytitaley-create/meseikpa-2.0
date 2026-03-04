@@ -2240,8 +2240,6 @@ const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
   );
 }
 
-import React, { useState } from 'react'; // Sesuaikan jika Anda punya import React
-import { doc, updateDoc, deleteField } from 'firebase/firestore';
 function ModalLsGu({ item, onClose, appId, db }: any) {
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [nilai, setNilai] = useState("");
