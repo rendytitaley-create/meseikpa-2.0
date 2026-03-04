@@ -151,28 +151,21 @@ export default function App() {
   });
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const rekapPerTanggal = useMemo(() => {
-  const rekap: Record<string, { LS: number, GU: number, details: any[] }> = {};
-  
-  dataTampil.forEach(item => {
-    // Kumpulkan LS
-    if (item.ls_total && item.ls_total_tanggal) {
-      if (!rekap[item.ls_total_tanggal]) rekap[item.ls_total_tanggal] = { LS: 0, GU: 0, details: [] };
-      rekap[item.ls_total_tanggal].LS += Number(item.ls_total);
-      rekap[item.ls_total_tanggal].details.push({ uraian: item.uraian, nilai: item.ls_total, jenis: 'LS' });
-    }
-    // Kumpulkan GU
-    if (item.gu_total && item.gu_total_tanggal) {
-      if (!rekap[item.gu_total_tanggal]) rekap[item.gu_total_tanggal] = { LS: 0, GU: 0, details: [] };
-      rekap[item.gu_total_tanggal].GU += Number(item.gu_total);
-      rekap[item.gu_total_tanggal].details.push({ uraian: item.uraian, nilai: item.gu_total, jenis: 'GU' });
-    }
-  });
-  
-  return Object.entries(rekap).sort((a, b) => b[0].localeCompare(a[0]));
-}, [dataTampil]);
-  
-  return Object.entries(rekap).sort((a, b) => a[0].localeCompare(b[0]));
-}, [dataTampil]);
+    const rekap: Record<string, { LS: number, GU: number, details: any[] }> = {};
+    dataTampil.forEach(item => {
+      if (item.ls_total && item.ls_total_tanggal) {
+        if (!rekap[item.ls_total_tanggal]) rekap[item.ls_total_tanggal] = { LS: 0, GU: 0, details: [] };
+        rekap[item.ls_total_tanggal].LS += Number(item.ls_total);
+        rekap[item.ls_total_tanggal].details.push({ uraian: item.uraian, nilai: item.ls_total, jenis: 'LS' });
+      }
+      if (item.gu_total && item.gu_total_tanggal) {
+        if (!rekap[item.gu_total_tanggal]) rekap[item.gu_total_tanggal] = { LS: 0, GU: 0, details: [] };
+        rekap[item.gu_total_tanggal].GU += Number(item.gu_total);
+        rekap[item.gu_total_tanggal].details.push({ uraian: item.uraian, nilai: item.gu_total, jenis: 'GU' });
+      }
+    });
+    return Object.entries(rekap).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [dataTampil]);
 
   // --- UI STATE ---
   const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users' | 'capaian' | 'lsgu'>('dashboard');
