@@ -2284,7 +2284,6 @@ const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
 function ModalLsGu({ item, onClose, appId, db }: any) {
   const [nilai, setNilai] = useState("");
   const [jenis, setJenis] = useState("LS"); 
-  // Kembalikan state tanggal agar bisa diinput
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
 
   const handleSimpan = async () => {
@@ -2292,15 +2291,11 @@ function ModalLsGu({ item, onClose, appId, db }: any) {
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
       const fieldName = jenis === 'LS' ? 'ls_total' : 'gu_total';
-      
-      // Jika Anda ingin menyimpan tanggal juga di Firestore, 
-      // Anda bisa menambahkannya ke objek updateDoc ini:
       await updateDoc(docRef, {
         [fieldName]: Number(nilai),
-        [`${fieldName}_tanggal`]: tanggal // Menyimpan tanggal spesifik untuk field tersebut
+        [`${fieldName}_tanggal`]: tanggal 
       });
-      
-      alert("Data (" + jenis + ") pada tanggal " + tanggal + " berhasil disimpan!");
+      alert("Data berhasil disimpan!");
       onClose();
     } catch (e) {
       console.error("Gagal:", e);
@@ -2313,12 +2308,10 @@ function ModalLsGu({ item, onClose, appId, db }: any) {
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
       const fieldName = jenis === 'LS' ? 'ls_total' : 'gu_total';
-      
       await updateDoc(docRef, {
         [fieldName]: deleteField(),
-        [`${fieldName}_tanggal`]: deleteField() // Menghapus tanggalnya juga
+        [`${fieldName}_tanggal`]: deleteField()
       });
-      
       alert("Data berhasil dihapus!");
       onClose();
     } catch (e) {
@@ -2331,31 +2324,13 @@ function ModalLsGu({ item, onClose, appId, db }: any) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/50 backdrop-blur-sm">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 border border-slate-200">
         <h3 className="text-sm font-black uppercase tracking-widest mb-6">Kelola: {item.uraian}</h3>
-        
         <div className="space-y-4">
-          <div className="text-[10px] font-bold text-slate-500 uppercase">Tanggal Realisasi</div>
-          <input 
-            type="date" 
-            value={tanggal} 
-            onChange={(e) => setTanggal(e.target.value)} 
-            className="w-full p-3 border rounded-xl font-bold" 
-          />
-
-          <div className="text-[10px] font-bold text-slate-500 uppercase">Jenis Realisasi</div>
+          <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className="w-full p-3 border rounded-xl font-bold" />
           <select value={jenis} onChange={(e) => setJenis(e.target.value)} className="w-full p-3 border rounded-xl font-bold">
             <option value="LS">LS</option>
             <option value="GU">GU</option>
           </select>
-
-          <div className="text-[10px] font-bold text-slate-500 uppercase">Nominal</div>
-          <input 
-            type="number" 
-            value={nilai} 
-            onChange={(e) => setNilai(e.target.value)} 
-            placeholder="Masukkan nominal..." 
-            className="w-full p-3 border rounded-xl font-bold" 
-          />
-          
+          <input type="number" value={nilai} onChange={(e) => setNilai(e.target.value)} placeholder="Masukkan nominal..." className="w-full p-3 border rounded-xl font-bold" />
           <div className="pt-4 space-y-2">
             <button onClick={handleSimpan} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase">Simpan / Edit</button>
             <button onClick={handleHapus} className="w-full py-4 bg-rose-500 text-white rounded-xl font-black text-xs uppercase">Hapus Data</button>
