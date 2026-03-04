@@ -2235,12 +2235,34 @@ const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
     </div>
   );
 }
-// --- TEMPEL DI BAWAH PENUTUP FUNGSI APP() ---
 
 function ModalLsGu({ item, onClose, appId, db }: any) {
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [nilai, setNilai] = useState("");
   const [jenis, setJenis] = useState("LS"); 
+
+  // FUNGSI SIMPAN KE FIREBASE
+  const handleSimpan = async () => {
+    if (!nilai || !tanggal) return;
+    
+    // Kita simpan ke sub-collection 'realisasi' di dalam dokumen item tersebut
+    const { doc, collection, addDoc } = require('firebase/firestore'); // Import lokal
+    
+    try {
+      const realisasiRef = collection(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id, 'realisasi_lsgu');
+      await addDoc(realisasiRef, {
+        tanggal: tanggal,
+        jenis: jenis,
+        nilai: Number(nilai),
+        timestamp: new Date()
+      });
+      alert("Data berhasil disimpan!");
+      onClose();
+    } catch (e) {
+      console.error("Gagal simpan:", e);
+      alert("Gagal menyimpan data.");
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/50 backdrop-blur-sm">
@@ -2255,7 +2277,8 @@ function ModalLsGu({ item, onClose, appId, db }: any) {
           </select>
           <input type="number" value={nilai} onChange={(e) => setNilai(e.target.value)} placeholder="Nominal" className="w-full p-3 border rounded-xl" />
           
-          <button onClick={() => alert("Simpan ke Firestore: " + item.id)} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold">Simpan Realisasi</button>
+          {/* TOMBOL INI SEKARANG MENGGUNAKAN FUNGSI handleSimpan */}
+          <button onClick={handleSimpan} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold">Simpan Realisasi</button>
           <button onClick={onClose} className="w-full py-2 text-slate-400 font-bold">Tutup</button>
         </div>
       </div>
