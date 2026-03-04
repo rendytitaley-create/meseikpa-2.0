@@ -14,7 +14,8 @@ import {
   getDocs, 
   deleteDoc,
   where,
-  limit
+  limit,
+  addDoc
 } from 'firebase/firestore';
 import { 
   getAuth, 
@@ -2241,14 +2242,11 @@ function ModalLsGu({ item, onClose, appId, db }: any) {
   const [nilai, setNilai] = useState("");
   const [jenis, setJenis] = useState("LS"); 
 
-  // FUNGSI SIMPAN KE FIREBASE
   const handleSimpan = async () => {
     if (!nilai || !tanggal) return;
     
-    // Kita simpan ke sub-collection 'realisasi' di dalam dokumen item tersebut
-    const { doc, collection, addDoc } = require('firebase/firestore'); // Import lokal
-    
     try {
+      // Kita gunakan 'collection' yang sudah di-import di atas
       const realisasiRef = collection(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id, 'realisasi_lsgu');
       await addDoc(realisasiRef, {
         tanggal: tanggal,
@@ -2277,7 +2275,6 @@ function ModalLsGu({ item, onClose, appId, db }: any) {
           </select>
           <input type="number" value={nilai} onChange={(e) => setNilai(e.target.value)} placeholder="Nominal" className="w-full p-3 border rounded-xl" />
           
-          {/* TOMBOL INI SEKARANG MENGGUNAKAN FUNGSI handleSimpan */}
           <button onClick={handleSimpan} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold">Simpan Realisasi</button>
           <button onClick={onClose} className="w-full py-2 text-slate-400 font-bold">Tutup</button>
         </div>
