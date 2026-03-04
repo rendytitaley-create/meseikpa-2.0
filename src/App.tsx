@@ -1915,7 +1915,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
               <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
               <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
               <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
-              <td className="p-3 text-right text-blue-600 font-bold">
+<td className="p-3 text-right text-blue-600 font-bold">
   {formatMoney(Number(item.ls_total || 0))}
 </td>
 <td className="p-3 text-right text-amber-600 font-bold">
