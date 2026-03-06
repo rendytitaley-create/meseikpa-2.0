@@ -176,6 +176,8 @@ const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [twActive, setTwActive] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeMonthLSGU, setActiveMonthLSGU] = useState<string>(allMonths[new Date().getMonth()]);
+const [tempLsGuData, setTempLsGuData] = useState<Record<string, any>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   // const [, setLogs] = useState<string[]>([]); 
   const [libReady, setLibReady] = useState(false);
@@ -185,6 +187,7 @@ const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [showClearDataModal, setShowClearDataModal] = useState(false);
   // State untuk Modal LS/GU
 const [_showLsGuModal, _setShowLsGuModal] = useState<any>(null);
+  
   
   // Fitur Rekap Bulanan State
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
@@ -411,6 +414,26 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
     setLoginError("");
     setActiveTab('dashboard');
   };
+
+  // --- FUNGSI SIMPAN BATCH ---
+const handleBatchSave = async () => {
+  setIsProcessing(true);
+  try {
+    const batch = writeBatch(db);
+    Object.entries(tempLsGuData).forEach(([docId, data]) => {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, docId);
+      batch.update(docRef, data);
+    });
+    await batch.commit();
+    setTempLsGuData({}); // Reset setelah berhasil
+    alert("Data berhasil disimpan!");
+  } catch (err) {
+    console.error("Gagal simpan:", err);
+    alert("Gagal menyimpan data.");
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   const handleExportExcel = async () => {
     const ExcelJS = (window as any).ExcelJS;
@@ -1885,56 +1908,89 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
             </div>
           )}
 {activeTab === 'lsgu' && (
-            <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
-              <h3 className="text-xl font-black italic uppercase tracking-tighter mb-6">Monitoring Realisasi LS & GU</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-slate-900 text-white text-[10px] uppercase font-black">
-                    <tr>
-                      <th className="p-4 text-left">Kode</th>
-                      <th className="p-4 text-left">Uraian Detail</th>
-                      <th className="p-4 text-right">RPD (Mar)</th>
-                      <th className="p-4 text-right">LS</th>
-                      <th className="p-4 text-right">GU</th>
-                      <th className="p-4 text-center">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
-                      if (ro.uraian.toUpperCase().includes('KPPN')) return null;
-                      const details = dataTampil.filter(d => 
-                        getLevel(d.kode) === 8 && 
-                        d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
-                        !d.uraian.toUpperCase().includes('KPPN') && 
-                        d.uraian.trim() !== ""
-                      );
-                      if (details.length === 0) return null;
-                      const isExpanded = expandedRows[ro.id];
-                      return (
-                        <React.Fragment key={ro.id}>
-                          <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
-                            <td className="p-4 font-black text-slate-800" colSpan={6}>
-                              {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
-                            </td>
-                          </tr>
-                          {isExpanded && details.map((item: any) => (
-                            <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
-                              <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
-                              <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
-                              <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
-                              <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
-                              <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
-                              <td className="p-3 text-center">
-                                <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
-                              </td>
-                            </tr>
-                          ))}
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+  <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
+    <div className="flex justify-between items-center mb-6">
+      <h3 className="text-xl font-black italic uppercase tracking-tighter">Monitoring Realisasi LS, GU & 51</h3>
+      <div className="flex items-center gap-3">
+        <select 
+          value={activeMonthLSGU} 
+          onChange={(e) => setActiveMonthLSGU(e.target.value)} 
+          className="p-2 border rounded-xl font-bold text-xs bg-slate-50"
+        >
+          {allMonths.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+        <button 
+          onClick={handleBatchSave} 
+          disabled={isProcessing || Object.keys(tempLsGuData).length === 0} 
+          className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase disabled:opacity-40 hover:bg-indigo-700 transition-all"
+        >
+          Simpan Semua
+        </button>
+      </div>
+    </div>
+
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead className="bg-slate-900 text-white text-[10px] uppercase font-black">
+          <tr>
+            <th className="p-4 text-left">Kode</th>
+            <th className="p-4 text-left">Uraian Detail</th>
+            <th className="p-4 text-right">RPD ({activeMonthLSGU})</th>
+            <th className="p-4 text-right">LS</th>
+            <th className="p-4 text-right">GU</th>
+            <th className="p-4 text-right text-emerald-400">51</th>
+            <th className="p-4 text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
+            if (ro.uraian.toUpperCase().includes('KPPN')) return null;
+            const details = dataTampil.filter(d => 
+              getLevel(d.kode) === 8 && 
+              d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
+              !d.uraian.toUpperCase().includes('KPPN') && 
+              d.uraian.trim() !== ""
+            );
+            if (details.length === 0) return null;
+            const isExpanded = expandedRows[ro.id];
+            return (
+              <React.Fragment key={ro.id}>
+                <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
+                  <td className="p-4 font-black text-slate-800" colSpan={7}>
+                    {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
+                  </td>
+                </tr>
+                {isExpanded && details.map((item: any) => (
+                  <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
+                    <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
+                    <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
+                    <td className="p-3 text-right">{formatMoney(Number(item.rpd?.[activeMonthLSGU] || 0))}</td>
+                    <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
+                    <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
+                    <td className="p-3 text-right">
+                      <input 
+                        type="text" 
+                        value={formatInputMasking(tempLsGuData[item.id]?.belanja51 ?? item.belanja51 ?? "")}
+                        onChange={(e) => setTempLsGuData(prev => ({ 
+                            ...prev, 
+                            [item.id]: { ...prev[item.id], belanja51: e.target.value.replace(/\D/g, "") } 
+                        }))}
+                        className="w-full text-right p-1 bg-emerald-50 rounded border border-emerald-100 font-bold text-emerald-700 outline-none"
+                      />
+                    </td>
+                    <td className="p-3 text-center">
+                      <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
+                    </td>
+                  </tr>
+                ))}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
 
               {/* REKAP LS & GU */}
               <div className="mt-10">
