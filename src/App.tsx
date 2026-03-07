@@ -1884,42 +1884,53 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
           )}
 {activeTab === 'lsgu' && (
   <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
-    {/* --- KARTU MONITORING RPD BELANJA 52 (BARU) --- */}
-    {(() => {
-      // Logika penghitungan hanya untuk Belanja 52 bulan berjalan
-      const rpd52 = dataTampil.reduce((acc, d) => 
-        (getLevel(d.kode) === 8 && d.kode?.includes("52") ? acc + Number(d.rpd?.[rekapPeriod] || 0) : acc), 0);
-      
-      const real52 = dataTampil.reduce((acc, d) => 
-        (getLevel(d.kode) === 8 && d.kode?.includes("52") ? acc + Number(d.ls_total || 0) + Number(d.gu_total || 0) : acc), 0);
-      
-      const selisih = real52 - rpd52;
+   {/* --- KARTU MONITORING RPD BELANJA 52 --- */}
+{(() => {
+  const rpd52 = dataTampil.reduce((acc, d) => {
+    // Memastikan filter kode adalah string dan mengandung 52
+    const kodeStr = String(d.kode || "");
+    const is52 = getLevel(d.kode) === 8 && kodeStr.includes("52");
+    // Mengambil nilai RPD dari bulan yang terpilih
+    const nilai = Number(d.rpd?.[rekapPeriod] || 0);
+    return is52 ? acc + nilai : acc;
+  }, 0);
+  
+  const real52 = dataTampil.reduce((acc, d) => {
+    const kodeStr = String(d.kode || "");
+    const is52 = getLevel(d.kode) === 8 && kodeStr.includes("52");
+    // Menjumlahkan LS dan GU yang ada di item tersebut
+    const ls = Number(d.ls_total || 0);
+    const gu = Number(d.gu_total || 0);
+    return is52 ? acc + (ls + gu) : acc;
+  }, 0);
+  
+  const selisih = real52 - rpd52;
 
-      return (
-        <div className="mb-8 p-6 bg-slate-900 rounded-3xl text-white shadow-xl flex items-center justify-between">
-          <div>
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Monitoring Rekap RPD Belanja 52</h3>
-            <p className="text-sm font-black italic">Periode: {rekapPeriod}</p>
-          </div>
-          <div className="flex gap-8 text-right">
-            <div>
-              <span className="text-[9px] block text-slate-400 uppercase">Target RPD (52)</span>
-              <span className="text-sm font-black text-indigo-400">Rp {formatMoney(rpd52)}</span>
-            </div>
-            <div>
-              <span className="text-[9px] block text-slate-400 uppercase">Total Real (LS+GU)</span>
-              <span className="text-sm font-black text-emerald-400">Rp {formatMoney(real52)}</span>
-            </div>
-            <div>
-              <span className="text-[9px] block text-slate-400 uppercase">Selisih</span>
-              <span className={`text-sm font-black ${selisih < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                {selisih > 0 ? '+' : ''}{formatMoney(selisih)}
-              </span>
-            </div>
-          </div>
+  return (
+    <div className="mb-8 p-6 bg-slate-900 rounded-3xl text-white shadow-xl flex items-center justify-between">
+      <div>
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Monitoring Rekap RPD Belanja 52</h3>
+        <p className="text-sm font-black italic">Periode: {rekapPeriod}</p>
+      </div>
+      <div className="flex gap-8 text-right">
+        <div>
+          <span className="text-[9px] block text-slate-400 uppercase">Target RPD (52)</span>
+          <span className="text-sm font-black text-indigo-400">Rp {formatMoney(rpd52)}</span>
         </div>
-      );
-    })()}
+        <div>
+          <span className="text-[9px] block text-slate-400 uppercase">Total Real (LS+GU)</span>
+          <span className="text-sm font-black text-emerald-400">Rp {formatMoney(real52)}</span>
+        </div>
+        <div>
+          <span className="text-[9px] block text-slate-400 uppercase">Selisih</span>
+          <span className={`text-sm font-black ${selisih < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+            {selisih > 0 ? '+' : ''}{formatMoney(selisih)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+})()}
 
     <div className="flex justify-between items-center mb-6">
       <h3 className="text-xl font-black italic uppercase tracking-tighter">Monitoring Realisasi LS & GU</h3>
@@ -2382,30 +2393,33 @@ const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
 }
 
 function ModalLsGu({ item, onClose, appId, db }: any) {
- // Kita ambil nilai LS atau GU tergantung mana yang tersedia atau default ke kosong
-const initialNilai = item.ls_total || item.gu_total || "";
-// Kita ambil tanggal yang tersimpan, jika belum ada baru pakai hari ini
-const initialTanggal = item.ls_total_tanggal || item.gu_total_tanggal || new Date().toISOString().split('T')[0];
+  // Ambil nilai mentah (angka)
+  const initialNilai = item.ls_total || item.gu_total || 0;
+  const initialTanggal = item.ls_total_tanggal || item.gu_total_tanggal || new Date().toISOString().split('T')[0];
 
-const [nilai, setNilai] = useState(initialNilai ? initialNilai.toLocaleString('id-ID') : "");
-const [tanggal, setTanggal] = useState(initialTanggal);
-const [jenis, setJenis] = useState(item.ls_total ? "LS" : (item.gu_total ? "GU" : "LS"));
-  
+  const [nilai, setNilai] = useState(initialNilai); // Simpan sebagai angka
+  const [tanggal, setTanggal] = useState(initialTanggal);
+  const [jenis, setJenis] = useState(item.ls_total ? "LS" : "GU");
 
   const handleSimpan = async () => {
-    if (!nilai || !tanggal) return;
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
-      const fieldName = jenis === 'LS' ? 'ls_total' : 'gu_total';
+      
+      // Jika ganti jenis (misal dari LS ke GU), kita harus hapus field lama
+      const oldField = jenis === 'LS' ? 'gu_total' : 'ls_total';
+      const newField = jenis === 'LS' ? 'ls_total' : 'gu_total';
+      
       await updateDoc(docRef, {
-        [fieldName]: Number(nilai),
-        [`${fieldName}_tanggal`]: tanggal 
+        [oldField]: deleteField(),
+        [`${oldField}_tanggal`]: deleteField(),
+        [newField]: Number(nilai),
+        [`${newField}_tanggal`]: tanggal
       });
+      
       alert("Data berhasil disimpan!");
       onClose();
     } catch (e) {
-      console.error("Gagal:", e);
-      alert("Gagal menyimpan.");
+      alert("Gagal menyimpan data.");
     }
   };
 
