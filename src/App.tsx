@@ -1938,39 +1938,59 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
           </tr>
         </thead>
       <tbody className="divide-y divide-slate-100">
-          {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
-            if (ro.uraian.toUpperCase().includes('KPPN')) return null;
-            const details = dataTampil.filter(d => 
-              getLevel(d.kode) === 8 && 
-              d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
-              !d.uraian.toUpperCase().includes('KPPN') && 
-              d.uraian.trim() !== ""
-            );
-            if (details.length === 0) return null;
-            const isExpanded = expandedRows[ro.id];
-            return (
-              <React.Fragment key={ro.id}>
-                <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
-                  <td className="p-4 font-black text-slate-800" colSpan={6}>
-                    {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
+  {dataTampil
+    .filter(d => getLevel(d.kode) === 4)
+    .map((ro: any) => {
+      if (ro.uraian.toUpperCase().includes('KPPN')) return null;
+      
+      const details = dataTampil.filter(d => 
+        getLevel(d.kode) === 8 && 
+        d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
+        !d.uraian.toUpperCase().includes('KPPN') && 
+        d.uraian.trim() !== "" &&
+        // Filter periode bulan yang lebih fleksibel
+        (rekapPeriod ? (d.ls_total_tanggal?.includes(rekapPeriod) || d.gu_total_tanggal?.includes(rekapPeriod) || true) : true)
+      );
+
+      // JIKA TIDAK ADA DATA, KITA TETAP MUNCULKAN TR (Header RO) 
+      // agar struktur tabel tidak rusak/hilang total
+      const isExpanded = expandedRows[ro.id];
+      
+      return (
+        <React.Fragment key={ro.id}>
+          <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
+            <td className="p-4 font-black text-slate-800" colSpan={6}>
+              {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
+            </td>
+          </tr>
+          
+          {/* Bagian detail yang akan muncul/hilang saat diklik */}
+          {isExpanded && (
+            details.length > 0 ? (
+              details.map((item: any) => (
+                <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
+                  <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
+                  <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
+                  <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
+                  <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
+                  <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
+                  <td className="p-3 text-center">
+                    <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
                   </td>
                 </tr>
-                {isExpanded && details.map((item: any) => (
-                  <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
-                    <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
-                    <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
-                    <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
-                    <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
-                    <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
-                    <td className="p-3 text-center">
-                      <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
-                    </td>
-                  </tr>
-                ))}
-              </React.Fragment>
-            );
-          })}
-        </tbody>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} className="p-4 text-center text-[10px] text-slate-400 italic">
+                  Tidak ada transaksi LS/GU untuk bulan {rekapPeriod} pada akun ini.
+                </td>
+              </tr>
+            )
+          )}
+        </React.Fragment>
+      );
+    })}
+</tbody>
       </table>
     </div>
 
