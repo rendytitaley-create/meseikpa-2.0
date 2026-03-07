@@ -1989,44 +1989,51 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
       </table>
     </div>
 
-    {/* KARTU RINGKASAN LS & GU */}
+  {/* KARTU RINGKASAN LS & GU DENGAN PENGELOMPOKAN RO */}
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
   {['LS', 'GU'].map(metode => {
-    // Hitung total untuk metode yang dipilih pada bulan terpilih
-    const totalMetode = dataTampil.reduce((acc, d) => {
-        const val = metode === 'LS' ? (d.ls_total || 0) : (d.gu_total || 0);
-        return acc + Number(val);
-    }, 0);
-
     return (
-      <div key={metode} className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+      <div key={metode} className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
         <div className="flex justify-between items-center mb-6">
-          <h4 className="text-sm font-black italic uppercase text-slate-800">Total {metode} - {rekapPeriod}</h4>
-          <span className="text-xl font-black text-indigo-600">Rp {formatMoney(totalMetode)}</span>
+          <h4 className="text-sm font-black italic uppercase text-slate-800">Detail {metode} per RO - {rekapPeriod}</h4>
+          <span className="text-sm font-black text-indigo-600 italic">
+            Total: Rp {formatMoney(dataTampil.reduce((acc, d) => acc + Number(metode === 'LS' ? (d.ls_total || 0) : (d.gu_total || 0)), 0))}
+          </span>
         </div>
-        
-        {/* Tombol Expand */}
-        <button 
-          onClick={() => setExpandedRows(prev => ({...prev, [`card_${metode}`]: !prev[`card_${metode}`]}))}
-          className="w-full py-3 bg-slate-50 text-[10px] font-black uppercase text-slate-500 rounded-xl hover:bg-slate-100 transition-all"
-        >
-          {expandedRows[`card_${metode}`] ? 'Tutup Rincian' : 'Lihat Rincian RO per Tanggal'}
-        </button>
 
-        {/* Isi Expand */}
-        {expandedRows[`card_${metode}`] && (
-          <div className="mt-4 space-y-2 animate-in slide-in-from-top duration-300">
-            {dataTampil.filter(d => (metode === 'LS' ? d.ls_total : d.gu_total)).map(item => (
-              <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg text-[10px]">
-                <span className="font-bold text-slate-700 truncate max-w-[150px]">{item.uraian}</span>
-                <div className="text-right">
-                  <span className="block font-black">{formatMoney(metode === 'LS' ? item.ls_total : item.gu_total)}</span>
-                  <span className="text-[8px] text-slate-400">{item.ls_total_tanggal || item.gu_total_tanggal}</span>
+        <div className="space-y-4">
+          {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
+            const details = dataTampil.filter(d => 
+              getLevel(d.kode) === 8 && 
+              d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
+              (metode === 'LS' ? d.ls_total : d.gu_total)
+            );
+
+            if (details.length === 0) return null;
+
+            return (
+              <div key={ro.id} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                {/* Judul RO */}
+                <div className="text-[10px] font-black text-slate-600 mb-3 border-b border-slate-200 pb-2">{ro.kode} - {ro.uraian}</div>
+                
+                {/* Rincian Detail di bawah RO */}
+                <div className="space-y-2">
+                  {details.map((item: any) => (
+                    <div key={item.id} className="flex justify-between items-center bg-white p-2 rounded-lg shadow-sm border border-slate-100">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-bold text-slate-700">{item.uraian}</span>
+                        <span className="text-[8px] text-slate-400 italic">{item.ls_total_tanggal || item.gu_total_tanggal || "Tanpa Tanggal"}</span>
+                      </div>
+                      <span className="text-[10px] font-black text-slate-900">
+                        {formatMoney(metode === 'LS' ? item.ls_total : item.gu_total)}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
     );
   })}
