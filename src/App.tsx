@@ -170,7 +170,6 @@ export default function App() {
   // --- UI STATE ---
   const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users' | 'capaian' | 'lsgu'>('dashboard');
   const [activeWilayah, setActiveWilayah] = useState<string>("GG");
-  const [rekapPeriod, setRekapPeriod] = useState('Mar');
   const [activeTim, setActiveTim] = useState<string>("Nerwilis");
   const [rapatDepth, setRapatDepth] = useState<number>(2);
 const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
