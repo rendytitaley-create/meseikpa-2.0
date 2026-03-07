@@ -1365,7 +1365,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                   </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
                       <div className="flex justify-between items-start mb-8">
                           <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Activity size={24}/></div>
@@ -1425,38 +1425,8 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                           )}
                       </div>
                   </div>
-
-              {/* KARTU MONITORING RPD BELANJA 52 */}
-  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm">
-        <div className="flex justify-between items-start mb-6">
-          <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><PieIcon size={24} /></div>
-          <div className="text-right">
-            <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">RPD Belanja 52</span>
-            <span className="text-[10px] font-bold text-indigo-600 italic uppercase">{rekapPeriod}</span>
-          </div>
-        </div>
-        {(() => {
-          // Filter data yang memiliki kode "52" di Level 8 (detail)
-          const rpd52 = dataTampil.filter(d => getLevel(d.kode) === 8 && d.kode.includes("52"))
-                                  .reduce((acc, d) => acc + Number(d.rpd?.[rekapPeriod] || 0), 0);
-          const real52 = dataTampil.filter(d => getLevel(d.kode) === 8 && d.kode.includes("52"))
-                                   .reduce((acc, d) => acc + Number(d.ls_total || 0) + Number(d.gu_total || 0), 0);
-          const selisih = real52 - rpd52;
-          return (
-            <div className="space-y-2">
-              <div className="flex justify-between text-[9px] font-black uppercase text-slate-400"><span>Target RPD (52):</span><span>Rp {formatMoney(rpd52)}</span></div>
-              <div className="flex justify-between text-[9px] font-black uppercase text-indigo-600"><span>Realisasi (52):</span><span>Rp {formatMoney(real52)}</span></div>
-              <div className={`text-sm font-black italic text-center mt-2 ${selisih < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                {selisih > 0 ? '+' : ''}{formatMoney(selisih)}
-              </div>
-            </div>
-          );
-        })()}
-      </div>
-    </div>
-  </div>
-)}
                   
+
                   <GapMonitoringCard isDashboard={true} />
               </div>
 
