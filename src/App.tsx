@@ -1901,18 +1901,18 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
         </div>
         <button 
           onClick={async () => {
-            const isLocked = kppnMetrics.lockedMonths?.[rekapPeriod] || false;
-            const newLockState = !isLocked;
-            try {
-              await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'kppn_global'), {
-                [`lockedMonths.${rekapPeriod}`]: newLockState
-              });
-              alert(`Periode ${rekapPeriod} sekarang ${newLockState ? 'DIKUNCI' : 'DIBUKA'}`);
-            } catch (error) {
-              console.error("Gagal:", error);
-              alert("Terjadi kesalahan.");
-            }
-          }}
+  const isLocked = kppnMetrics.lockedMonths?.[rekapPeriod] || false;
+  const newLockState = !isLocked;
+  try {
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, 'kppn_global'), {
+      [`lockedMonths.${rekapPeriod}`]: newLockState
+    });
+    alert(`Periode ${rekapPeriod} sekarang ${newLockState ? 'DIKUNCI' : 'DIBUKA'}`);
+  } catch (error) {
+    console.error("Gagal:", error);
+    alert("Terjadi kesalahan.");
+  }
+}}
           className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase shadow-sm transition-all ${
             kppnMetrics.lockedMonths?.[rekapPeriod] ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'
           }`}
