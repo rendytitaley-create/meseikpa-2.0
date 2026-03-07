@@ -1888,7 +1888,9 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
   <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
     <h3 className="text-xl font-black italic uppercase tracking-tighter mb-6">Monitoring Realisasi LS & GU</h3>
     
-    {/* --- TOMBOL KUNCI PERIODE (Admin) --- */}
+   {console.log("KPPN Metrics:", kppnMetrics)}
+{console.log("Current User Role:", currentUser?.role)}
+
     {currentUser?.role === 'admin' && (
       <div className="mb-6 p-4 bg-slate-100 rounded-2xl flex items-center justify-between border border-slate-200">
         <div>
