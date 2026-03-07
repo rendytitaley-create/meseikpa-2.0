@@ -1989,19 +1989,19 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
       </table>
     </div>
 
-  {/* KARTU RINGKASAN LS & GU DENGAN PENGELOMPOKAN RO */}
+ {/* KARTU RINGKASAN LS & GU - NESTED EXPANDABLE DENGAN TOTAL PER RO */}
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
   {['LS', 'GU'].map(metode => {
     return (
       <div key={metode} className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
         <div className="flex justify-between items-center mb-6">
-          <h4 className="text-sm font-black italic uppercase text-slate-800">Detail {metode} per RO - {rekapPeriod}</h4>
-          <span className="text-sm font-black text-indigo-600 italic">
+          <h4 className="text-sm font-black italic uppercase text-slate-800">Detail {metode} per RO</h4>
+          <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
             Total: Rp {formatMoney(dataTampil.reduce((acc, d) => acc + Number(metode === 'LS' ? (d.ls_total || 0) : (d.gu_total || 0)), 0))}
           </span>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
             const details = dataTampil.filter(d => 
               getLevel(d.kode) === 8 && 
@@ -2011,25 +2011,49 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
 
             if (details.length === 0) return null;
 
+            // Hitung total untuk RO ini saja
+            const roTotal = details.reduce((acc, d) => acc + Number(metode === 'LS' ? (d.ls_total || 0) : (d.gu_total || 0)), 0);
+
+            // Sort detail berdasarkan tanggal
+            const sortedDetails = details.sort((a, b) => 
+              new Date(a.ls_total_tanggal || a.gu_total_tanggal || 0).getTime() - 
+              new Date(b.ls_total_tanggal || b.gu_total_tanggal || 0).getTime()
+            );
+
+            const isExpandedRO = expandedRows[`${metode}_${ro.id}`];
+
             return (
-              <div key={ro.id} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                {/* Judul RO */}
-                <div className="text-[10px] font-black text-slate-600 mb-3 border-b border-slate-200 pb-2">{ro.kode} - {ro.uraian}</div>
-                
-                {/* Rincian Detail di bawah RO */}
-                <div className="space-y-2">
-                  {details.map((item: any) => (
-                    <div key={item.id} className="flex justify-between items-center bg-white p-2 rounded-lg shadow-sm border border-slate-100">
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-bold text-slate-700">{item.uraian}</span>
-                        <span className="text-[8px] text-slate-400 italic">{item.ls_total_tanggal || item.gu_total_tanggal || "Tanpa Tanggal"}</span>
+              <div key={ro.id} className="border border-slate-100 rounded-2xl overflow-hidden">
+                <button 
+                  onClick={() => setExpandedRows(prev => ({...prev, [`${metode}_${ro.id}`]: !prev[`${metode}_${ro.id}`]}))}
+                  className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+                >
+                  <div className="flex flex-col items-start truncate mr-2">
+                    <span className="text-[10px] font-black text-slate-700 truncate">{ro.kode} - {ro.uraian}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-slate-900">Rp {formatMoney(roTotal)}</span>
+                    <span className="text-[8px] bg-white px-2 py-0.5 rounded border">{isExpandedRO ? '▼' : '▶'}</span>
+                  </div>
+                </button>
+
+                {isExpandedRO && (
+                  <div className="p-3 space-y-2 bg-white border-t border-slate-50">
+                    {sortedDetails.map((item: any) => (
+                      <div key={item.id} className="flex justify-between items-center p-2 hover:bg-blue-50/50 rounded transition-colors">
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-bold text-slate-700">{item.uraian}</span>
+                          <span className="text-[8px] font-mono text-slate-400">
+                            {item.ls_total_tanggal || item.gu_total_tanggal || "Tanpa Tgl"}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-black text-slate-900">
+                          {formatMoney(metode === 'LS' ? item.ls_total : item.gu_total)}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-black text-slate-900">
-                        {formatMoney(metode === 'LS' ? item.ls_total : item.gu_total)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
