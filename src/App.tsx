@@ -1928,15 +1928,15 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead className="bg-slate-900 text-white text-[10px] uppercase font-black">
-          <tr>
-            <th className="p-4 text-left">Kode</th>
-            <th className="p-4 text-left">Uraian Detail</th>
-            <th className="p-4 text-right">RPD (Mar)</th>
-            <th className="p-4 text-right">LS</th>
-            <th className="p-4 text-right">GU</th>
-            <th className="p-4 text-center">Aksi</th>
-          </tr>
-        </thead>
+  <tr>
+    <th className="p-4 text-left">Kode</th>
+    <th className="p-4 text-left">Uraian Detail</th>
+    <th className="p-4 text-right">RPD ({rekapPeriod})</th>
+    <th className="p-4 text-right">LS</th>
+    <th className="p-4 text-right">GU</th>
+    <th className="p-4 text-center">Aksi</th>
+  </tr>
+</thead>
       <tbody className="divide-y divide-slate-100">
   {dataTampil
     .filter(d => getLevel(d.kode) === 4)
@@ -1957,39 +1957,28 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
       const isExpanded = expandedRows[ro.id];
       
       return (
-        <React.Fragment key={ro.id}>
-          <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
-            <td className="p-4 font-black text-slate-800" colSpan={6}>
-              {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
+      <React.Fragment key={ro.id}>
+        <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
+           {/* ... */}
+        </tr>
+        {isExpanded && details.map((item: any) => (
+          <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
+            <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
+            <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
+            
+            {/* INI BAGIAN PENTING: Gunakan rekapPeriod untuk mengakses data */}
+            <td className="p-3 text-right">{formatMoney(Number(item.rpd?.[rekapPeriod] || 0))}</td>
+            
+            <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
+            <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
+            <td className="p-3 text-center">
+              <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
             </td>
           </tr>
-          
-          {/* Bagian detail yang akan muncul/hilang saat diklik */}
-          {isExpanded && (
-            details.length > 0 ? (
-              details.map((item: any) => (
-                <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
-                  <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
-                  <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
-                  <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
-                  <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
-                  <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
-                  <td className="p-3 text-center">
-                    <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={6} className="p-4 text-center text-[10px] text-slate-400 italic">
-                  Tidak ada transaksi LS/GU untuk bulan {rekapPeriod} pada akun ini.
-                </td>
-              </tr>
-            )
-          )}
-        </React.Fragment>
-      );
-    })}
+        ))}
+      </React.Fragment>
+    );
+  })}
 </tbody>
       </table>
     </div>
