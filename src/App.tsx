@@ -1989,6 +1989,45 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
       </table>
     </div>
 
+    <div className="mt-12 bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
+  <h4 className="text-sm font-black uppercase tracking-widest mb-6 text-slate-800 italic flex items-center gap-3">
+    <Activity size={18} className="text-indigo-600"/> Rekapitulasi Terinci per RO
+  </h4>
+  
+  <div className="space-y-4">
+    {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
+      // Ambil semua detail level 8 yang memiliki nilai LS atau GU
+      const details = dataTampil.filter(d => 
+        getLevel(d.kode) === 8 && 
+        d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
+        (d.ls_total || d.gu_total)
+      );
+
+      if (details.length === 0) return null;
+
+      return (
+        <div key={ro.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="font-black text-slate-800 text-xs mb-4">{ro.kode} - {ro.uraian}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {details.map((item: any) => (
+              <div key={item.id} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div className="text-[9px] font-bold text-slate-400 mb-1">{item.uraian}</div>
+                <div className="flex justify-between items-center text-xs font-black">
+                  <span className={item.ls_total ? "text-blue-600" : "text-slate-300"}>LS: {formatMoney(item.ls_total || 0)}</span>
+                  <span className={item.gu_total ? "text-amber-600" : "text-slate-300"}>GU: {formatMoney(item.gu_total || 0)}</span>
+                </div>
+                <div className="text-[8px] text-slate-400 mt-1 italic">
+                  {item.ls_total_tanggal || item.gu_total_tanggal || "Tanpa Tanggal"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</div>
+
     <div className="mt-10">
       <h4 className="text-[11px] font-black uppercase tracking-widest mb-6 text-slate-500 italic">Laporan Harian Realisasi (LS & GU)</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
