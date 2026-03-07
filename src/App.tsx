@@ -1365,7 +1365,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                   </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
                       <div className="flex justify-between items-start mb-8">
                           <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Activity size={24}/></div>
@@ -1428,58 +1428,49 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
 
                 {/* KARTU MONITORING DEVIASI RPD VS REALISASI (LS+GU) */}
 <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all">
-  <div className="flex justify-between items-start mb-6">
-    <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl">
-      <PieIcon size={24} />
+    <div className="flex justify-between items-start mb-6">
+      <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><PieIcon size={24} /></div>
+      <div className="text-right">
+        <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">RPD Belanja 52</span>
+        <span className="text-[10px] font-bold text-indigo-600 italic uppercase">{rekapPeriod}</span>
+      </div>
     </div>
-    <div className="text-right">
-      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Monitoring RPD</span>
-      <span className="text-xs font-bold text-indigo-600 italic uppercase">Periode: {rekapPeriod}</span>
-    </div>
-  </div>
 
-  {/* LOGIKA PERHITUNGAN */}
-  {(() => {
-    // 1. Hitung Total RPD Bulan Berjalan
-    const totalRPD = dataTampil.reduce((acc, d) => 
-      acc + Number(d.monthRPD?.[rekapPeriod] || 0), 0);
+    {(() => {
+      // LOGIKA KHUSUS: Mengambil data level 8 (Detail) yang kodenya mengandung 52
+      const rpd52 = dataTampil.reduce((acc, d) => {
+        const is52 = d.tempPathKey.includes("52"); // Pastikan path mencakup 52
+        const nilai = Number(d.monthRPD?.[rekapPeriod] || 0);
+        return acc + (is52 ? nilai : 0);
+      }, 0);
 
-    // 2. Hitung Total Realisasi (LS + GU) Bulan Berjalan
-    const totalLS = dataTampil.reduce((acc, d) => acc + Number(d.ls_total || 0), 0);
-    const totalGU = dataTampil.reduce((acc, d) => acc + Number(d.gu_total || 0), 0);
-    const totalReal = totalLS + totalGU;
+      const real52 = dataTampil.reduce((acc, d) => {
+        const is52 = d.tempPathKey.includes("52");
+        const nilai = Number(d.ls_total || 0) + Number(d.gu_total || 0);
+        return acc + (is52 ? nilai : 0);
+      }, 0);
 
-    // 3. Selisih
-    const selisih = totalReal - totalRPD;
-    const isDeviasi = selisih < 0;
+      const selisih = real52 - rpd52;
 
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
+      return (
+        <div className="space-y-4">
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Total RPD</span>
-            <div className="text-sm font-black text-slate-800">Rp {formatMoney(totalRPD)}</div>
+            <span className="text-[9px] font-black text-slate-400 uppercase">Target RPD (52)</span>
+            <div className="text-sm font-black text-slate-800">Rp {formatMoney(rpd52)}</div>
           </div>
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Total Real (LS+GU)</span>
-            <div className="text-sm font-black text-blue-600">Rp {formatMoney(totalReal)}</div>
+          <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+            <span className="text-[9px] font-black text-indigo-500 uppercase">Realisasi (52)</span>
+            <div className="text-sm font-black text-indigo-700">Rp {formatMoney(real52)}</div>
           </div>
-        </div>
-
-        <div className={`p-6 rounded-[2rem] border ${isDeviasi ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
-          <span className="text-[9px] font-black text-slate-500 uppercase block mb-1">
-            {isDeviasi ? 'Deviasi/Kurang dari RPD' : 'Realisasi Melebihi RPD'}
-          </span>
-          <div className={`text-3xl font-black italic tracking-tighter ${isDeviasi ? 'text-rose-600' : 'text-emerald-600'}`}>
+          <div className={`text-center font-black italic ${selisih < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
             {selisih > 0 ? '+' : ''}{formatMoney(selisih)}
           </div>
         </div>
-      </div>
-    );
-  })()}
+      );
+    })()}
+  </div>
 </div>
                   
-
                   <GapMonitoringCard isDashboard={true} />
               </div>
 
