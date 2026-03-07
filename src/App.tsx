@@ -1425,6 +1425,59 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                           )}
                       </div>
                   </div>
+
+                {/* KARTU MONITORING DEVIASI RPD VS REALISASI (LS+GU) */}
+<div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all">
+  <div className="flex justify-between items-start mb-6">
+    <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl">
+      <PieIcon size={24} />
+    </div>
+    <div className="text-right">
+      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Monitoring RPD</span>
+      <span className="text-xs font-bold text-indigo-600 italic uppercase">Periode: {rekapPeriod}</span>
+    </div>
+  </div>
+
+  {/* LOGIKA PERHITUNGAN */}
+  {(() => {
+    // 1. Hitung Total RPD Bulan Berjalan
+    const totalRPD = dataTampil.reduce((acc, d) => 
+      acc + Number(d.monthRPD?.[rekapPeriod] || 0), 0);
+
+    // 2. Hitung Total Realisasi (LS + GU) Bulan Berjalan
+    const totalLS = dataTampil.reduce((acc, d) => acc + Number(d.ls_total || 0), 0);
+    const totalGU = dataTampil.reduce((acc, d) => acc + Number(d.gu_total || 0), 0);
+    const totalReal = totalLS + totalGU;
+
+    // 3. Selisih
+    const selisih = totalReal - totalRPD;
+    const isDeviasi = selisih < 0;
+
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Total RPD</span>
+            <div className="text-sm font-black text-slate-800">Rp {formatMoney(totalRPD)}</div>
+          </div>
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+            <span className="text-[9px] font-black text-slate-400 uppercase">Total Real (LS+GU)</span>
+            <div className="text-sm font-black text-blue-600">Rp {formatMoney(totalReal)}</div>
+          </div>
+        </div>
+
+        <div className={`p-6 rounded-[2rem] border ${isDeviasi ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}`}>
+          <span className="text-[9px] font-black text-slate-500 uppercase block mb-1">
+            {isDeviasi ? 'Deviasi/Kurang dari RPD' : 'Realisasi Melebihi RPD'}
+          </span>
+          <div className={`text-3xl font-black italic tracking-tighter ${isDeviasi ? 'text-rose-600' : 'text-emerald-600'}`}>
+            {selisih > 0 ? '+' : ''}{formatMoney(selisih)}
+          </div>
+        </div>
+      </div>
+    );
+  })()}
+</div>
                   
 
                   <GapMonitoringCard isDashboard={true} />
