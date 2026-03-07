@@ -170,6 +170,7 @@ export default function App() {
   // --- UI STATE ---
   const [activeTab, setActiveTab] = useState<'dashboard' | 'rpd' | 'realisasi' | 'rapat' | 'migrasi' | 'users' | 'capaian' | 'lsgu'>('dashboard');
   const [activeWilayah, setActiveWilayah] = useState<string>("GG");
+  const [rekapPeriod, setRekapPeriod] = useState('Mar');
   const [activeTim, setActiveTim] = useState<string>("Nerwilis");
   const [rapatDepth, setRapatDepth] = useState<number>(2);
 const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
@@ -1887,7 +1888,16 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
 {activeTab === 'lsgu' && (
   <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
     <h3 className="text-xl font-black italic uppercase tracking-tighter mb-6">Monitoring Realisasi LS & GU</h3>
-    
+    <select 
+    value={rekapPeriod} 
+    onChange={(e) => setRekapPeriod(e.target.value)}
+    className="bg-slate-100 border border-slate-200 text-slate-900 text-xs font-black uppercase px-4 py-2 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+  >
+    {['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'].map(bulan => (
+      <option key={bulan} value={bulan}>{bulan}</option>
+    ))}
+  </select>
+</div>
    {console.log("KPPN Metrics:", kppnMetrics)}
 {console.log("Current User Role:", currentUser?.role)}
 
@@ -1896,7 +1906,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
         <div>
           <span className="text-[10px] font-black uppercase text-slate-500 block">Status Periode: {rekapPeriod}</span>
           <span className={`text-sm font-bold ${kppnMetrics.lockedMonths?.[rekapPeriod] ? 'text-rose-600' : 'text-emerald-600'}`}>
-            {kppnMetrics.lockedMonths?.[rekapPeriod] ? 'TERKUNCI (Hanya Admin yang bisa edit)' : 'TERBUKA (User bisa input)'}
+            {kppnMetrics.lockedMonths?.[rekapPeriod] ? 'TERKUNCI (Hanya Admin yang bisa edit)' : 'TERBUKA'}
           </span>
         </div>
         <button 
