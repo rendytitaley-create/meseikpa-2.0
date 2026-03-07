@@ -1917,23 +1917,6 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
              });
              alert(`Periode ${rekapPeriod} sekarang ${newLockState ? 'DIKUNCI' : 'DIBUKA'}`);
           }}
-          className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase ${kppnMetrics.lockedMonths?.[rekapPeriod] ? 'bg-rose-600' : 'bg-emerald-600'} text-white`}
-        >
-          {kppnMetrics.lockedMonths?.[rekapPeriod] ? 'Buka Kunci' : 'Kunci Periode'}
-        </button>
-      </div>
-    )}
-    
-    {_showLsGuModal && (
-      <ModalLsGu 
-        item={_showLsGuModal} 
-        onClose={() => _setShowLsGuModal(null)} 
-        appId={appId} 
-        db={db} 
-      />
-    )}
-  </div>
-)}
           className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase shadow-sm transition-all ${
             kppnMetrics.lockedMonths?.[rekapPeriod] ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'
           }`}
