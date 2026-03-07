@@ -1885,129 +1885,128 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
             </div>
           )}
 {activeTab === 'lsgu' && (
-            <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
-              <h3 className="text-xl font-black italic uppercase tracking-tighter mb-6">Monitoring Realisasi LS & GU</h3>
-              {/* Tombol Kunci Periode untuk Admin */}
-{currentUser?.role === 'admin' && (
-  <div className="mb-6 p-4 bg-slate-100 rounded-2xl flex items-center justify-between border border-slate-200">
-    <div>
-      <span className="text-[10px] font-black uppercase text-slate-500 block">Status Periode: {rekapPeriod}</span>
-      <span className={`text-sm font-bold ${kppnMetrics.lockedMonths?.[rekapPeriod] ? 'text-rose-600' : 'text-emerald-600'}`}>
-        {kppnMetrics.lockedMonths?.[rekapPeriod] ? 'TERKUNCI (Hanya Admin yang bisa edit)' : 'TERBUKA (User bisa input)'}
-      </span>
-    </div>
+  <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
+    <h3 className="text-xl font-black italic uppercase tracking-tighter mb-6">Monitoring Realisasi LS & GU</h3>
     
-    <button 
-      onClick={async () => {
-        const isLocked = kppnMetrics.lockedMonths?.[rekapPeriod] || false;
-        const newLockState = !isLocked;
-        
-        try {
-          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'kppn_global'), {
-            [`lockedMonths.${rekapPeriod}`]: newLockState
-          });
-          alert(`Periode ${rekapPeriod} sekarang ${newLockState ? 'DIKUNCI' : 'DIBUKA'}`);
-        } catch (error) {
-          console.error("Gagal mengubah status kunci:", error);
-          alert("Terjadi kesalahan saat mengunci periode.");
-        }
-      }}
-      className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase shadow-sm transition-all ${
-        kppnMetrics.lockedMonths?.[rekapPeriod] ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'
-      }`}
-    >
-      {kppnMetrics.lockedMonths?.[rekapPeriod] ? 'Buka Kunci' : 'Kunci Periode'}
-    </button>
+    {/* --- TOMBOL KUNCI PERIODE (Admin) --- */}
+    {currentUser?.role === 'admin' && (
+      <div className="mb-6 p-4 bg-slate-100 rounded-2xl flex items-center justify-between border border-slate-200">
+        <div>
+          <span className="text-[10px] font-black uppercase text-slate-500 block">Status Periode: {rekapPeriod}</span>
+          <span className={`text-sm font-bold ${kppnMetrics.lockedMonths?.[rekapPeriod] ? 'text-rose-600' : 'text-emerald-600'}`}>
+            {kppnMetrics.lockedMonths?.[rekapPeriod] ? 'TERKUNCI (Hanya Admin yang bisa edit)' : 'TERBUKA (User bisa input)'}
+          </span>
+        </div>
+        <button 
+          onClick={async () => {
+            const isLocked = kppnMetrics.lockedMonths?.[rekapPeriod] || false;
+            const newLockState = !isLocked;
+            try {
+              await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'kppn_global'), {
+                [`lockedMonths.${rekapPeriod}`]: newLockState
+              });
+              alert(`Periode ${rekapPeriod} sekarang ${newLockState ? 'DIKUNCI' : 'DIBUKA'}`);
+            } catch (error) {
+              console.error("Gagal:", error);
+              alert("Terjadi kesalahan.");
+            }
+          }}
+          className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase shadow-sm transition-all ${
+            kppnMetrics.lockedMonths?.[rekapPeriod] ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'
+          }`}
+        >
+          {kppnMetrics.lockedMonths?.[rekapPeriod] ? 'Buka Kunci' : 'Kunci Periode'}
+        </button>
+      </div>
+    )}
+
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead className="bg-slate-900 text-white text-[10px] uppercase font-black">
+          <tr>
+            <th className="p-4 text-left">Kode</th>
+            <th className="p-4 text-left">Uraian Detail</th>
+            <th className="p-4 text-right">RPD (Mar)</th>
+            <th className="p-4 text-right">LS</th>
+            <th className="p-4 text-right">GU</th>
+            <th className="p-4 text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
+            if (ro.uraian.toUpperCase().includes('KPPN')) return null;
+            const details = dataTampil.filter(d => 
+              getLevel(d.kode) === 8 && 
+              d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
+              !d.uraian.toUpperCase().includes('KPPN') && 
+              d.uraian.trim() !== ""
+            );
+            if (details.length === 0) return null;
+            const isExpanded = expandedRows[ro.id];
+            return (
+              <React.Fragment key={ro.id}>
+                <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
+                  <td className="p-4 font-black text-slate-800" colSpan={6}>
+                    {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
+                  </td>
+                </tr>
+                {isExpanded && details.map((item: any) => (
+                  <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
+                    <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
+                    <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
+                    <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
+                    <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
+                    <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
+                    <td className="p-3 text-center">
+                      <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
+                    </td>
+                  </tr>
+                ))}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+
+    <div className="mt-10">
+      <h4 className="text-[11px] font-black uppercase tracking-widest mb-6 text-slate-500 italic">Laporan Harian Realisasi (LS & GU)</h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {rekapPerTanggal.map(([tanggal, data]: any) => (
+          <div key={tanggal} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+            <div className="bg-slate-900 px-6 py-4 flex justify-between items-center">
+              <span className="text-[10px] font-black text-white tracking-widest uppercase">{tanggal}</span>
+              <div className="flex gap-4">
+                <span className="text-[9px] font-black text-blue-400">LS: {formatMoney(data.LS)}</span>
+                <span className="text-[9px] font-black text-amber-400">GU: {formatMoney(data.GU)}</span>
+              </div>
+            </div>
+            <div className="p-2">
+              {data.details.map((d: any, idx: number) => (
+                <div key={idx} className="flex justify-between items-center px-4 py-3 hover:bg-slate-50 rounded-2xl border-b border-slate-50 last:border-0">
+                  <div className="flex items-center gap-3">
+                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg ${d.jenis === 'LS' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{d.jenis}</span>
+                    <span className="text-[11px] font-bold text-slate-700 truncate max-w-[200px]">{d.uraian}</span>
+                  </div>
+                  <span className="text-[11px] font-black text-slate-900">{formatMoney(d.nilai)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {_showLsGuModal && (
+      <ModalLsGu 
+        item={_showLsGuModal} 
+        onClose={() => _setShowLsGuModal(null)} 
+        appId={appId} 
+        db={db} 
+      />
+    )}
   </div>
 )}
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-slate-900 text-white text-[10px] uppercase font-black">
-                    <tr>
-                      <th className="p-4 text-left">Kode</th>
-                      <th className="p-4 text-left">Uraian Detail</th>
-                      <th className="p-4 text-right">RPD (Mar)</th>
-                      <th className="p-4 text-right">LS</th>
-                      <th className="p-4 text-right">GU</th>
-                      <th className="p-4 text-center">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
-                      if (ro.uraian.toUpperCase().includes('KPPN')) return null;
-                      const details = dataTampil.filter(d => 
-                        getLevel(d.kode) === 8 && 
-                        d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
-                        !d.uraian.toUpperCase().includes('KPPN') && 
-                        d.uraian.trim() !== ""
-                      );
-                      if (details.length === 0) return null;
-                      const isExpanded = expandedRows[ro.id];
-                      return (
-                        <React.Fragment key={ro.id}>
-                          <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
-                            <td className="p-4 font-black text-slate-800" colSpan={6}>
-                              {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
-                            </td>
-                          </tr>
-                          {isExpanded && details.map((item: any) => (
-                            <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
-                              <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
-                              <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
-                              <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
-                              <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
-                              <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
-                              <td className="p-3 text-center">
-                                <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
-                              </td>
-                            </tr>
-                          ))}
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* REKAP LS & GU */}
-              <div className="mt-10">
-  <h4 className="text-[11px] font-black uppercase tracking-widest mb-6 text-slate-500 italic">Laporan Harian Realisasi (LS & GU)</h4>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-    {rekapPerTanggal.map(([tanggal, data]: any) => (
-      <div key={tanggal} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-        <div className="bg-slate-900 px-6 py-4 flex justify-between items-center">
-          <span className="text-[10px] font-black text-white tracking-widest uppercase">{tanggal}</span>
-          <div className="flex gap-4">
-             <span className="text-[9px] font-black text-blue-400">LS: {formatMoney(data.LS)}</span>
-             <span className="text-[9px] font-black text-amber-400">GU: {formatMoney(data.GU)}</span>
-          </div>
-        </div>
-        <div className="p-2">
-          {data.details.map((d: any, idx: number) => (
-            <div key={idx} className="flex justify-between items-center px-4 py-3 hover:bg-slate-50 rounded-2xl border-b border-slate-50 last:border-0">
-               <div className="flex items-center gap-3">
-                 <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg ${d.jenis === 'LS' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{d.jenis}</span>
-                 <span className="text-[11px] font-bold text-slate-700 truncate max-w-[200px]">{d.uraian}</span>
-               </div>
-               <span className="text-[11px] font-black text-slate-900">{formatMoney(d.nilai)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    ))}
-  </div>
-</div>
-
-              {_showLsGuModal && (
-                <ModalLsGu 
-                  item={_showLsGuModal} 
-                  onClose={() => _setShowLsGuModal(null)} 
-                  appId={appId} 
-                  db={db} 
-                />
-              )}
-            </div>
-          )}
           
           {activeTab === 'users' && currentUser?.role === 'admin' && (
             <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
