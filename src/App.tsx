@@ -1428,48 +1428,44 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
 
               {/* KARTU MONITORING RPD BELANJA 52 */}
   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all">
-    <div className="flex justify-between items-start mb-6">
-      <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><PieIcon size={24} /></div>
-      <div className="text-right">
-        <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">RPD Belanja 52</span>
-        <span className="text-[10px] font-bold text-indigo-600 italic uppercase">{rekapPeriod}</span>
-      </div>
+  <div className="flex justify-between items-start mb-6">
+    <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><PieIcon size={24} /></div>
+    <div className="text-right">
+      <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">RPD Belanja 52</span>
+      <span className="text-[10px] font-bold text-indigo-600 italic uppercase">{rekapPeriod}</span>
     </div>
+  </div>
 
-    {/* LOGIKA PERHITUNGAN */}
-    {(() => {
-      const rpd52 = dataTampil.reduce((acc, d) => {
-        const is52 = d.kode?.includes("52") || d.tempPathKey?.includes("52");
-  const nilai = Number(d.monthRPD?.[rekapPeriod] || 0);
-  return acc + (is52 ? nilai : 0);
-      }, 0);
+  {(() => {
+    // 1. FILTER YANG LEBIH TANGGUH:
+    // Kita cek apakah uraian atau kode mengandung "52"
+    // Pastikan rekapPeriod (misal "Mar") adalah key yang benar di object item.rpd
+    const rpd52 = dataTampil.reduce((acc, d) => {
+      // Cek apakah kode akun termasuk 52 (Sesuaikan jika kode akun Anda formatnya beda)
+      const is52 = String(d.kode).includes("52") || String(d.uraian).includes("52");
+      const nilai = Number(d.rpd?.[rekapPeriod] || 0);
+      return acc + (is52 ? nilai : 0);
+    }, 0);
 
-      const real52 = dataTampil.reduce((acc, d) => {
-        const is52 = d.tempPathKey.includes("52");
-        const nilai = Number(d.ls_total || 0) + Number(d.gu_total || 0);
-        return acc + (is52 ? nilai : 0);
-      }, 0);
+    const real52 = dataTampil.reduce((acc, d) => {
+      const is52 = String(d.kode).includes("52") || String(d.uraian).includes("52");
+      const nilai = Number(d.ls_total || 0) + Number(d.gu_total || 0);
+      return acc + (is52 ? nilai : 0);
+    }, 0);
 
-      const selisih = real52 - rpd52;
+    const selisih = real52 - rpd52;
 
-      return (
-        <div className="space-y-4">
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-            <span className="text-[9px] font-black text-slate-400 uppercase">Target RPD (52)</span>
-            <div className="text-sm font-black text-slate-800">Rp {formatMoney(rpd52)}</div>
-          </div>
-          <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
-            <span className="text-[9px] font-black text-indigo-500 uppercase">Realisasi (52)</span>
-            <div className="text-sm font-black text-indigo-700">Rp {formatMoney(real52)}</div>
-          </div>
-          <div className={`text-center font-black italic ${selisih < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-            {selisih > 0 ? '+' : ''}{formatMoney(selisih)}
-          </div>
+    return (
+      <div className="space-y-2 text-right">
+        <div className="text-[9px] font-black text-slate-400 uppercase">Target RPD (52): Rp {formatMoney(rpd52)}</div>
+        <div className="text-[9px] font-black text-indigo-600 uppercase">Realisasi (52): Rp {formatMoney(real52)}</div>
+        <div className={`text-sm font-black italic ${selisih < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+          {selisih > 0 ? '+' : ''}{formatMoney(selisih)}
         </div>
-      );
-    })()}
-  </div> 
-  {/* HANYA ADA SATU DIV PENUTUP DI SINI */}
+      </div>
+    );
+  })()}
+</div>
                   
                   <GapMonitoringCard isDashboard={true} />
               </div>
