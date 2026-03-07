@@ -195,9 +195,23 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
     1: ['Jan', 'Feb', 'Mar'], 2: ['Apr', 'Mei', 'Jun'],
     3: ['Jul', 'Ags', 'Sep'], 4: ['Okt', 'Nov', 'Des']
   };
-  // const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
 
-  // Efek Otomatis Set Tim Berdasarkan Profil User
+  const toggleChecklist = async (item: any, field: string) => {
+    try {
+      // PERBAIKAN: Gunakan path yang persis sama dengan handleSimpan
+      const itemRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
+      
+      await updateDoc(itemRef, {
+        [field]: !item[field] 
+      });
+      
+      console.log("Status checklist berhasil diupdate");
+    } catch (error) {
+      console.error("Gagal update checklist:", error);
+      alert("Gagal memperbarui status checklist!");
+    }
+  };
+  
   useEffect(() => {
     if (currentUser && currentUser.role !== 'admin') {
       setActiveTim(currentUser.team);
@@ -2375,22 +2389,6 @@ const [jenis, setJenis] = useState(item.ls_total ? "LS" : (item.gu_total ? "GU" 
     } catch (e) {
       console.error("Gagal:", e);
       alert("Gagal menyimpan.");
-    }
-  };
-
-  const toggleChecklist = async (item: any, field: string) => {
-    try {
-      // PERBAIKAN: Gunakan path yang persis sama dengan handleSimpan
-      const itemRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
-      
-      await updateDoc(itemRef, {
-        [field]: !item[field] 
-      });
-      
-      console.log("Status checklist berhasil diupdate");
-    } catch (error) {
-      console.error("Gagal update checklist:", error);
-      alert("Gagal memperbarui status checklist!");
     }
   };
 
