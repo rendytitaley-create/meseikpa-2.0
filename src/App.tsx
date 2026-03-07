@@ -2206,7 +2206,6 @@ const isBpsSbb = currentUser?.team === "BPS SBB";
 const isObserver = isBpsSbb || currentUser?.role === 'pimpinan' || currentUser?.role === 'anggota';
 
 const canEdit = !isObserver && (
- // GANTI DENGAN KODE BARU INI:
 const isLockedForMonth = kppnMetrics.lockedMonths?.[rekapPeriod] || false; 
 
 const canEdit = (currentUser?.role === 'admin') || 
@@ -2214,7 +2213,6 @@ const canEdit = (currentUser?.role === 'admin') ||
                   (activeTab === 'rpd' && currentUser?.role === 'ketua_tim') || 
                   (activeTab === 'realisasi' && currentUser?.role === 'admin')
                 ));
-
 // Perhitungan sisa otomatis
 const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
 const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
