@@ -2280,7 +2280,7 @@ const initialNilai = item.ls_total || item.gu_total || "";
 // Kita ambil tanggal yang tersimpan, jika belum ada baru pakai hari ini
 const initialTanggal = item.ls_total_tanggal || item.gu_total_tanggal || new Date().toISOString().split('T')[0];
 
-const [nilai, setNilai] = useState(initialNilai);
+const [nilai, setNilai] = useState(initialNilai ? initialNilai.toLocaleString('id-ID') : "");
 const [tanggal, setTanggal] = useState(initialTanggal);
 const [jenis, setJenis] = useState(item.ls_total ? "LS" : (item.gu_total ? "GU" : "LS"));
   
