@@ -1365,7 +1365,7 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                   </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
                       <div className="flex justify-between items-start mb-8">
                           <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Activity size={24}/></div>
@@ -1439,9 +1439,9 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
     {/* LOGIKA PERHITUNGAN */}
     {(() => {
       const rpd52 = dataTampil.reduce((acc, d) => {
-        const is52 = d.tempPathKey.includes("52");
-        const nilai = Number(d.monthRPD?.[rekapPeriod] || 0);
-        return acc + (is52 ? nilai : 0);
+        const is52 = d.kode?.includes("52") || d.tempPathKey?.includes("52");
+  const nilai = Number(d.monthRPD?.[rekapPeriod] || 0);
+  return acc + (is52 ? nilai : 0);
       }, 0);
 
       const real52 = dataTampil.reduce((acc, d) => {
