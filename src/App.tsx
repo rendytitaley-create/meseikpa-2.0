@@ -1937,7 +1937,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
             <th className="p-4 text-center">Aksi</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+       <tbody className="divide-y divide-slate-100">
           {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
             if (ro.uraian.toUpperCase().includes('KPPN')) return null;
             
@@ -1948,28 +1948,40 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
               d.uraian.trim() !== ""
             );
             
-            if (details.length === 0) return null;
             const isExpanded = expandedRows[ro.id];
             
             return (
               <React.Fragment key={ro.id}>
+                {/* BARIS HEADER INI PASTI MUNCUL */}
                 <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
                   <td className="p-4 font-black text-slate-800" colSpan={6}>
                     {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
                   </td>
                 </tr>
-                {isExpanded && details.map((item: any) => (
-                  <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
-                    <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
-                    <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
-                    <td className="p-3 text-right">{formatMoney(Number(item.rpd?.[rekapPeriod] || 0))}</td>
-                    <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
-                    <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
-                    <td className="p-3 text-center">
-                      <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
-                    </td>
-                  </tr>
-                ))}
+                
+                {/* BARIS DETAIL */}
+                {isExpanded && (
+                  details.length > 0 ? (
+                    details.map((item: any) => (
+                      <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
+                        <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
+                        <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
+                        <td className="p-3 text-right">{formatMoney(Number(item.rpd?.[rekapPeriod] || 0))}</td>
+                        <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
+                        <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
+                        <td className="p-3 text-center">
+                          <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="p-4 text-center text-[10px] text-slate-400 italic">
+                        Tidak ada detail LS/GU untuk periode ini.
+                      </td>
+                    </tr>
+                  )
+                )}
               </React.Fragment>
             );
           })}
