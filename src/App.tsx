@@ -176,8 +176,6 @@ const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [twActive, setTwActive] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeMonthLSGU, setActiveMonthLSGU] = useState<string>(allMonths[new Date().getMonth()]);
-const [tempLsGuData, setTempLsGuData] = useState<Record<string, any>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   // const [, setLogs] = useState<string[]>([]); 
   const [libReady, setLibReady] = useState(false);
@@ -187,7 +185,6 @@ const [tempLsGuData, setTempLsGuData] = useState<Record<string, any>>({});
   const [showClearDataModal, setShowClearDataModal] = useState(false);
   // State untuk Modal LS/GU
 const [_showLsGuModal, _setShowLsGuModal] = useState<any>(null);
-  
   
   // Fitur Rekap Bulanan State
   const [expandedMonthlyRPD, setExpandedMonthlyRPD] = useState<Record<string, boolean>>({});
@@ -414,26 +411,6 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
     setLoginError("");
     setActiveTab('dashboard');
   };
-
-  // --- FUNGSI SIMPAN BATCH ---
-const handleBatchSave = async () => {
-  setIsProcessing(true);
-  try {
-    const batch = writeBatch(db);
-    Object.entries(tempLsGuData).forEach(([docId, data]) => {
-      const docRef = doc(db, 'artifacts', appId, 'public', 'data', DATA_COLLECTION, docId);
-      batch.update(docRef, data);
-    });
-    await batch.commit();
-    setTempLsGuData({}); // Reset setelah berhasil
-    alert("Data berhasil disimpan!");
-  } catch (err) {
-    console.error("Gagal simpan:", err);
-    alert("Gagal menyimpan data.");
-  } finally {
-    setIsProcessing(false);
-  }
-};
 
   const handleExportExcel = async () => {
     const ExcelJS = (window as any).ExcelJS;
@@ -1908,127 +1885,179 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
             </div>
           )}
 {activeTab === 'lsgu' && (
-  <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
-    <div className="flex justify-between items-center mb-6">
-      <h3 className="text-xl font-black italic uppercase tracking-tighter">Monitoring Realisasi LS, GU & 51</h3>
-      <div className="flex items-center gap-3">
-        <select 
-          value={activeMonthLSGU} 
-          onChange={(e) => setActiveMonthLSGU(e.target.value)} 
-          className="p-2 border rounded-xl font-bold text-xs bg-slate-50"
-        >
-          {allMonths.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
-        <button 
-          onClick={handleBatchSave} 
-          disabled={isProcessing || Object.keys(tempLsGuData).length === 0} 
-          className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase disabled:opacity-40 hover:bg-indigo-700 transition-all"
-        >
-          Simpan Semua
-        </button>
-      </div>
-    </div>
-
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs">
-        <thead className="bg-slate-900 text-white text-[10px] uppercase font-black">
-          <tr>
-            <th className="p-4 text-left">Kode</th>
-            <th className="p-4 text-left">Uraian Detail</th>
-            <th className="p-4 text-right">RPD ({activeMonthLSGU})</th>
-            <th className="p-4 text-right">LS</th>
-            <th className="p-4 text-right">GU</th>
-            <th className="p-4 text-right text-emerald-400">51</th>
-            <th className="p-4 text-center">Aksi</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
-            if (ro.uraian.toUpperCase().includes('KPPN')) return null;
-            const details = dataTampil.filter(d => 
-              getLevel(d.kode) === 8 && 
-              d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
-              !d.uraian.toUpperCase().includes('KPPN') && 
-              d.uraian.trim() !== ""
-            );
-            if (details.length === 0) return null;
-            const isExpanded = expandedRows[ro.id];
-            return (
-              <React.Fragment key={ro.id}>
-                <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
-                  <td className="p-4 font-black text-slate-800" colSpan={7}>
-                    {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
-                  </td>
-                </tr>
-                {isExpanded && details.map((item: any) => (
-                  <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
-                    <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
-                    <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
-                    <td className="p-3 text-right">{formatMoney(Number(item.rpd?.[activeMonthLSGU] || 0))}</td>
-                    <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
-                    <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
-                    <td className="p-3 text-right">
-                      <input 
-                        type="text" 
-                        value={formatInputMasking(tempLsGuData[item.id]?.belanja51 ?? item.belanja51 ?? "")}
-                        onChange={(e) => setTempLsGuData(prev => ({ 
-                            ...prev, 
-                            [item.id]: { ...prev[item.id], belanja51: e.target.value.replace(/\D/g, "") } 
-                        }))}
-                        className="w-full text-right p-1 bg-emerald-50 rounded border border-emerald-100 font-bold text-emerald-700 outline-none"
-                      />
-                    </td>
-                    <td className="p-3 text-center">
-                      <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
-                    </td>
-                  </tr>
-                ))}
-              </React.Fragment>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-
-    {/* REKAP LS & GU */}
-    <div className="mt-10">
-      <h4 className="text-[11px] font-black uppercase tracking-widest mb-6 text-slate-500 italic">Laporan Harian Realisasi (LS & GU)</h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {rekapPerTanggal.map(([tanggal, data]: any) => (
-          <div key={tanggal} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-            <div className="bg-slate-900 px-6 py-4 flex justify-between items-center">
-              <span className="text-[10px] font-black text-white tracking-widest uppercase">{tanggal}</span>
-              <div className="flex gap-4">
-                  <span className="text-[9px] font-black text-blue-400">LS: {formatMoney(data.LS)}</span>
-                  <span className="text-[9px] font-black text-amber-400">GU: {formatMoney(data.GU)}</span>
+            <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
+              <h3 className="text-xl font-black italic uppercase tracking-tighter mb-6">Monitoring Realisasi LS & GU</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-900 text-white text-[10px] uppercase font-black">
+                    <tr>
+                      <th className="p-4 text-left">Kode</th>
+                      <th className="p-4 text-left">Uraian Detail</th>
+                      <th className="p-4 text-right">RPD (Mar)</th>
+                      <th className="p-4 text-right">LS</th>
+                      <th className="p-4 text-right">GU</th>
+                      <th className="p-4 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
+                      if (ro.uraian.toUpperCase().includes('KPPN')) return null;
+                      const details = dataTampil.filter(d => 
+                        getLevel(d.kode) === 8 && 
+                        d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
+                        !d.uraian.toUpperCase().includes('KPPN') && 
+                        d.uraian.trim() !== ""
+                      );
+                      if (details.length === 0) return null;
+                      const isExpanded = expandedRows[ro.id];
+                      return (
+                        <React.Fragment key={ro.id}>
+                          <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
+                            <td className="p-4 font-black text-slate-800" colSpan={6}>
+                              {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
+                            </td>
+                          </tr>
+                          {isExpanded && details.map((item: any) => (
+                            <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
+                              <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
+                              <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
+                              <td className="p-3 text-right">{formatMoney(Number(item.rpd?.['Mar'] || 0))}</td>
+                              <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
+                              <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
+                              <td className="p-3 text-center">
+                                <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            </div>
-            <div className="p-2">
-              {data.details.map((d: any, idx: number) => (
-                <div key={idx} className="flex justify-between items-center px-4 py-3 hover:bg-slate-50 rounded-2xl border-b border-slate-50 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg ${d.jenis === 'LS' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{d.jenis}</span>
-                    <span className="text-[11px] font-bold text-slate-700 truncate max-w-[200px]">{d.uraian}</span>
-                  </div>
-                  <span className="text-[11px] font-black text-slate-900">{formatMoney(d.nilai)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
 
-    {_showLsGuModal && (
-      <ModalLsGu 
-        item={_showLsGuModal} 
-        onClose={() => _setShowLsGuModal(null)} 
-        appId={appId} 
-        db={db} 
-      />
-    )}
+              {/* REKAP LS & GU */}
+              <div className="mt-10">
+  <h4 className="text-[11px] font-black uppercase tracking-widest mb-6 text-slate-500 italic">Laporan Harian Realisasi (LS & GU)</h4>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {rekapPerTanggal.map(([tanggal, data]: any) => (
+      <div key={tanggal} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+        <div className="bg-slate-900 px-6 py-4 flex justify-between items-center">
+          <span className="text-[10px] font-black text-white tracking-widest uppercase">{tanggal}</span>
+          <div className="flex gap-4">
+             <span className="text-[9px] font-black text-blue-400">LS: {formatMoney(data.LS)}</span>
+             <span className="text-[9px] font-black text-amber-400">GU: {formatMoney(data.GU)}</span>
+          </div>
+        </div>
+        <div className="p-2">
+          {data.details.map((d: any, idx: number) => (
+            <div key={idx} className="flex justify-between items-center px-4 py-3 hover:bg-slate-50 rounded-2xl border-b border-slate-50 last:border-0">
+               <div className="flex items-center gap-3">
+                 <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg ${d.jenis === 'LS' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{d.jenis}</span>
+                 <span className="text-[11px] font-bold text-slate-700 truncate max-w-[200px]">{d.uraian}</span>
+               </div>
+               <span className="text-[11px] font-black text-slate-900">{formatMoney(d.nilai)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
   </div>
-)}
+</div>
+
+              {_showLsGuModal && (
+                <ModalLsGu 
+                  item={_showLsGuModal} 
+                  onClose={() => _setShowLsGuModal(null)} 
+                  appId={appId} 
+                  db={db} 
+                />
+              )}
+            </div>
+          )}
+          
+          {activeTab === 'users' && currentUser?.role === 'admin' && (
+            <div className="max-w-6xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500 pb-20">
+               <div className="bg-slate-900 rounded-[4rem] p-16 text-white shadow-2xl relative overflow-hidden">
+                  <h3 className="text-2xl font-black uppercase italic mb-12 flex items-center gap-5">
+                     <UserPlus className="text-blue-500" /> Registrasi User Baru
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                     <div className="flex flex-col gap-3">
+                       <label className="text-xs font-black uppercase text-slate-500 ml-4">Username</label>
+                       <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 px-8 text-white text-sm outline-none focus:bg-white/10 transition-all" placeholder="Username" />
+                     </div>
+                     <div className="flex flex-col gap-3">
+                       <label className="text-xs font-black uppercase text-slate-500 ml-4">Password</label>
+                       <input type="text" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 px-8 text-white text-sm outline-none focus:bg-white/10 transition-all" placeholder="Password" />
+                     </div>
+                     <div className="flex flex-col gap-3">
+                       <label className="text-xs font-black uppercase text-slate-500 ml-4">Nama Lengkap</label>
+                       <input type="text" value={newFullName} onChange={(e) => setNewFullName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 px-8 text-white text-sm outline-none focus:bg-white/10 transition-all" placeholder="Nama Lengkap" />
+                     </div>
+                     <div className="flex flex-col gap-3">
+                       <label className="text-xs font-black uppercase text-slate-500 ml-4">Role</label>
+                       <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value as any)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 px-8 text-white text-sm outline-none appearance-none">
+                          <option value="admin" className="text-black">Admin</option>
+                          <option value="pimpinan" className="text-black">Pimpinan</option>
+                          <option value="ketua_tim" className="text-black">Ketua Tim</option>
+                         <option value="anggota" className="text-black">Anggota</option>
+                       </select>
+                     </div>
+                     <div className="lg:col-span-2 flex flex-col gap-2">
+                       <label className="text-xs font-black uppercase text-slate-500 ml-4">Tim</label>
+                       <div className="flex flex-wrap gap-2">
+                          {ALL_TEAMS.map(tim => (
+                             <button key={tim} onClick={() => setNewUserTeam(tim)} className={`px-4 py-2 rounded-xl text-[10px] font-black border transition-all ${newUserTeam === tim ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white/5 border-white/10 text-slate-400'}`}>
+                                {tim}
+                             </button>
+                          ))}
+                       </div>
+                     </div>
+                  </div>
+                  <button onClick={handleAddUser} className="mt-16 px-20 py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl hover:scale-105 transition-all">Simpan Database User</button>
+               </div>
+               <div className="bg-white rounded-[4rem] border border-slate-200 overflow-hidden shadow-sm">
+                  <table className="w-full text-left text-xs">
+                     <thead className="bg-slate-50 border-b border-slate-100 uppercase text-[9px] font-black text-slate-400">
+                       <tr>
+                           <th className="px-8 py-4">Nama</th>
+                           <th className="px-4 py-4">Username</th>
+                           <th className="px-4 py-4">Password</th>
+                           <th className="px-4 py-4 text-center">Aksi</th>
+                       </tr>
+                     </thead>
+                     <tbody className="divide-y divide-slate-50">
+                        {allUsers.map((u) => (
+                           <tr key={u.id}>
+                              <td className="px-8 py-5 font-bold text-slate-800">
+                                  <div>{u.name}</div>
+                                  <div className="text-[9px] text-blue-500 uppercase tracking-widest">{u.role} • {u.team}</div>
+                              </td>
+                              <td className="px-4 py-5 font-mono text-slate-500 italic">@{u.username}</td>
+                              <td className="px-4 py-5 font-mono">
+                                 <div className="flex items-center gap-2">
+                                    <input 
+                                       type={showPasswordMap[u.id] ? "text" : "password"} 
+                                       defaultValue={u.password}
+                                       onBlur={(e) => handleChangeUserPassword(u.id, e.target.value)}
+                                       className="bg-slate-100 border-none rounded-lg px-2 py-1 w-24 text-[11px]" 
+                                    />
+                                    <button onClick={() => setShowPasswordMap(prev => ({ ...prev, [u.id]: !prev[u.id] }))} className="text-slate-400 hover:text-blue-500">
+                                       {showPasswordMap[u.id] ? <EyeOff size={14}/> : <Eye size={14}/>}
+                                    </button>
+                                 </div>
+                              </td>
+                              <td className="px-4 py-5 text-center">
+                                 <button onClick={async () => await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', USER_COLLECTION, u.id))} className="p-2 text-rose-400 hover:bg-rose-100 rounded-lg"><Trash2 size={14}/></button>
+                              </td>
+                           </tr>
+                        ))}
+                     </tbody>
+                  </table>
+               </div>
+            </div>
+          )}
 
           {activeTab === 'migrasi' && currentUser?.role === 'admin' && (
             <div className="max-w-4xl mx-auto py-6 animate-in slide-in-from-bottom duration-700">
