@@ -1937,17 +1937,22 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
             <th className="p-4 text-center">Aksi</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
-          {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
-            if (ro.uraian.toUpperCase().includes('KPPN')) return null;
-            const details = dataTampil.filter(d => 
-              getLevel(d.kode) === 8 && 
-              d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
-              !d.uraian.toUpperCase().includes('KPPN') && 
-              d.uraian.trim() !== ""
-            );
-            if (details.length === 0) return null;
-            const isExpanded = expandedRows[ro.id];
+       <tbody className="divide-y divide-slate-100">
+  {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
+    if (ro.uraian.toUpperCase().includes('KPPN')) return null;
+
+    // Filter baris detail berdasarkan rekapPeriod
+    const details = dataTampil.filter(d => 
+      getLevel(d.kode) === 8 && 
+      d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
+      !d.uraian.toUpperCase().includes('KPPN') && 
+      d.uraian.trim() !== "" &&
+      // TAMBAHAN: Filter berdasarkan tanggal LS atau GU yang mengandung periode bulan terpilih
+      (d.ls_total_tanggal?.includes(rekapPeriod) || d.gu_total_tanggal?.includes(rekapPeriod))
+    );
+
+    if (details.length === 0) return null;
+    const isExpanded = expandedRows[ro.id];
             return (
               <React.Fragment key={ro.id}>
                 <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
