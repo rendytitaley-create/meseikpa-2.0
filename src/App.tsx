@@ -2380,12 +2380,11 @@ const [jenis, setJenis] = useState(item.ls_total ? "LS" : (item.gu_total ? "GU" 
 
   const toggleChecklist = async (item: any, field: string) => {
     try {
-      // Pastikan 'db', 'appId', dan 'METRICS_COLLECTION' sudah ada di scope Anda
-      // Gunakan path yang persis sama dengan yang digunakan di handleSimpan/ModalLsGu
-      const itemRef = doc(db, 'artifacts', appId, 'public', 'data', METRICS_COLLECTION, item.id);
+      // PERBAIKAN: Gunakan path yang persis sama dengan handleSimpan
+      const itemRef = doc(db, 'artifacts', appId, 'public', 'data', 'pagu_anggaran', item.id);
       
       await updateDoc(itemRef, {
-        [field]: !item[field] // Ini mengubah status true/false di database
+        [field]: !item[field] 
       });
       
       console.log("Status checklist berhasil diupdate");
