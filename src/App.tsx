@@ -1928,58 +1928,52 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead className="bg-slate-900 text-white text-[10px] uppercase font-black">
-  <tr>
-    <th className="p-4 text-left">Kode</th>
-    <th className="p-4 text-left">Uraian Detail</th>
-    <th className="p-4 text-right">RPD ({rekapPeriod})</th>
-    <th className="p-4 text-right">LS</th>
-    <th className="p-4 text-right">GU</th>
-    <th className="p-4 text-center">Aksi</th>
-  </tr>
-</thead>
-      <tbody className="divide-y divide-slate-100">
-  {dataTampil
-    .filter(d => getLevel(d.kode) === 4)
-    .map((ro: any) => {
-      if (ro.uraian.toUpperCase().includes('KPPN')) return null;
-      
-      const details = dataTampil.filter(d => 
-        getLevel(d.kode) === 8 && 
-        d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
-        !d.uraian.toUpperCase().includes('KPPN') && 
-        d.uraian.trim() !== "" &&
-        // Filter periode bulan yang lebih fleksibel
-        (rekapPeriod ? (d.ls_total_tanggal?.includes(rekapPeriod) || d.gu_total_tanggal?.includes(rekapPeriod) || true) : true)
-      );
-
-      // JIKA TIDAK ADA DATA, KITA TETAP MUNCULKAN TR (Header RO) 
-      // agar struktur tabel tidak rusak/hilang total
-      const isExpanded = expandedRows[ro.id];
-      
-      return (
-      <React.Fragment key={ro.id}>
-        <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
-           {/* ... */}
-        </tr>
-        {isExpanded && details.map((item: any) => (
-          <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
-            <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
-            <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
-            
-            {/* INI BAGIAN PENTING: Gunakan rekapPeriod untuk mengakses data */}
-            <td className="p-3 text-right">{formatMoney(Number(item.rpd?.[rekapPeriod] || 0))}</td>
-            
-            <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
-            <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
-            <td className="p-3 text-center">
-              <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
-            </td>
+          <tr>
+            <th className="p-4 text-left">Kode</th>
+            <th className="p-4 text-left">Uraian Detail</th>
+            <th className="p-4 text-right">RPD ({rekapPeriod})</th>
+            <th className="p-4 text-right">LS</th>
+            <th className="p-4 text-right">GU</th>
+            <th className="p-4 text-center">Aksi</th>
           </tr>
-        ))}
-      </React.Fragment>
-    );
-  })}
-</tbody>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
+            if (ro.uraian.toUpperCase().includes('KPPN')) return null;
+            
+            const details = dataTampil.filter(d => 
+              getLevel(d.kode) === 8 && 
+              d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
+              !d.uraian.toUpperCase().includes('KPPN') && 
+              d.uraian.trim() !== ""
+            );
+            
+            if (details.length === 0) return null;
+            const isExpanded = expandedRows[ro.id];
+            
+            return (
+              <React.Fragment key={ro.id}>
+                <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
+                  <td className="p-4 font-black text-slate-800" colSpan={6}>
+                    {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
+                  </td>
+                </tr>
+                {isExpanded && details.map((item: any) => (
+                  <tr key={item.id} className="bg-white hover:bg-blue-50/30 border-b">
+                    <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
+                    <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
+                    <td className="p-3 text-right">{formatMoney(Number(item.rpd?.[rekapPeriod] || 0))}</td>
+                    <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
+                    <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
+                    <td className="p-3 text-center">
+                      <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
+                    </td>
+                  </tr>
+                ))}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
       </table>
     </div>
 
@@ -1988,8 +1982,8 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {rekapPerTanggal.map(([tanggal, data]: any) => (
           <div key={tanggal} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-            <div className="bg-slate-900 px-6 py-4 flex justify-between items-center">
-              <span className="text-[10px] font-black text-white tracking-widest uppercase">{tanggal}</span>
+            <div className="bg-slate-900 px-6 py-4 flex justify-between items-center text-white">
+              <span className="text-[10px] font-black tracking-widest uppercase">{tanggal}</span>
               <div className="flex gap-4">
                 <span className="text-[9px] font-black text-blue-400">LS: {formatMoney(data.LS)}</span>
                 <span className="text-[9px] font-black text-amber-400">GU: {formatMoney(data.GU)}</span>
@@ -2012,12 +2006,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
     </div>
 
     {_showLsGuModal && (
-      <ModalLsGu 
-        item={_showLsGuModal} 
-        onClose={() => _setShowLsGuModal(null)} 
-        appId={appId} 
-        db={db} 
-      />
+      <ModalLsGu item={_showLsGuModal} onClose={() => _setShowLsGuModal(null)} appId={appId} db={db} />
     )}
   </div>
 )}
