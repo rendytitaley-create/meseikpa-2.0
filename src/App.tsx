@@ -1884,6 +1884,43 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
           )}
 {activeTab === 'lsgu' && (
   <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
+    {/* --- KARTU MONITORING RPD BELANJA 52 (BARU) --- */}
+    {(() => {
+      // Logika penghitungan hanya untuk Belanja 52 bulan berjalan
+      const rpd52 = dataTampil.reduce((acc, d) => 
+        (getLevel(d.kode) === 8 && d.kode?.includes("52") ? acc + Number(d.rpd?.[rekapPeriod] || 0) : acc), 0);
+      
+      const real52 = dataTampil.reduce((acc, d) => 
+        (getLevel(d.kode) === 8 && d.kode?.includes("52") ? acc + Number(d.ls_total || 0) + Number(d.gu_total || 0) : acc), 0);
+      
+      const selisih = real52 - rpd52;
+
+      return (
+        <div className="mb-8 p-6 bg-slate-900 rounded-3xl text-white shadow-xl flex items-center justify-between">
+          <div>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Monitoring Rekap RPD Belanja 52</h3>
+            <p className="text-sm font-black italic">Periode: {rekapPeriod}</p>
+          </div>
+          <div className="flex gap-8 text-right">
+            <div>
+              <span className="text-[9px] block text-slate-400 uppercase">Target RPD (52)</span>
+              <span className="text-sm font-black text-indigo-400">Rp {formatMoney(rpd52)}</span>
+            </div>
+            <div>
+              <span className="text-[9px] block text-slate-400 uppercase">Total Real (LS+GU)</span>
+              <span className="text-sm font-black text-emerald-400">Rp {formatMoney(real52)}</span>
+            </div>
+            <div>
+              <span className="text-[9px] block text-slate-400 uppercase">Selisih</span>
+              <span className={`text-sm font-black ${selisih < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                {selisih > 0 ? '+' : ''}{formatMoney(selisih)}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    })()}
+
     <div className="flex justify-between items-center mb-6">
       <h3 className="text-xl font-black italic uppercase tracking-tighter">Monitoring Realisasi LS & GU</h3>
       <select 
@@ -1935,7 +1972,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
             <th className="p-4 text-center">Aksi</th>
           </tr>
         </thead>
-       <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-slate-100">
           {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
             if (ro.uraian.toUpperCase().includes('KPPN')) return null;
             
@@ -1950,14 +1987,12 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
             
             return (
               <React.Fragment key={ro.id}>
-                {/* BARIS HEADER INI PASTI MUNCUL */}
                 <tr className="bg-slate-100 cursor-pointer hover:bg-slate-200" onClick={() => setExpandedRows(prev => ({...prev, [ro.id]: !prev[ro.id]}))}>
                   <td className="p-4 font-black text-slate-800" colSpan={6}>
                     {isExpanded ? '▼' : '▶'} {ro.kode} - {ro.uraian}
                   </td>
                 </tr>
                 
-                {/* BARIS DETAIL */}
                 {isExpanded && (
                   details.length > 0 ? (
                     details.map((item: any) => (
@@ -1987,75 +2022,57 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
       </table>
     </div>
 
-{/* KARTU RINGKASAN LS & GU - DENGAN CHECKLIST & TOTAL */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
-  {['LS', 'GU'].map(metode => {
-    const isLS = metode === 'LS';
-    return (
-      <div key={metode} className={`bg-white p-6 rounded-[2rem] border ${isLS ? 'border-blue-200' : 'border-amber-200'} shadow-sm`}>
-        <div className="flex justify-between items-center mb-6">
-          <h4 className="text-sm font-black italic uppercase text-slate-800">Detail {metode} per RO</h4>
-          <span className={`text-[10px] font-black ${isLS ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'} px-3 py-1 rounded-full`}>
-            Total: Rp {formatMoney(dataTampil.reduce((acc, d) => acc + Number(isLS ? (d.ls_total || 0) : (d.gu_total || 0)), 0))}
-          </span>
-        </div>
-
-        <div className="space-y-3">
-          {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
-            const details = dataTampil.filter(d => 
-              getLevel(d.kode) === 8 && 
-              d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
-              (isLS ? d.ls_total : d.gu_total)
-            );
-
-            if (details.length === 0) return null;
-            const roTotal = details.reduce((acc, d) => acc + Number(isLS ? (d.ls_total || 0) : (d.gu_total || 0)), 0);
-            const isExpandedRO = expandedRows[`${metode}_${ro.id}`];
-
-            return (
-              <div key={ro.id} className="border border-slate-100 rounded-2xl overflow-hidden">
-                <button 
-                  onClick={() => setExpandedRows(prev => ({...prev, [`${metode}_${ro.id}`]: !prev[`${metode}_${ro.id}`]}))}
-                  className="w-full grid grid-cols-12 items-center p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
-                >
-                  <div className="col-span-8 text-left truncate pr-2">
-                    <span className="text-[10px] font-black text-slate-700">{ro.kode} - {ro.uraian}</span>
-                  </div>
-                  <div className="col-span-4 flex justify-end items-center gap-3">
-                    <span className="text-[10px] font-black text-slate-900">Rp {formatMoney(roTotal)}</span>
-                    <span className="text-[8px] bg-white px-2 py-0.5 rounded border">{isExpandedRO ? '▼' : '▶'}</span>
-                  </div>
-                </button>
-
-                {isExpandedRO && (
-                  <div className="p-3 space-y-2 bg-white border-t border-slate-50">
-                    {details.map((item: any) => (
-                      <div key={item.id} className={`flex justify-between items-center p-2 rounded transition-colors ${item.verified ? 'bg-green-50' : 'hover:bg-slate-50'}`}>
-                        <div className="flex items-center gap-3">
-                          <input 
-                            type="checkbox" 
-                            checked={!!item.verified} 
-                            onChange={() => toggleChecklist(item, 'verified')}
-                            className={`w-3 h-3 rounded ${isLS ? 'text-blue-600' : 'text-amber-600'} cursor-pointer`}
-                          />
-                          <div className="flex flex-col">
-                            <span className={`text-[9px] font-bold ${item.verified ? 'text-green-700 line-through' : 'text-slate-700'}`}>{item.uraian}</span>
-                            <span className="text-[8px] font-mono text-slate-400">{item.ls_total_tanggal || item.gu_total_tanggal || "Tanpa Tgl"}</span>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+      {['LS', 'GU'].map(metode => {
+        const isLS = metode === 'LS';
+        return (
+          <div key={metode} className={`bg-white p-6 rounded-[2rem] border ${isLS ? 'border-blue-200' : 'border-amber-200'} shadow-sm`}>
+            <div className="flex justify-between items-center mb-6">
+              <h4 className="text-sm font-black italic uppercase text-slate-800">Detail {metode} per RO</h4>
+              <span className={`text-[10px] font-black ${isLS ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50'} px-3 py-1 rounded-full`}>
+                Total: Rp {formatMoney(dataTampil.reduce((acc, d) => acc + Number(isLS ? (d.ls_total || 0) : (d.gu_total || 0)), 0))}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {dataTampil.filter(d => getLevel(d.kode) === 4).map((ro: any) => {
+                const details = dataTampil.filter(d => 
+                  getLevel(d.kode) === 8 && 
+                  d.tempPathKey.startsWith(ro.tempPathKey.split("||")[0]) &&
+                  (isLS ? d.ls_total : d.gu_total)
+                );
+                if (details.length === 0) return null;
+                const roTotal = details.reduce((acc, d) => acc + Number(isLS ? (d.ls_total || 0) : (d.gu_total || 0)), 0);
+                const isExpandedRO = expandedRows[`${metode}_${ro.id}`];
+                return (
+                  <div key={ro.id} className="border border-slate-100 rounded-2xl overflow-hidden">
+                    <button onClick={() => setExpandedRows(prev => ({...prev, [`${metode}_${ro.id}`]: !prev[`${metode}_${ro.id}`]}))} className="w-full grid grid-cols-12 items-center p-4 bg-slate-50 hover:bg-slate-100 transition-colors">
+                      <div className="col-span-8 text-left truncate pr-2"><span className="text-[10px] font-black text-slate-700">{ro.kode} - {ro.uraian}</span></div>
+                      <div className="col-span-4 flex justify-end items-center gap-3"><span className="text-[10px] font-black text-slate-900">Rp {formatMoney(roTotal)}</span><span className="text-[8px] bg-white px-2 py-0.5 rounded border">{isExpandedRO ? '▼' : '▶'}</span></div>
+                    </button>
+                    {isExpandedRO && (
+                      <div className="p-3 space-y-2 bg-white border-t border-slate-50">
+                        {details.map((item: any) => (
+                          <div key={item.id} className={`flex justify-between items-center p-2 rounded transition-colors ${item.verified ? 'bg-green-50' : 'hover:bg-slate-50'}`}>
+                            <div className="flex items-center gap-3">
+                              <input type="checkbox" checked={!!item.verified} onChange={() => toggleChecklist(item, 'verified')} className={`w-3 h-3 rounded ${isLS ? 'text-blue-600' : 'text-amber-600'} cursor-pointer`} />
+                              <div className="flex flex-col">
+                                <span className={`text-[9px] font-bold ${item.verified ? 'text-green-700 line-through' : 'text-slate-700'}`}>{item.uraian}</span>
+                                <span className="text-[8px] font-mono text-slate-400">{item.ls_total_tanggal || item.gu_total_tanggal || "Tanpa Tgl"}</span>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-black text-slate-900">{formatMoney(isLS ? item.ls_total : item.gu_total)}</span>
                           </div>
-                        </div>
-                        <span className="text-[10px] font-black text-slate-900">{formatMoney(isLS ? item.ls_total : item.gu_total)}</span>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  })}
-</div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
 
     {_showLsGuModal && (
       <ModalLsGu item={_showLsGuModal} onClose={() => _setShowLsGuModal(null)} appId={appId} db={db} />
