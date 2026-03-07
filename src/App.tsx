@@ -1887,6 +1887,39 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
 {activeTab === 'lsgu' && (
             <div className="p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
               <h3 className="text-xl font-black italic uppercase tracking-tighter mb-6">Monitoring Realisasi LS & GU</h3>
+              {/* Tombol Kunci Periode untuk Admin */}
+{currentUser?.role === 'admin' && (
+  <div className="mb-6 p-4 bg-slate-100 rounded-2xl flex items-center justify-between border border-slate-200">
+    <div>
+      <span className="text-[10px] font-black uppercase text-slate-500 block">Status Periode: {rekapPeriod}</span>
+      <span className={`text-sm font-bold ${kppnMetrics.lockedMonths?.[rekapPeriod] ? 'text-rose-600' : 'text-emerald-600'}`}>
+        {kppnMetrics.lockedMonths?.[rekapPeriod] ? 'TERKUNCI (Hanya Admin yang bisa edit)' : 'TERBUKA (User bisa input)'}
+      </span>
+    </div>
+    
+    <button 
+      onClick={async () => {
+        const isLocked = kppnMetrics.lockedMonths?.[rekapPeriod] || false;
+        const newLockState = !isLocked;
+        
+        try {
+          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'kppn_global'), {
+            [`lockedMonths.${rekapPeriod}`]: newLockState
+          });
+          alert(`Periode ${rekapPeriod} sekarang ${newLockState ? 'DIKUNCI' : 'DIBUKA'}`);
+        } catch (error) {
+          console.error("Gagal mengubah status kunci:", error);
+          alert("Terjadi kesalahan saat mengunci periode.");
+        }
+      }}
+      className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase shadow-sm transition-all ${
+        kppnMetrics.lockedMonths?.[rekapPeriod] ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'
+      }`}
+    >
+      {kppnMetrics.lockedMonths?.[rekapPeriod] ? 'Buka Kunci' : 'Kunci Periode'}
+    </button>
+  </div>
+)}
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="bg-slate-900 text-white text-[10px] uppercase font-black">
@@ -2174,9 +2207,14 @@ const isBpsSbb = currentUser?.team === "BPS SBB";
 const isObserver = isBpsSbb || currentUser?.role === 'pimpinan' || currentUser?.role === 'anggota';
 
 const canEdit = !isObserver && (
-  (activeTab === 'rpd' && (currentUser?.role === 'admin' || (currentUser?.role === 'ketua_tim' && !isLocked))) || 
-  (activeTab === 'realisasi' && currentUser?.role === 'admin')
-);
+ // GANTI DENGAN KODE BARU INI:
+const isLockedForMonth = kppnMetrics.lockedMonths?.[rekapPeriod] || false; 
+
+const canEdit = (currentUser?.role === 'admin') || 
+                (!isLockedForMonth && !isObserver && (
+                  (activeTab === 'rpd' && currentUser?.role === 'ketua_tim') || 
+                  (activeTab === 'realisasi' && currentUser?.role === 'admin')
+                ));
 
 // Perhitungan sisa otomatis
 const currentTotal = activeTab === 'rpd' ? item.totalRPD : item.totalReal;
