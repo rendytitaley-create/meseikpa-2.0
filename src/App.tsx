@@ -2275,9 +2275,15 @@ const sisaPagu = (Number(item.pagu) || 0) - currentTotal;
 }
 
 function ModalLsGu({ item, onClose, appId, db }: any) {
-  const [nilai, setNilai] = useState("");
-  const [jenis, setJenis] = useState("LS"); 
-  const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
+ // Kita ambil nilai LS atau GU tergantung mana yang tersedia atau default ke kosong
+const initialNilai = item.ls_total || item.gu_total || "";
+// Kita ambil tanggal yang tersimpan, jika belum ada baru pakai hari ini
+const initialTanggal = item.ls_total_tanggal || item.gu_total_tanggal || new Date().toISOString().split('T')[0];
+
+const [nilai, setNilai] = useState(initialNilai);
+const [tanggal, setTanggal] = useState(initialTanggal);
+const [jenis, setJenis] = useState(item.ls_total ? "LS" : (item.gu_total ? "GU" : "LS"));
+  
 
   const handleSimpan = async () => {
     if (!nilai || !tanggal) return;
