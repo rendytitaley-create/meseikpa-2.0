@@ -1426,8 +1426,8 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
                       </div>
                   </div>
 
-                {/* KARTU MONITORING DEVIASI RPD VS REALISASI (LS+GU) */}
-<div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all">
+              {/* KARTU MONITORING RPD BELANJA 52 */}
+  <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all">
     <div className="flex justify-between items-start mb-6">
       <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><PieIcon size={24} /></div>
       <div className="text-right">
@@ -1436,10 +1436,10 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
       </div>
     </div>
 
+    {/* LOGIKA PERHITUNGAN */}
     {(() => {
-      // LOGIKA KHUSUS: Mengambil data level 8 (Detail) yang kodenya mengandung 52
       const rpd52 = dataTampil.reduce((acc, d) => {
-        const is52 = d.tempPathKey.includes("52"); // Pastikan path mencakup 52
+        const is52 = d.tempPathKey.includes("52");
         const nilai = Number(d.monthRPD?.[rekapPeriod] || 0);
         return acc + (is52 ? nilai : 0);
       }, 0);
@@ -1468,8 +1468,8 @@ const [rekapPeriod, setRekapPeriod] = useState<string>(allMonths[new Date().getM
         </div>
       );
     })()}
-  </div>
-</div>
+  </div> 
+  {/* HANYA ADA SATU DIV PENUTUP DI SINI */}
                   
                   <GapMonitoringCard isDashboard={true} />
               </div>
