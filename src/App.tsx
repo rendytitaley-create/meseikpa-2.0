@@ -1967,8 +1967,8 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
                         <td className="p-3 pl-10 border-r text-[10px] font-mono">{item.kode}</td>
                         <td className="p-3 border-r text-[10px] font-bold text-slate-700">{item.uraian}</td>
                         <td className="p-3 text-right">{formatMoney(Number(item.rpd?.[rekapPeriod] || 0))}</td>
-                        <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_total || 0))}</td>
-                        <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_total || 0))}</td>
+                        <td className="p-3 text-right text-blue-600 font-bold">{formatMoney(Number(item.ls_per_bulan?.[rekapPeriod] || 0))}</td>
+                        <td className="p-3 text-right text-amber-600 font-bold">{formatMoney(Number(item.gu_per_bulan?.[rekapPeriod] || 0))}</td>
                         <td className="p-3 text-center">
                           <button onClick={() => _setShowLsGuModal(item)} className="text-[9px] px-2 py-1 bg-indigo-600 text-white rounded">Kelola</button>
                         </td>
