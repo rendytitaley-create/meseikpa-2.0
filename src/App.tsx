@@ -1989,7 +1989,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
       </table>
     </div>
 
- {/* KARTU RINGKASAN LS & GU - NESTED EXPANDABLE DENGAN TOTAL PER RO */}
+ {/* KARTU RINGKASAN LS & GU - TAMPILAN PRESISI & RAPI */}
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
   {['LS', 'GU'].map(metode => {
     return (
@@ -1997,7 +1997,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
         <div className="flex justify-between items-center mb-6">
           <h4 className="text-sm font-black italic uppercase text-slate-800">Detail {metode} per RO</h4>
           <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
-            Total: Rp {formatMoney(dataTampil.reduce((acc, d) => acc + Number(metode === 'LS' ? (d.ls_total || 0) : (d.gu_total || 0)), 0))}
+            Total {metode}: Rp {formatMoney(dataTampil.reduce((acc, d) => acc + Number(metode === 'LS' ? (d.ls_total || 0) : (d.gu_total || 0)), 0))}
           </span>
         </div>
 
@@ -2011,10 +2011,7 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
 
             if (details.length === 0) return null;
 
-            // Hitung total untuk RO ini saja
             const roTotal = details.reduce((acc, d) => acc + Number(metode === 'LS' ? (d.ls_total || 0) : (d.gu_total || 0)), 0);
-
-            // Sort detail berdasarkan tanggal
             const sortedDetails = details.sort((a, b) => 
               new Date(a.ls_total_tanggal || a.gu_total_tanggal || 0).getTime() - 
               new Date(b.ls_total_tanggal || b.gu_total_tanggal || 0).getTime()
@@ -2026,12 +2023,14 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
               <div key={ro.id} className="border border-slate-100 rounded-2xl overflow-hidden">
                 <button 
                   onClick={() => setExpandedRows(prev => ({...prev, [`${metode}_${ro.id}`]: !prev[`${metode}_${ro.id}`]}))}
-                  className="w-full flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+                  className="w-full grid grid-cols-12 items-center p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
                 >
-                  <div className="flex flex-col items-start truncate mr-2">
-                    <span className="text-[10px] font-black text-slate-700 truncate">{ro.kode} - {ro.uraian}</span>
+                  {/* Kolom Judul (diambil 8 kolom) */}
+                  <div className="col-span-8 text-left truncate pr-2">
+                    <span className="text-[10px] font-black text-slate-700">{ro.kode} - {ro.uraian}</span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  {/* Kolom Anggaran (diambil 4 kolom, agar selalu rapi/presisi) */}
+                  <div className="col-span-4 flex justify-end items-center gap-3">
                     <span className="text-[10px] font-black text-slate-900">Rp {formatMoney(roTotal)}</span>
                     <span className="text-[8px] bg-white px-2 py-0.5 rounded border">{isExpandedRO ? '▼' : '▶'}</span>
                   </div>
@@ -2062,34 +2061,6 @@ const totalRealSetahun = allMonths.reduce((acc, m) => {
     );
   })}
 </div>
-
-    <div className="mt-10">
-      <h4 className="text-[11px] font-black uppercase tracking-widest mb-6 text-slate-500 italic">Laporan Harian Realisasi (LS & GU)</h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {rekapPerTanggal.map(([tanggal, data]: any) => (
-          <div key={tanggal} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-            <div className="bg-slate-900 px-6 py-4 flex justify-between items-center text-white">
-              <span className="text-[10px] font-black tracking-widest uppercase">{tanggal}</span>
-              <div className="flex gap-4">
-                <span className="text-[9px] font-black text-blue-400">LS: {formatMoney(data.LS)}</span>
-                <span className="text-[9px] font-black text-amber-400">GU: {formatMoney(data.GU)}</span>
-              </div>
-            </div>
-            <div className="p-2">
-              {data.details.map((d: any, idx: number) => (
-                <div key={idx} className="flex justify-between items-center px-4 py-3 hover:bg-slate-50 rounded-2xl border-b border-slate-50 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg ${d.jenis === 'LS' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{d.jenis}</span>
-                    <span className="text-[11px] font-bold text-slate-700 truncate max-w-[200px]">{d.uraian}</span>
-                  </div>
-                  <span className="text-[11px] font-black text-slate-900">{formatMoney(d.nilai)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
 
     {_showLsGuModal && (
       <ModalLsGu item={_showLsGuModal} onClose={() => _setShowLsGuModal(null)} appId={appId} db={db} />
