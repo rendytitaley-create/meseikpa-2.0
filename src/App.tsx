@@ -17,30 +17,32 @@ export default function MeseIkpaV3() {
   // --- FUNGSI AMBIL DATA (FETCHER) ---
   const fetchSheetData = async () => {
     setLoading(true);
-    // GANTI link di bawah ini dengan link CSV Sheet "T-KPPN VS R-BPSSBB" Anda
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSUbViIHpH0RcdJJQ3PuiEqY187u6Mg16jFnYFpG6CEIucA0b7PIOA6HYcMuhIXR3ItTAC-izjeoQXr/pub?gid=2098386606&single=true&output=csv";
     
     try {
       const response = await fetch(sheetUrl);
       const csvText = await response.text();
-      
-      // Mengubah teks CSV menjadi baris-baris data
       const rows = csvText.split('\n').map(row => row.split(','));
       
-      // Kita ambil baris ke-4 dan ke-5 (indeks 3 dan 4) untuk Belanja Pegawai & Barang
+      // PERBAIKAN DI SINI:
+      // rows[2] = Baris 3 di Excel (Pegawai 51)
+      // rows[3] = Baris 4 di Excel (Barang 52)
+      // rows[4] = Baris 5 di Excel (Modal 53)
       const cleanData = [
+        { jenis: rows[2][1], pagu: rows[2][2], target: rows[2][4], real: rows[2][6], persen: rows[2][8] },
         { jenis: rows[3][1], pagu: rows[3][2], target: rows[3][4], real: rows[3][6], persen: rows[3][8] },
         { jenis: rows[4][1], pagu: rows[4][2], target: rows[4][4], real: rows[4][6], persen: rows[4][8] }
       ];
       
-      setDataKppn(cleanData);
+      // Filter agar data yang kosong (seperti belanja modal jika Rp 0) tidak merusak tampilan
+      setDataKppn(cleanData.filter(item => item.jenis)); 
+      
     } catch (error) {
       console.error("Gagal mengambil data:", error);
     } finally {
       setLoading(false);
     }
   };
-
   // Jalankan pengambilan data saat aplikasi dibuka
   useEffect(() => {
     fetchSheetData();
