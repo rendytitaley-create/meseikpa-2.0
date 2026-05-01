@@ -13,9 +13,16 @@ export default function MeseIkpaV3() {
   const [loading, setLoading] = useState(false);
   const [selectedTW, setSelectedTW] = useState(1);
 
+  // FUNGSI MEMBERSIHKAN ANGKA (Mengubah koma jadi titik dan hapus simbol non-angka)
+  const cleanFormat = (val: string) => {
+    if (!val) return 0;
+    let clean = val.replace(/[^0-9,-]/g, "").replace(",", ".");
+    return parseFloat(clean) || 0;
+  };
+
   const fetchSheetData = async () => {
     setLoading(true);
-    // Link CSV Sheet "T-KPPN VS R-BPSSBB"
+    // Link CSV Anda
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSUbViIHpH0RcdJJQ3PuiEqY187u6Mg16jFnYFpG6CEIucA0b7PIOA6HYcMuhIXR3ItTAC-izjeoQXr/pub?gid=2098386606&single=true&output=csv";
     
     try {
@@ -23,36 +30,38 @@ export default function MeseIkpaV3() {
       const csvText = await response.text();
       const rows = csvText.split('\n').map(row => row.split(','));
       
-      // PEMETAAN KOLOM BERDASARKAN SCREENSHOT SHEET 4
-      // TW I: Kolom D (3)=%Tgt, Kolom G (6)=RealRp, Kolom H (7)=Gap, Kolom I (8)=%Real
-      // TW II: Kolom K (10)=%Tgt, Kolom N (13)=RealRp, Kolom O (14)=Gap, Kolom P (15)=%Real
-      // TW III: Kolom R (17)=%Tgt, Kolom U (20)=RealRp... (Dst setiap loncat 7 kolom)
-      
-      const startIdx = (selectedTW - 1) * 7; 
-      const colTgtPct = 3 + startIdx;
-      const colRealNom = 6 + startIdx;
-      const colGapNom = 7 + startIdx;
-      const colRealPct = 8 + startIdx;
+      // PEMETAAN KOLOM BERDASARKAN SHEET 4 (INDEX MULAI DARI 0)
+      // TW I: C=2(Pagu), D=3(%Tgt), G=6(RealRp), H=7(Gap), I=8(%Real)
+      // TW II: J=9(Pagu), K=10(%Tgt), N=13(RealRp), O=14(Gap), P=15(%Real)
+      const baseCol = selectedTW === 1 ? 2 : 9;
 
       const cleanData = [2, 3, 4].map(rowIdx => {
-        const rPct = parseFloat(rows[rowIdx]?.[colRealPct]) || 0;
-        const tPct = parseFloat(rows[rowIdx]?.[colTgtPct]) || 0;
-        const rNom = rows[rowIdx]?.[colRealNom] || "0";
+        const row = rows[rowIdx];
+        if (!row) return null;
+
+        const pTarget = cleanFormat(row[baseCol + 1]);
+        const pReal = cleanFormat(row[baseCol + 6]);
+        const nominalReal = row[baseCol + 4] || "0";
+        const nominalGap = row[baseCol + 5] || "0";
+
+        // LOGIKA STATUS: Jika realisasi >= target, maka sukses.
+        const isSuccess = pReal >= pTarget;
         
-        // Cek apakah periode sudah berjalan (jika realisasi 0 dan belum ada data, anggap belum berjalan)
-        const isStarted = rPct > 0 || rNom !== "0";
+        // TW III & IV Belum Berjalan jika Pagu atau Realisasi masih 0
+        const isStarted = cleanFormat(row[baseCol]) > 0 || cleanFormat(nominalReal) > 0;
 
         return {
-          jenis: rows[rowIdx]?.[1] || "",
-          persenTarget: tPct,
-          nominalReal: rNom,
-          nominalGap: rows[rowIdx]?.[colGapNom] || "0",
-          persenReal: rPct,
+          jenis: row[1] || "",
+          persenTarget: pTarget,
+          nominalReal: nominalReal,
+          nominalGap: nominalGap,
+          persenReal: pReal,
+          isSuccess: isSuccess,
           isStarted: isStarted
         };
       });
       
-      setDataKppn(cleanData.filter(item => item.jenis));
+      setDataKppn(cleanData.filter(item => item !== null && item.jenis !== ""));
     } catch (error) {
       console.error("Gagal sinkronisasi data:", error);
     } finally {
@@ -74,6 +83,7 @@ export default function MeseIkpaV3() {
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
+      {/* SIDEBAR */}
       <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-[#0F172A] text-slate-300 transition-all duration-300 flex flex-col shadow-2xl`}>
         <div className="h-16 flex items-center px-6 bg-slate-900 border-b border-white/5">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black shadow-lg">M</div>
@@ -89,21 +99,24 @@ export default function MeseIkpaV3() {
         </nav>
       </aside>
 
+      {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-10 shadow-sm">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-500"><Menu size={20} /></button>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors">
+            <Menu size={20} />
+          </button>
           <div className="flex items-center gap-4">
              <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
                {[1, 2, 3, 4].map(tw => (
                  <button key={tw} onClick={() => setSelectedTW(tw)} className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${selectedTW === tw ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>TW {tw}</button>
                ))}
              </div>
-             <button onClick={fetchSheetData} className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
-                {loading ? "Sync..." : "Refresh"}
+             <button onClick={fetchSheetData} className="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all italic font-black">
+                {loading ? "SYNC..." : "REFRESH"}
              </button>
              <div className="flex items-center gap-3 ml-2 border-l pl-4 border-slate-200 text-right leading-none">
                 <div>
-                  <span className="text-[10px] font-black block text-slate-800 uppercase italic italic">Administrator</span>
+                  <span className="text-[10px] font-black block text-slate-800 uppercase italic">Administrator</span>
                   <span className="text-[8px] font-bold text-slate-400 uppercase">BPS Kab. SBB</span>
                 </div>
                 <div className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500"><User size={18}/></div>
@@ -125,19 +138,19 @@ export default function MeseIkpaV3() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {dataKppn.map((item, idx) => {
-                    const isSuccess = item.persenReal >= item.persenTarget;
+                    // Filter untuk TW yang belum berjalan
                     if (!item.isStarted && selectedTW > 1) {
-                        return (
-                          <div key={idx} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex items-center justify-center text-slate-300 italic text-[10px] font-black uppercase tracking-widest">
-                            Periode Belum Berjalan
-                          </div>
-                        );
+                      return (
+                        <div key={idx} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex items-center justify-center text-slate-300 italic text-[10px] font-black uppercase tracking-widest">
+                           Data Periode Belum Tersedia
+                        </div>
+                      );
                     }
 
                     return (
                       <div key={idx} className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm group hover:shadow-xl transition-all">
                         <div className="flex justify-between items-start mb-6">
-                          <div className={`p-3 rounded-2xl ${!isSuccess ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                          <div className={`p-3 rounded-2xl ${!item.isSuccess ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
                             <TrendingUp size={20}/>
                           </div>
                           <div className="text-right leading-none">
@@ -149,23 +162,23 @@ export default function MeseIkpaV3() {
                         <div className="mb-6">
                           <div className="flex justify-between items-end mb-1">
                             <span className="text-4xl font-black text-slate-800 tracking-tighter italic">{item.persenReal}%</span>
-                            <span className={`text-[9px] font-black uppercase ${!isSuccess ? 'text-rose-500' : 'text-emerald-500'}`}>
-                              {isSuccess ? 'Melampaui Target' : 'Dibawah Target'}
+                            <span className={`text-[9px] font-black uppercase ${!item.isSuccess ? 'text-rose-500' : 'text-emerald-500'}`}>
+                              {item.isSuccess ? 'Melampaui Target' : 'Dibawah Target'}
                             </span>
                           </div>
                           <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div className={`h-full transition-all duration-1000 ${!isSuccess ? 'bg-rose-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(item.persenReal, 100)}%` }}></div>
+                            <div className={`h-full transition-all duration-1000 ${!item.isSuccess ? 'bg-rose-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(item.persenReal, 100)}%` }}></div>
                           </div>
                         </div>
 
                         <div className="pt-4 border-t border-slate-100 space-y-2">
                           <div className="flex justify-between items-center text-[10px] font-black uppercase italic">
                             <span className="text-slate-400 tracking-tighter">Realisasi (Rp)</span>
-                            <span className="text-slate-800">Rp {item.nominalReal}</span>
+                            <span className="text-slate-800 font-bold">Rp {item.nominalReal}</span>
                           </div>
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase italic text-rose-600">
+                          <div className="flex justify-between items-center text-[10px] font-black uppercase italic">
                             <span className="text-slate-400 tracking-tighter">Gap Anggaran</span>
-                            <span className={item.nominalGap.includes('-') ? 'text-rose-600' : 'text-emerald-600'}>Rp {item.nominalGap}</span>
+                            <span className={item.nominalGap.includes('-') ? 'text-rose-600 font-bold' : 'text-emerald-600 font-bold'}>Rp {item.nominalGap}</span>
                           </div>
                         </div>
                       </div>
@@ -181,7 +194,6 @@ export default function MeseIkpaV3() {
           </div>
         </div>
       </main>
-
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
