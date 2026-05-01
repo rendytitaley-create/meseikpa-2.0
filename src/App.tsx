@@ -19,7 +19,7 @@ export default function MeseIkpaV3() {
 
   const fetchSheetData = async () => {
     setLoading(true);
-    const sheetUrl = "GANTI_DENGAN_LINK_CSV_ANDA";
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSUbViIHpH0RcdJJQ3PuiEqY187u6Mg16jFnYFpG6CEIucA0b7PIOA6HYcMuhIXR3ItTAC-izjeoQXr/pub?gid=2098386606&single=true&output=csvA";
     
     try {
       const response = await fetch(sheetUrl);
