@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, TableProperties, ArrowLeftRight, ClipboardCheck, Wallet, Menu, User, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, TableProperties, ClipboardCheck, Menu, TrendingUp } from 'lucide-react';
 
 export default function MeseIkpaV3() {
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dataKppn, setDataKppn] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
