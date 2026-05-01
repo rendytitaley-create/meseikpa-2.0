@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, TableProperties, BarChart3, 
-  ArrowLeftRight, ClipboardCheck, Wallet, Menu, User, LogOut, TrendingUp
+  import { 
+  LayoutDashboard, TableProperties, 
+  ArrowLeftRight, ClipboardCheck, Wallet, Menu, User, TrendingUp
 } from 'lucide-react';
 
 export default function MeseIkpaV3() {
