@@ -14,7 +14,9 @@ export default function MeseIkpaV3() {
   const [dataKppn, setDataKppn] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // --- FUNGSI AMBIL DATA (FETCHER) ---
+  // 1. Tambahkan state untuk memilih Triwulan di bagian atas (di bawah state dataKppn)
+  const [selectedTW, setSelectedTW] = useState(1);
+
   const fetchSheetData = async () => {
     setLoading(true);
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSUbViIHpH0RcdJJQ3PuiEqY187u6Mg16jFnYFpG6CEIucA0b7PIOA6HYcMuhIXR3ItTAC-izjeoQXr/pub?gid=2098386606&single=true&output=csv";
@@ -24,29 +26,49 @@ export default function MeseIkpaV3() {
       const csvText = await response.text();
       const rows = csvText.split('\n').map(row => row.split(','));
       
-      // PERBAIKAN DI SINI:
-      // rows[2] = Baris 3 di Excel (Pegawai 51)
-      // rows[3] = Baris 4 di Excel (Barang 52)
-      // rows[4] = Baris 5 di Excel (Modal 53)
+      // LOGIKA PEMILIHAN KOLOM BERDASARKAN TW
+      // TW I: Target% di Kolom 3 (D), Real% di Kolom 8 (I)
+      // TW II: Target% di Kolom 10 (K), Real% di Kolom 15 (P)
+      const targetCol = selectedTW === 1 ? 3 : 10;
+      const realCol = selectedTW === 1 ? 8 : 15;
+      const nominalCol = selectedTW === 1 ? 6 : 13;
+
       const cleanData = [
-        { jenis: rows[2][1], pagu: rows[2][2], target: rows[2][4], real: rows[2][6], persen: rows[2][8] },
-        { jenis: rows[3][1], pagu: rows[3][2], target: rows[3][4], real: rows[3][6], persen: rows[3][8] },
-        { jenis: rows[4][1], pagu: rows[4][2], target: rows[4][4], real: rows[4][6], persen: rows[4][8] }
+        { 
+          jenis: rows[2][1], 
+          pagu: rows[2][2], 
+          targetKppn: rows[2][targetCol], 
+          realNominal: rows[2][nominalCol], 
+          realPersen: rows[2][realCol] 
+        },
+        { 
+          jenis: rows[3][1], 
+          pagu: rows[3][2], 
+          targetKppn: rows[3][targetCol], 
+          realNominal: rows[3][nominalCol], 
+          realPersen: rows[3][realCol] 
+        },
+        { 
+          jenis: rows[4][1], 
+          pagu: rows[4][2], 
+          targetKppn: rows[4][targetCol], 
+          realNominal: rows[4][nominalCol], 
+          realPersen: rows[4][realCol] 
+        }
       ];
       
-      // Filter agar data yang kosong (seperti belanja modal jika Rp 0) tidak merusak tampilan
-      setDataKppn(cleanData.filter(item => item.jenis)); 
-      
+      setDataKppn(cleanData.filter(item => item.jenis));
     } catch (error) {
-      console.error("Gagal mengambil data:", error);
+      console.error("Error ambil data:", error);
     } finally {
       setLoading(false);
     }
   };
-  // Jalankan pengambilan data saat aplikasi dibuka
+
+  // Jalankan ulang fetch setiap kali selectedTW berubah
   useEffect(() => {
     fetchSheetData();
-  }, []);
+  }, [selectedTW]);
 
   const menuList = [
     { id: 'dashboard', label: 'Dashboard Utama', icon: <LayoutDashboard size={20}/> },
@@ -107,44 +129,64 @@ export default function MeseIkpaV3() {
           <div className="max-w-7xl mx-auto">
             
             {activeTab === 'dashboard' && (
-              <div className="space-y-8 animate-in">
-                {/* Banner Utama */}
-                <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl">
-                   <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                   <div className="relative z-10">
-                      <h1 className="text-3xl font-black italic tracking-tighter leading-none">Dashboard Monitoring</h1>
-                      <p className="text-blue-400 text-xs font-bold uppercase tracking-[0.3em] mt-2">Otomasi Kertas Kerja SAKTI</p>
-                   </div>
-                </div>
+  <div className="space-y-8 animate-in">
+    {/* Tombol Pilih TW */}
+    <div className="flex gap-2 p-1 bg-slate-200 w-fit rounded-2xl shadow-inner">
+       {[1, 2, 3, 4].map(tw => (
+         <button 
+           key={tw}
+           onClick={() => setSelectedTW(tw)}
+           className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedTW === tw ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+         >
+           TW {tw}
+         </button>
+       ))}
+    </div>
 
-                {/* Ringkasan dari Spreadsheet */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                   {dataKppn.map((item, idx) => (
-                     <div key={idx} className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all group">
-                        <div className="flex justify-between items-start mb-6">
-                           <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all">
-                              <TrendingUp size={24}/>
-                           </div>
-                           <div className="text-right leading-none">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Realisasi s.d TW I</span>
-                              <span className="text-xs font-bold text-blue-600 italic uppercase tracking-tighter">{item.jenis}</span>
-                           </div>
-                        </div>
-                        <div className="flex items-end justify-between">
-                           <div>
-                              <span className="text-5xl font-black text-slate-800 tracking-tighter italic">{item.persen}%</span>
-                              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Terhadap Target KPPN</div>
-                           </div>
-                           <div className="text-right">
-                              <span className="text-[11px] font-black text-slate-400 block uppercase">Nominal Realisasi</span>
-                              <span className="text-sm font-bold text-slate-700 italic">Rp {item.real}</span>
-                           </div>
-                        </div>
-                     </div>
-                   ))}
-                </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+       {dataKppn.map((item, idx) => {
+         const target = parseFloat(item.targetKppn) || 0;
+         const real = parseFloat(item.realPersen) || 0;
+         const isWarning = real < target;
+
+         return (
+           <div key={idx} className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
+              <div className="flex justify-between items-start mb-4">
+                 <div className={`p-3 rounded-2xl transition-all ${isWarning ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                    <TrendingUp size={20}/>
+                 </div>
+                 <div className="text-right leading-none">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Target KPPN: {item.targetKppn}%</span>
+                    <span className="text-[11px] font-bold text-blue-600 italic uppercase">{item.jenis}</span>
+                 </div>
               </div>
-            )}
+
+              <div className="mb-6">
+                 <div className="flex justify-between items-end mb-1">
+                    <span className="text-4xl font-black text-slate-800 tracking-tighter italic">{item.realPersen}%</span>
+                    <span className={`text-[10px] font-black uppercase italic ${isWarning ? 'text-rose-500' : 'text-emerald-500'}`}>
+                       {isWarning ? 'Di Bawah Target' : 'Mencapai Target'}
+                    </span>
+                 </div>
+                 {/* Progress Bar Visual */}
+                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-1000 ${isWarning ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                      style={{ width: `${Math.min(real, 100)}%` }}
+                    ></div>
+                 </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
+                 <span className="text-[9px] font-black text-slate-400 uppercase">Realisasi</span>
+                 <span className="text-[12px] font-bold text-slate-700 italic">Rp {item.realNominal}</span>
+              </div>
+           </div>
+         );
+       })}
+    </div>
+  </div>
+)}
 
             {activeTab !== 'dashboard' && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-slate-400 border-2 border-dashed border-slate-200 rounded-[3rem]">
