@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   LayoutDashboard, TableProperties, BarChart3, 
   ArrowLeftRight, ClipboardCheck, Wallet, Menu, User, LogOut
