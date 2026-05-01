@@ -19,47 +19,51 @@ export default function MeseIkpaV3() {
 
   const fetchSheetData = async () => {
     setLoading(true);
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSUbViIHpH0RcdJJQ3PuiEqY187u6Mg16jFnYFpG6CEIucA0b7PIOA6HYcMuhIXR3ItTAC-izjeoQXr/pub?gid=2098386606&single=true&output=csv";
+    const sheetUrl = "GANTI_DENGAN_LINK_CSV_ANDA";
     
     try {
       const response = await fetch(sheetUrl);
       const csvText = await response.text();
       const rows = csvText.split('\n').map(row => row.split(','));
       
-      // LOGIKA PEMILIHAN KOLOM BERDASARKAN TW
-      // TW I: Target% di Kolom 3 (D), Real% di Kolom 8 (I)
-      // TW II: Target% di Kolom 10 (K), Real% di Kolom 15 (P)
-      const targetCol = selectedTW === 1 ? 3 : 10;
-      const realCol = selectedTW === 1 ? 8 : 15;
-      const nominalCol = selectedTW === 1 ? 6 : 13;
+      // Penentuan titik awal kolom berdasarkan TW (Indeks 0-based)
+      // TW I mulai dari indeks 2 (Kolom C)
+      // TW II mulai dari indeks 9 (Kolom J)
+      const baseCol = selectedTW === 1 ? 2 : 9;
 
       const cleanData = [
         { 
-          jenis: rows[2][1], 
-          pagu: rows[2][2], 
-          targetKppn: rows[2][targetCol], 
-          realNominal: rows[2][nominalCol], 
-          realPersen: rows[2][realCol] 
+          jenis: rows[2][1], // Belanja Pegawai (51)
+          pagu: rows[2][baseCol], 
+          persenTarget: rows[2][baseCol + 1], // Kolom D atau K
+          nominalTarget: rows[2][baseCol + 2], // Kolom E atau L
+          nominalReal: rows[2][baseCol + 4], // Kolom G atau N
+          nominalGap: rows[2][baseCol + 5], // Kolom H atau O
+          persenReal: rows[2][baseCol + 6] // Kolom I atau P
         },
         { 
-          jenis: rows[3][1], 
-          pagu: rows[3][2], 
-          targetKppn: rows[3][targetCol], 
-          realNominal: rows[3][nominalCol], 
-          realPersen: rows[3][realCol] 
+          jenis: rows[3][1], // Belanja Barang (52)
+          pagu: rows[3][baseCol], 
+          persenTarget: rows[3][baseCol + 1],
+          nominalTarget: rows[3][baseCol + 2],
+          nominalReal: rows[3][baseCol + 4],
+          nominalGap: rows[3][baseCol + 5],
+          persenReal: rows[3][baseCol + 6]
         },
         { 
-          jenis: rows[4][1], 
-          pagu: rows[4][2], 
-          targetKppn: rows[4][targetCol], 
-          realNominal: rows[4][nominalCol], 
-          realPersen: rows[4][realCol] 
+          jenis: rows[4][1], // Belanja Modal (53)
+          pagu: rows[4][baseCol], 
+          persenTarget: rows[4][baseCol + 1],
+          nominalTarget: rows[4][baseCol + 2],
+          nominalReal: rows[4][baseCol + 4],
+          nominalGap: rows[4][baseCol + 5],
+          persenReal: rows[4][baseCol + 6]
         }
       ];
       
       setDataKppn(cleanData.filter(item => item.jenis));
     } catch (error) {
-      console.error("Error ambil data:", error);
+      console.error("Gagal sinkronisasi data:", error);
     } finally {
       setLoading(false);
     }
@@ -144,50 +148,58 @@ export default function MeseIkpaV3() {
     </div>
 
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-       {dataKppn.map((item, idx) => {
-         const target = parseFloat(item.targetKppn) || 0;
-         const real = parseFloat(item.realPersen) || 0;
-         const isWarning = real < target;
+  {dataKppn.map((item, idx) => {
+    const pTarget = parseFloat(item.persenTarget) || 0;
+    const pReal = parseFloat(item.persenReal) || 0;
+    const isWarning = pReal < pTarget;
 
-         return (
-           <div key={idx} className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
-              <div className="flex justify-between items-start mb-4">
-                 <div className={`p-3 rounded-2xl transition-all ${isWarning ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                    <TrendingUp size={20}/>
-                 </div>
-                 <div className="text-right leading-none">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Target KPPN: {item.targetKppn}%</span>
-                    <span className="text-[11px] font-bold text-blue-600 italic uppercase">{item.jenis}</span>
-                 </div>
-              </div>
+    return (
+      <div key={idx} className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm relative overflow-hidden">
+        {/* HEADER KARTU */}
+        <div className="flex justify-between items-start mb-4">
+          <div className={`p-3 rounded-2xl ${isWarning ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+            <TrendingUp size={20}/>
+          </div>
+          <div className="text-right leading-none">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1 italic">Target: {item.persenTarget}%</span>
+            <span className="text-[11px] font-bold text-blue-600 italic uppercase tracking-tighter">{item.jenis}</span>
+          </div>
+        </div>
 
-              <div className="mb-6">
-                 <div className="flex justify-between items-end mb-1">
-                    <span className="text-4xl font-black text-slate-800 tracking-tighter italic">{item.realPersen}%</span>
-                    <span className={`text-[10px] font-black uppercase italic ${isWarning ? 'text-rose-500' : 'text-emerald-500'}`}>
-                       {isWarning ? 'Di Bawah Target' : 'Mencapai Target'}
-                    </span>
-                 </div>
-                 {/* Progress Bar Visual */}
-                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full transition-all duration-1000 ${isWarning ? 'bg-rose-500' : 'bg-emerald-500'}`}
-                      style={{ width: `${Math.min(real, 100)}%` }}
-                    ></div>
-                 </div>
-              </div>
+        {/* UTAMA: PERSENTASE REALISASI */}
+        <div className="mb-4">
+          <div className="flex justify-between items-end mb-1">
+            <span className="text-4xl font-black text-slate-800 tracking-tighter italic">{item.persenReal}%</span>
+            <span className={`text-[9px] font-black uppercase ${isWarning ? 'text-rose-500' : 'text-emerald-500'}`}>
+              {isWarning ? 'Di Bawah Target' : 'Melampaui Target'}
+            </span>
+          </div>
+          {/* Progress Bar */}
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div 
+              className={`h-full transition-all duration-1000 ${isWarning ? 'bg-rose-500' : 'bg-emerald-500'}`}
+              style={{ width: `${Math.min(pReal, 100)}%` }}
+            ></div>
+          </div>
+        </div>
 
-              <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
-                 <span className="text-[9px] font-black text-slate-400 uppercase">Realisasi</span>
-                 <span className="text-[12px] font-bold text-slate-700 italic">Rp {item.realNominal}</span>
-              </div>
-           </div>
-         );
-       })}
-    </div>
-  </div>
-)}
-
+        {/* DETAIL ANGGARAN & GAP */}
+        <div className="pt-4 border-t border-slate-100 space-y-2">
+          <div className="flex justify-between items-center text-[10px] font-black uppercase italic">
+            <span className="text-slate-400 tracking-tighter">Realisasi (Rp)</span>
+            <span className="text-slate-800">Rp {item.nominalReal}</span>
+          </div>
+          <div className="flex justify-between items-center text-[10px] font-black uppercase italic">
+            <span className="text-slate-400 tracking-tighter">Gap Anggaran (H/O)</span>
+            <span className={item.nominalGap.includes('-') ? 'text-rose-600' : 'text-emerald-600'}>
+              Rp {item.nominalGap}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  })}
+</div>
             {activeTab !== 'dashboard' && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-slate-400 border-2 border-dashed border-slate-200 rounded-[3rem]">
                 <p className="font-black uppercase tracking-[0.3em] text-[10px] italic">Modul {activeTab} dalam pengembangan...</p>
