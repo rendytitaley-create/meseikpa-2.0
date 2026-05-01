@@ -199,7 +199,7 @@ export default function MeseIkpaV3() {
       </div>
     );
   })}
-</div>
+
             {activeTab !== 'dashboard' && (
               <div className="flex flex-col items-center justify-center h-[50vh] text-slate-400 border-2 border-dashed border-slate-200 rounded-[3rem]">
                 <p className="font-black uppercase tracking-[0.3em] text-[10px] italic">Modul {activeTab} dalam pengembangan...</p>
