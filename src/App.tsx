@@ -2,37 +2,32 @@
 
 import { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, 
-  TableProperties, 
-  ArrowLeftRight, 
-  ClipboardCheck, 
-  Wallet, 
-  Menu, 
-  User, 
-  TrendingUp 
+  LayoutDashboard, TableProperties, 
+  ArrowLeftRight, ClipboardCheck, Wallet, Menu, User, TrendingUp
 } from 'lucide-react';
 
 export default function MeseIkpaV3() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
+  // STATE UNTUK MENYIMPAN DATA DARI GOOGLE SHEETS
   const [dataKppn, setDataKppn] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   // --- FUNGSI AMBIL DATA (FETCHER) ---
   const fetchSheetData = async () => {
     setLoading(true);
-    
-    // TEMPELKAN LINK CSV SHEET "T-KPPN VS R-BPSSBB" DI BAWAH INI
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSUbViIHpH0RcdJJQ3PuiEqY187u6Mg16jFnYFpG6CEIucA0b7PIOA6HYcMuhIXR3ItTAC-izjeoQXr/pub?gid=2098386606&single=true&output=csvA";
+    // GANTI link di bawah ini dengan link CSV Sheet "T-KPPN VS R-BPSSBB" Anda
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSUbViIHpH0RcdJJQ3PuiEqY187u6Mg16jFnYFpG6CEIucA0b7PIOA6HYcMuhIXR3ItTAC-izjeoQXr/pub?gid=2098386606&single=true&output=csv";
     
     try {
       const response = await fetch(sheetUrl);
       const csvText = await response.text();
       
+      // Mengubah teks CSV menjadi baris-baris data
       const rows = csvText.split('\n').map(row => row.split(','));
       
-      // Mengambil data Belanja Pegawai (Baris 4) dan Belanja Barang (Baris 5)
+      // Kita ambil baris ke-4 dan ke-5 (indeks 3 dan 4) untuk Belanja Pegawai & Barang
       const cleanData = [
         { jenis: rows[3][1], pagu: rows[3][2], target: rows[3][4], real: rows[3][6], persen: rows[3][8] },
         { jenis: rows[4][1], pagu: rows[4][2], target: rows[4][4], real: rows[4][6], persen: rows[4][8] }
@@ -46,6 +41,7 @@ export default function MeseIkpaV3() {
     }
   };
 
+  // Jalankan pengambilan data saat aplikasi dibuka
   useEffect(() => {
     fetchSheetData();
   }, []);
@@ -110,6 +106,7 @@ export default function MeseIkpaV3() {
             
             {activeTab === 'dashboard' && (
               <div className="space-y-8 animate-in">
+                {/* Banner Utama */}
                 <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl">
                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full -mr-32 -mt-32 blur-3xl"></div>
                    <div className="relative z-10">
@@ -118,6 +115,7 @@ export default function MeseIkpaV3() {
                    </div>
                 </div>
 
+                {/* Ringkasan dari Spreadsheet */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                    {dataKppn.map((item, idx) => (
                      <div key={idx} className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-xl transition-all group">
